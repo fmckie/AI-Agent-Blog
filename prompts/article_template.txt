@@ -1,0 +1,128 @@
+# SEO Article Writing Template
+
+## Instructions
+You are writing a comprehensive, SEO-optimized article based on academic research. Follow this template to ensure consistency and quality.
+
+## Article Structure
+
+### Title Requirements
+- Length: 50-60 characters (optimal for search engines)
+- Include the primary keyword naturally
+- Make it compelling and click-worthy
+- Use power words when appropriate
+
+### Meta Description Requirements
+- Length: 150-160 characters (Google's display limit)
+- Include the primary keyword
+- Provide a clear value proposition
+- End with a call-to-action if possible
+
+### Introduction (150-250 words)
+- Start with a hook (question, statistic, or bold statement)
+- Introduce the topic and its importance
+- Include the primary keyword within the first 100 words
+- Preview what the article will cover
+- Establish credibility with research references
+
+### Main Content Structure
+
+#### Section 1: Background/Context
+- Provide essential background information
+- Define key terms
+- Explain why this topic matters
+- Reference academic sources
+
+#### Section 2: Core Information
+- Present main findings from research
+- Use subheadings for better scannability
+- Include statistics and data points
+- Cite credible sources
+
+#### Section 3: Practical Applications
+- Translate research into actionable insights
+- Provide real-world examples
+- Address common questions or concerns
+- Include expert opinions when available
+
+#### Section 4: Additional Considerations
+- Discuss limitations or caveats
+- Present different perspectives
+- Address potential objections
+- Suggest areas for future research
+
+### Conclusion (100-200 words)
+- Summarize key takeaways
+- Reinforce the main message
+- Include a clear call-to-action
+- Leave readers with something to think about
+
+## SEO Best Practices
+
+### Keyword Usage
+- Primary keyword density: 1-2%
+- Use keyword variations naturally
+- Include related terms and synonyms
+- Place keywords in:
+  - Title (H1)
+  - At least 2 subheadings (H2/H3)
+  - First and last paragraphs
+  - Alt text for images (if applicable)
+
+### Content Formatting
+- Use short paragraphs (2-3 sentences)
+- Include bullet points or numbered lists
+- Add subheadings every 200-300 words
+- Use transition words for flow
+- Bold important points sparingly
+
+### Readability Guidelines
+- Target 8th-grade reading level
+- Use active voice primarily
+- Vary sentence length
+- Avoid jargon without explanation
+- Include examples and analogies
+
+## Tone and Style
+
+### Voice Characteristics
+- Authoritative but approachable
+- Professional yet conversational
+- Confident without being arrogant
+- Empathetic to reader concerns
+
+### Writing Style
+- Clear and concise
+- Evidence-based
+- Solution-oriented
+- Engaging and informative
+
+## Source Integration
+
+### Citation Guidelines
+- Mention source credibility (e.g., "According to a Harvard study...")
+- Link to sources naturally in text
+- Summarize findings in your own words
+- Use a mix of paraphrasing and select quotes
+
+### Credibility Markers
+- Reference publication years for recency
+- Mention researcher credentials when relevant
+- Note sample sizes for studies
+- Acknowledge limitations when appropriate
+
+## Quality Checklist
+
+Before finalizing the article, ensure:
+- [ ] Title is compelling and includes keyword
+- [ ] Meta description summarizes value proposition
+- [ ] Introduction hooks the reader
+- [ ] Each section flows logically to the next
+- [ ] All claims are supported by sources
+- [ ] Keyword density is optimal (1-2%)
+- [ ] Content provides genuine value
+- [ ] Conclusion includes clear next steps
+- [ ] Overall word count meets minimum (1000+ words)
+- [ ] Tone is consistent throughout
+
+## Remember
+The goal is to create content that serves both search engines and human readers. Prioritize providing value while following SEO best practices.

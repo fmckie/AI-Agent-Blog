@@ -1,0 +1,31 @@
+# Core AI Framework
+pydantic-ai[openai]>=0.0.14  # PydanticAI with OpenAI model support
+
+# Data Validation and Settings
+pydantic>=2.0  # For data validation and settings management
+pydantic-settings>=2.0  # For configuration management
+
+# Async HTTP Client
+aiohttp>=3.9.0  # For async HTTP requests to Tavily API
+backoff>=2.2.0  # For exponential backoff retry logic
+
+# Environment Management
+python-dotenv>=1.0.0  # For loading environment variables
+
+# CLI Framework
+click>=8.1.0  # For command-line interface
+
+# Testing Dependencies
+pytest>=7.4.0  # Testing framework
+pytest-asyncio>=0.21.0  # For testing async code
+pytest-cov>=4.1.0  # For code coverage reports
+pytest-mock>=3.12.0  # For mocking in tests
+
+# Development Tools
+black>=23.0.0  # Code formatter
+isort>=5.12.0  # Import sorter
+mypy>=1.5.0  # Type checker
+flake8>=6.1.0  # Linter
+
+# Logging
+rich>=13.7.0  # For beautiful terminal output
