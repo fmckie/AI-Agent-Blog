@@ -1,0 +1,39 @@
+"""
+Tools for the Research Agent.
+
+This module contains the tool functions that the Research Agent uses
+to search for and analyze academic sources.
+"""
+
+import logging
+from typing import Dict, Any
+from pydantic_ai import RunContext
+
+from tools import search_academic_sources
+from config import Config
+
+logger = logging.getLogger(__name__)
+
+
+async def search_academic(ctx: RunContext[None], query: str, config: Config) -> Dict[str, Any]:
+    """
+    Search for academic sources using Tavily API.
+    
+    This tool is used by the Research Agent to find academic sources
+    relevant to the given query.
+    
+    Args:
+        ctx: PydanticAI run context
+        query: Search query for academic sources
+        config: System configuration with API keys
+        
+    Returns:
+        Search results from Tavily with credibility scores
+    """
+    logger.debug(f"Searching academic sources for: {query}")
+    
+    # Use the Tavily integration from the main tools module
+    results = await search_academic_sources(query, config)
+    
+    logger.info(f"Found {len(results.get('results', []))} academic sources")
+    return results

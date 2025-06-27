@@ -16,7 +16,8 @@ from typing import Optional, Tuple
 # Import our modules
 from config import Config
 from models import ResearchFindings, ArticleOutput
-from agents import create_research_agent, create_writer_agent
+from research_agent import create_research_agent
+from writer_agent import create_writer_agent
 
 # Set up logging
 logger = logging.getLogger(__name__)
