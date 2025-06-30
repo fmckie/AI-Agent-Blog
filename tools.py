@@ -10,14 +10,37 @@ import aiohttp
 import asyncio
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import backoff
+from collections import deque
 
 # Import our modules
 from config import Config
+from models import TavilySearchResult, TavilySearchResponse
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+
+# Custom exceptions for Tavily API
+class TavilyAPIError(Exception):
+    """Base exception for Tavily API errors."""
+    pass
+
+
+class TavilyAuthError(TavilyAPIError):
+    """Raised when authentication fails (401 status)."""
+    pass
+
+
+class TavilyRateLimitError(TavilyAPIError):
+    """Raised when API rate limit is exceeded (429 status)."""
+    pass
+
+
+class TavilyTimeoutError(TavilyAPIError):
+    """Raised when API request times out."""
+    pass
 
 
 class TavilyClient:
@@ -46,6 +69,12 @@ class TavilyClient:
         # Create session with timeout
         self.timeout_config = aiohttp.ClientTimeout(total=self.timeout)
         
+        # Rate limiting configuration
+        self.rate_limit_calls = 60  # Max calls per minute (adjust based on API limits)
+        self.rate_limit_window = 60  # Window in seconds
+        self._request_times: deque[datetime] = deque(maxlen=self.rate_limit_calls)
+        self._rate_limit_lock = asyncio.Lock()
+        
     async def __aenter__(self):
         """Async context manager entry."""
         self.session = aiohttp.ClientSession(timeout=self.timeout_config)
@@ -55,13 +84,45 @@ class TavilyClient:
         """Async context manager exit."""
         await self.session.close()
         
+    async def _check_rate_limit(self):
+        """
+        Check and enforce rate limiting.
+        
+        This method ensures we don't exceed the API rate limit by
+        tracking request times and delaying if necessary.
+        """
+        async with self._rate_limit_lock:
+            now = datetime.now()
+            
+            # Remove old requests outside the window
+            cutoff_time = now - timedelta(seconds=self.rate_limit_window)
+            while self._request_times and self._request_times[0] < cutoff_time:
+                self._request_times.popleft()
+            
+            # Check if we're at the limit
+            if len(self._request_times) >= self.rate_limit_calls:
+                # Calculate how long to wait
+                oldest_request = self._request_times[0]
+                wait_time = (oldest_request + timedelta(seconds=self.rate_limit_window) - now).total_seconds()
+                
+                if wait_time > 0:
+                    logger.warning(f"Rate limit reached. Waiting {wait_time:.2f} seconds...")
+                    await asyncio.sleep(wait_time)
+                    
+                    # Remove the oldest request after waiting
+                    self._request_times.popleft()
+            
+            # Record this request
+            self._request_times.append(now)
+        
     @backoff.on_exception(
         backoff.expo,
-        (aiohttp.ClientError, asyncio.TimeoutError),
+        (TavilyAPIError, TavilyTimeoutError),  # Retry on our custom exceptions
         max_tries=3,
-        max_time=60
+        max_time=60,
+        giveup=lambda e: isinstance(e, (TavilyAuthError, TavilyRateLimitError))
     )
-    async def search(self, query: str) -> Dict[str, Any]:
+    async def search(self, query: str) -> TavilySearchResponse:
         """
         Search for academic sources using Tavily API.
         
@@ -69,13 +130,18 @@ class TavilyClient:
             query: Search query string
             
         Returns:
-            Dict containing search results
+            TavilySearchResponse containing search results
             
         Raises:
-            aiohttp.ClientError: On API errors
-            asyncio.TimeoutError: On timeout
+            TavilyAuthError: On authentication failure
+            TavilyRateLimitError: On rate limit exceeded
+            TavilyTimeoutError: On timeout
+            TavilyAPIError: On other API errors
         """
         logger.info(f"Searching Tavily for: {query}")
+        
+        # Check rate limit before making request
+        await self._check_rate_limit()
         
         # Prepare request payload
         payload = {
@@ -116,21 +182,21 @@ class TavilyClient:
             
             # Handle specific error codes
             if e.status == 401:
-                raise ValueError("Invalid Tavily API key")
+                raise TavilyAuthError("Invalid Tavily API key") from e
             elif e.status == 429:
-                raise ValueError("Tavily API rate limit exceeded")
+                raise TavilyRateLimitError("Tavily API rate limit exceeded") from e
             else:
-                raise
+                raise TavilyAPIError(f"API request failed with status {e.status}") from e
                 
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as e:
             logger.error(f"Tavily API timeout after {self.timeout}s")
-            raise
+            raise TavilyTimeoutError(f"Request timed out after {self.timeout}s") from e
             
         except Exception as e:
             logger.error(f"Unexpected error calling Tavily API: {e}")
-            raise
+            raise TavilyAPIError(f"Unexpected error: {str(e)}") from e
             
-    def _process_results(self, data: Dict[str, Any], query: str) -> Dict[str, Any]:
+    def _process_results(self, data: Dict[str, Any], query: str) -> TavilySearchResponse:
         """
         Process and enhance Tavily search results.
         
@@ -139,36 +205,47 @@ class TavilyClient:
             query: Original search query
             
         Returns:
-            Processed results with credibility scores
+            TavilySearchResponse with processed results
         """
-        # Extract results
-        results = data.get("results", [])
+        # Extract raw results
+        raw_results = data.get("results", [])
         
-        # Enhance each result with credibility scoring
-        for result in results:
+        # Convert to Pydantic models with enhanced data
+        processed_results = []
+        for result in raw_results:
             # Calculate credibility score
-            result["credibility_score"] = self._calculate_credibility(result)
+            credibility = self._calculate_credibility(result)
             
-            # Extract domain
-            url = result.get("url", "")
-            result["domain"] = self._extract_domain(url)
-            
-            # Add processing timestamp
-            result["processed_at"] = datetime.now().isoformat()
+            # Create TavilySearchResult model
+            search_result = TavilySearchResult(
+                title=result.get("title", ""),
+                url=result.get("url", ""),
+                content=result.get("content", ""),
+                score=result.get("score"),
+                credibility_score=credibility,
+                domain=self._extract_domain(result.get("url", "")),
+                processed_at=datetime.now()
+            )
+            processed_results.append(search_result)
             
         # Sort by credibility score
-        results.sort(key=lambda x: x["credibility_score"], reverse=True)
+        processed_results.sort(key=lambda x: x.credibility_score or 0, reverse=True)
         
-        # Add metadata
-        data["query"] = query
-        data["processing_metadata"] = {
-            "total_results": len(results),
-            "academic_results": len([r for r in results if r["credibility_score"] >= 0.7]),
+        # Create processing metadata
+        processing_metadata = {
+            "total_results": len(processed_results),
+            "academic_results": len([r for r in processed_results if (r.credibility_score or 0) >= 0.7]),
             "search_depth": self.search_depth,
             "timestamp": datetime.now().isoformat()
         }
         
-        return data
+        # Create and return response model
+        return TavilySearchResponse(
+            query=query,
+            results=processed_results,
+            answer=data.get("answer"),
+            processing_metadata=processing_metadata
+        )
         
     def _calculate_credibility(self, result: Dict[str, Any]) -> float:
         """
@@ -238,7 +315,7 @@ class TavilyClient:
 
 
 # Convenience function for use in agents
-async def search_academic_sources(query: str, config: Config) -> Dict[str, Any]:
+async def search_academic_sources(query: str, config: Config) -> TavilySearchResponse:
     """
     Search for academic sources using Tavily API.
     
@@ -250,7 +327,7 @@ async def search_academic_sources(query: str, config: Config) -> Dict[str, Any]:
         config: System configuration
         
     Returns:
-        Search results with credibility scores
+        TavilySearchResponse with academic search results
     """
     async with TavilyClient(config) as client:
         return await client.search(query)
@@ -368,9 +445,19 @@ def generate_slug(title: str) -> str:
     return slug
 
 
-# Export commonly used functions
+# Export commonly used functions and exceptions
 __all__ = [
+    # Exceptions
+    'TavilyAPIError',
+    'TavilyAuthError',
+    'TavilyRateLimitError',
+    'TavilyTimeoutError',
+    # Classes
     'TavilyClient',
+    # Models (re-exported for convenience)
+    'TavilySearchResult',
+    'TavilySearchResponse',
+    # Functions
     'search_academic_sources',
     'extract_key_statistics',
     'calculate_reading_time',

@@ -7,7 +7,7 @@ will produce, ensuring type safety and validation throughout the system.
 
 # Import Pydantic for data modeling
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 
@@ -167,7 +167,7 @@ class ResearchFindings(BaseModel):
     academic_sources: List[AcademicSource] = Field(
         ...,
         description="List of academic sources found",
-        min_items=1  # At least one source required
+        min_length=1  # At least one source required
     )
     
     # Extracted insights
@@ -182,7 +182,7 @@ class ResearchFindings(BaseModel):
     main_findings: List[str] = Field(
         ...,
         description="Main findings from the research",
-        min_items=3  # At least 3 main findings
+        min_length=3  # At least 3 main findings
     )
     
     # Metadata
@@ -304,7 +304,7 @@ class ArticleOutput(BaseModel):
     main_sections: List['ArticleSection'] = Field(
         ...,
         description="Main body sections of the article",
-        min_items=3  # At least 3 sections for depth
+        min_length=3  # At least 3 sections for depth
     )
     conclusion: str = Field(
         ...,
@@ -467,6 +467,116 @@ class ArticleSubsection(BaseModel):
         description="Subsection content",
         min_length=100
     )
+
+
+# Tavily API Response Models
+class TavilySearchResult(BaseModel):
+    """
+    Represents a single search result from Tavily API.
+    
+    This model provides type safety and validation for individual
+    search results returned by the Tavily search API.
+    """
+    
+    # Core result fields
+    title: str = Field(
+        ...,
+        description="Title of the search result"
+    )
+    url: str = Field(
+        ...,
+        description="URL of the search result"
+    )
+    content: str = Field(
+        ...,
+        description="Content snippet from the result"
+    )
+    score: Optional[float] = Field(
+        default=None,
+        description="Relevance score from Tavily"
+    )
+    
+    # Enhanced fields added by our processing
+    credibility_score: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Our calculated credibility score (0-1)"
+    )
+    domain: Optional[str] = Field(
+        default=None,
+        description="Domain extension (e.g., .edu, .gov)"
+    )
+    processed_at: Optional[datetime] = Field(
+        default=None,
+        description="Timestamp when result was processed"
+    )
+    
+    @field_validator("url")
+    def validate_url(cls, v: str) -> str:
+        """Ensure URL is properly formatted."""
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("URL must start with http:// or https://")
+        return v
+
+
+class TavilySearchResponse(BaseModel):
+    """
+    Represents the complete response from Tavily search API.
+    
+    This model structures the entire API response including
+    search results, metadata, and processing information.
+    """
+    
+    # Core response data
+    query: str = Field(
+        ...,
+        description="The search query that was executed"
+    )
+    results: List[TavilySearchResult] = Field(
+        default_factory=list,
+        description="List of search results"
+    )
+    answer: Optional[str] = Field(
+        default=None,
+        description="AI-generated answer from Tavily"
+    )
+    
+    # Processing metadata
+    processing_metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Our processing metadata"
+    )
+    
+    def get_academic_results(self, min_credibility: float = 0.7) -> List[TavilySearchResult]:
+        """
+        Get results that meet academic credibility threshold.
+        
+        Args:
+            min_credibility: Minimum credibility score (default 0.7)
+            
+        Returns:
+            List of academic search results
+        """
+        return [
+            result for result in self.results 
+            if result.credibility_score and result.credibility_score >= min_credibility
+        ]
+    
+    def get_results_by_domain(self, domain: str) -> List[TavilySearchResult]:
+        """
+        Get results from a specific domain type.
+        
+        Args:
+            domain: Domain extension (e.g., ".edu")
+            
+        Returns:
+            List of results from that domain
+        """
+        return [
+            result for result in self.results
+            if result.domain == domain
+        ]
 
 
 # Update forward references for nested models

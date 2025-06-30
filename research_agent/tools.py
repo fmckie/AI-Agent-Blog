@@ -33,7 +33,15 @@ async def search_academic(ctx: RunContext[None], query: str, config: Config) -> 
     logger.debug(f"Searching academic sources for: {query}")
     
     # Use the Tavily integration from the main tools module
-    results = await search_academic_sources(query, config)
+    response = await search_academic_sources(query, config)
     
-    logger.info(f"Found {len(results.get('results', []))} academic sources")
-    return results
+    # Convert the Pydantic model to dict for the agent
+    result_dict = {
+        "query": response.query,
+        "results": [result.model_dump() for result in response.results],
+        "answer": response.answer,
+        "processing_metadata": response.processing_metadata
+    }
+    
+    logger.info(f"Found {len(response.results)} academic sources")
+    return result_dict
