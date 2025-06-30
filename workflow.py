@@ -157,24 +157,30 @@ class WorkflowOrchestrator:
             Exception: If article generation fails
         """
         try:
-            # Prepare context for the writer
-            logger.debug("Preparing context for writer agent")
+            # Import the run_writer_agent function
+            from writer_agent.agent import run_writer_agent
             
-            # Create writing prompt with research context
-            writing_prompt = (
-                f"Write a comprehensive, SEO-optimized article about '{keyword}'. "
-                f"Base your content on the provided research findings. "
-                f"Ensure the article is engaging, informative, and well-structured."
+            # Log the writing phase start
+            logger.debug(f"Starting writing phase for keyword: {keyword}")
+            logger.debug(f"Using {len(research_findings.academic_sources)} sources")
+            
+            # Execute the writer agent
+            result = await run_writer_agent(
+                self.writer_agent,
+                keyword,
+                research_findings
             )
             
-            # Execute writer (placeholder for now)
-            # In Phase 4, this will use the actual PydanticAI agent
-            result = await self.writer_agent.run(
-                writing_prompt,
-                context={"research": research_findings}
+            # Log detailed results
+            logger.info(
+                f"Article generated successfully:\n"
+                f"  - Title: {result.title}\n"
+                f"  - Word count: {result.word_count}\n"
+                f"  - Sections: {len(result.main_sections)}\n"
+                f"  - Keyword density: {result.keyword_density:.2%}\n"
+                f"  - Sources cited: {len(result.sources_used)}"
             )
             
-            logger.info(f"Article generated. Word count: {result.word_count}")
             return result
             
         except Exception as e:

@@ -6,10 +6,11 @@ to access research context and perform content optimization.
 """
 
 import logging
-from typing import Dict, Any
+import re
+from typing import Dict, Any, List
 from pydantic_ai import RunContext
 
-from models import ResearchFindings
+from models import ResearchFindings, AcademicSource
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ def get_research_context(ctx: RunContext[Dict[str, Any]]) -> ResearchFindings:
     Returns:
         Research findings to base the article on
     """
+    # Get the research findings from the context
     return ctx.deps["research"]
 
 
@@ -39,7 +41,7 @@ def calculate_keyword_density(
     Calculate keyword density in content.
     
     This tool helps the Writer Agent ensure optimal keyword density
-    for SEO purposes.
+    for SEO purposes. It considers the main keyword and common variations.
     
     Args:
         ctx: PydanticAI run context
@@ -49,13 +51,209 @@ def calculate_keyword_density(
     Returns:
         Keyword density as a percentage
     """
-    # Simple keyword density calculation
-    words = content.lower().split()
-    keyword_lower = keyword.lower()
-    keyword_count = sum(1 for word in words if keyword_lower in word)
+    # Clean the content - remove HTML tags if any
+    clean_content = re.sub(r'<[^>]+>', '', content)
     
-    if len(words) == 0:
+    # Split into words and convert to lowercase
+    words = clean_content.lower().split()
+    total_words = len(words)
+    
+    if total_words == 0:
         return 0.0
-        
-    density = (keyword_count / len(words)) * 100
+    
+    # Count exact keyword matches
+    keyword_lower = keyword.lower()
+    keyword_words = keyword_lower.split()
+    
+    # Count single word keywords
+    if len(keyword_words) == 1:
+        keyword_count = sum(1 for word in words if keyword_lower in word)
+    else:
+        # Count multi-word keywords
+        content_lower = clean_content.lower()
+        keyword_count = content_lower.count(keyword_lower)
+    
+    # Calculate density
+    density = (keyword_count / total_words) * 100
     return round(density, 2)
+
+
+def format_sources_for_citation(
+    ctx: RunContext[Dict[str, Any]],
+    source_urls: List[str]
+) -> List[str]:
+    """
+    Format source URLs into proper citations.
+    
+    This tool helps the Writer Agent create properly formatted citations
+    for the sources used in the article.
+    
+    Args:
+        ctx: PydanticAI run context
+        source_urls: List of source URLs to format
+        
+    Returns:
+        List of formatted citations
+    """
+    # Get research findings to match URLs with full source data
+    research = ctx.deps["research"]
+    citations = []
+    
+    # Create a URL to source mapping
+    source_map = {source.url: source for source in research.academic_sources}
+    
+    for url in source_urls:
+        if url in source_map:
+            source = source_map[url]
+            # Use the built-in citation method
+            citations.append(source.to_citation())
+        else:
+            # Fallback for URLs not in research
+            citations.append(f"Source: {url}")
+    
+    return citations
+
+
+def check_seo_requirements(
+    ctx: RunContext[Dict[str, Any]],
+    title: str,
+    meta_description: str,
+    content: str,
+    keyword: str
+) -> Dict[str, Any]:
+    """
+    Check if content meets SEO requirements.
+    
+    This tool validates various SEO aspects of the content including
+    title length, meta description length, keyword usage, and more.
+    
+    Args:
+        ctx: PydanticAI run context
+        title: Article title
+        meta_description: Meta description
+        content: Full article content
+        keyword: Target keyword
+        
+    Returns:
+        Dictionary with SEO validation results
+    """
+    results = {
+        "passes_all": True,
+        "checks": {}
+    }
+    
+    # Check title length (50-60 characters optimal)
+    title_length = len(title)
+    results["checks"]["title_length"] = {
+        "value": title_length,
+        "optimal": 50 <= title_length <= 60,
+        "message": f"Title length: {title_length} chars (optimal: 50-60)"
+    }
+    
+    # Check if keyword is in title
+    results["checks"]["keyword_in_title"] = {
+        "value": keyword.lower() in title.lower(),
+        "optimal": True,
+        "message": f"Keyword '{keyword}' {'found' if keyword.lower() in title.lower() else 'not found'} in title"
+    }
+    
+    # Check meta description length (150-160 characters optimal)
+    meta_length = len(meta_description)
+    results["checks"]["meta_length"] = {
+        "value": meta_length,
+        "optimal": 150 <= meta_length <= 160,
+        "message": f"Meta description length: {meta_length} chars (optimal: 150-160)"
+    }
+    
+    # Check if keyword is in meta description
+    results["checks"]["keyword_in_meta"] = {
+        "value": keyword.lower() in meta_description.lower(),
+        "optimal": True,
+        "message": f"Keyword '{keyword}' {'found' if keyword.lower() in meta_description.lower() else 'not found'} in meta description"
+    }
+    
+    # Check keyword density (1-2% optimal)
+    density = calculate_keyword_density(ctx, content, keyword)
+    results["checks"]["keyword_density"] = {
+        "value": density,
+        "optimal": 1.0 <= density <= 2.0,
+        "message": f"Keyword density: {density}% (optimal: 1-2%)"
+    }
+    
+    # Check content length
+    word_count = len(content.split())
+    results["checks"]["word_count"] = {
+        "value": word_count,
+        "optimal": word_count >= 1000,
+        "message": f"Word count: {word_count} (minimum: 1000)"
+    }
+    
+    # Check if all checks passed
+    results["passes_all"] = all(
+        check["optimal"] for check in results["checks"].values()
+    )
+    
+    return results
+
+
+def generate_keyword_variations(
+    ctx: RunContext[Dict[str, Any]],
+    keyword: str
+) -> List[str]:
+    """
+    Generate keyword variations for better SEO.
+    
+    This tool creates variations of the target keyword including
+    plurals, related terms, and long-tail variations.
+    
+    Args:
+        ctx: PydanticAI run context
+        keyword: Target keyword
+        
+    Returns:
+        List of keyword variations
+    """
+    variations = [keyword]  # Start with the original
+    
+    # Convert to lowercase for processing
+    keyword_lower = keyword.lower()
+    words = keyword_lower.split()
+    
+    # Add plural/singular variations
+    if keyword_lower.endswith('s'):
+        # Likely plural, add singular
+        variations.append(keyword_lower[:-1])
+    else:
+        # Likely singular, add plural
+        variations.append(keyword_lower + 's')
+    
+    # Add variations with common prefixes
+    prefixes = ['best', 'top', 'how to', 'what is', 'guide to']
+    for prefix in prefixes:
+        if not keyword_lower.startswith(prefix):
+            variations.append(f"{prefix} {keyword_lower}")
+    
+    # Add variations with common suffixes
+    suffixes = ['guide', 'tips', 'strategies', 'examples', 'benefits']
+    for suffix in suffixes:
+        if not keyword_lower.endswith(suffix):
+            variations.append(f"{keyword_lower} {suffix}")
+    
+    # Add word reordering for multi-word keywords
+    if len(words) == 2:
+        variations.append(f"{words[1]} {words[0]}")
+    
+    # Add hyphenated version for multi-word keywords
+    if len(words) > 1:
+        variations.append('-'.join(words))
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_variations = []
+    for v in variations:
+        v_lower = v.lower()
+        if v_lower not in seen:
+            seen.add(v_lower)
+            unique_variations.append(v)
+    
+    return unique_variations[:10]  # Return top 10 variations
