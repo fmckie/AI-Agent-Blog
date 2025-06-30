@@ -12,11 +12,12 @@ from datetime import datetime
 import json
 import logging
 from typing import Optional, Tuple
+import backoff
 
 # Import our modules
 from config import Config
 from models import ResearchFindings, ArticleOutput
-from research_agent import create_research_agent
+from research_agent import create_research_agent, run_research_agent
 from writer_agent import create_writer_agent
 
 # Set up logging
@@ -82,6 +83,15 @@ class WorkflowOrchestrator:
             logger.error(f"Workflow failed: {e}")
             raise
             
+    @backoff.on_exception(
+        backoff.expo,
+        Exception,
+        max_tries=3,
+        max_time=300,
+        on_backoff=lambda details: logger.warning(
+            f"Research retry {details['tries']} after {details['wait']:.1f}s"
+        )
+    )
     async def run_research(self, keyword: str) -> ResearchFindings:
         """
         Execute the research phase using the Research Agent.
@@ -93,24 +103,35 @@ class WorkflowOrchestrator:
             Research findings with academic sources
             
         Raises:
-            Exception: If research fails
+            Exception: If research fails after retries
         """
         try:
-            # Run the research agent
+            # Run the research agent with the new implementation
             logger.debug(f"Invoking research agent for: {keyword}")
             
-            # Create research prompt
-            research_prompt = (
-                f"Research the topic '{keyword}' using academic sources. "
-                f"Focus on peer-reviewed journals, educational institutions, "
-                f"and government sources. Provide comprehensive findings."
+            # Use the new run_research_agent function
+            result = await run_research_agent(self.research_agent, keyword)
+            
+            # Validate the result
+            if not result.academic_sources:
+                raise ValueError("No academic sources found in research results")
+            
+            # Additional validation
+            if len(result.academic_sources) < 3:
+                logger.warning(
+                    f"Only found {len(result.academic_sources)} sources, "
+                    f"which is below the recommended minimum of 3"
+                )
+            
+            # Log detailed results
+            logger.info(
+                f"Research completed successfully:\n"
+                f"  - Sources found: {len(result.academic_sources)}\n"
+                f"  - Main findings: {len(result.main_findings)}\n"
+                f"  - Statistics extracted: {len(result.key_statistics)}\n"
+                f"  - Research gaps identified: {len(result.research_gaps)}"
             )
             
-            # Execute research (placeholder for now)
-            # In Phase 3, this will use the actual PydanticAI agent
-            result = await self.research_agent.run(research_prompt)
-            
-            logger.info(f"Research completed. Found {len(result.academic_sources)} sources.")
             return result
             
         except Exception as e:

@@ -77,7 +77,18 @@ class TavilyClient:
         
     async def __aenter__(self):
         """Async context manager entry."""
-        self.session = aiohttp.ClientSession(timeout=self.timeout_config)
+        # Create SSL context that doesn't verify certificates (for development)
+        import ssl
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        
+        # Create connector with SSL context
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        self.session = aiohttp.ClientSession(
+            timeout=self.timeout_config,
+            connector=connector
+        )
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):

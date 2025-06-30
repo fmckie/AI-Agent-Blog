@@ -115,10 +115,10 @@ except ImportError as e:
 
 try:
     # Test research_agent module
-    from research_agent import create_research_agent
-    from research_agent.agent import _mock_research_agent_run
+    from research_agent import create_research_agent, run_research_agent
     from research_agent.prompts import RESEARCH_AGENT_SYSTEM_PROMPT
     from research_agent.tools import search_academic
+    from research_agent.utilities import format_apa_citation, assess_research_quality
     print("✓ research_agent module imported successfully")
 except ImportError as e:
     print(f"✗ research_agent import error: {e}")
@@ -126,7 +126,6 @@ except ImportError as e:
 try:
     # Test writer_agent module
     from writer_agent import create_writer_agent
-    from writer_agent.agent import _mock_writer_agent_run
     from writer_agent.prompts import WRITER_AGENT_SYSTEM_PROMPT
     from writer_agent.tools import get_research_context, calculate_keyword_density
     print("✓ writer_agent module imported successfully")

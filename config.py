@@ -8,7 +8,7 @@ output directories, and runtime parameters using Pydantic for validation.
 # Import required libraries for configuration management
 import os
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
@@ -75,9 +75,9 @@ class Config(BaseSettings):
         default="advanced",
         description="Tavily search depth - advanced provides better academic sources"
     )
-    tavily_include_domains: Optional[str] = Field(
-        default=".edu,.gov,.org",
-        description="Comma-separated list of domains to prioritize"
+    tavily_include_domains: Optional[List[str]] = Field(
+        default=None,
+        description="List of domains to prioritize (e.g., ['.edu', '.gov', '.org'])"
     )
     tavily_max_results: int = Field(
         default=10,
@@ -149,31 +149,44 @@ class Config(BaseSettings):
         
         return v.strip()
     
-    @field_validator("tavily_include_domains")
-    def parse_domains(cls, v: Optional[str]) -> Optional[list[str]]:
+    @field_validator("tavily_include_domains", mode='before')
+    def parse_domains(cls, v: Optional[str]) -> Optional[List[str]]:
         """
         Parse comma-separated domain list into a clean list.
         
         Args:
-            v: Comma-separated string of domains
+            v: Comma-separated string of domains or list
             
         Returns:
             List of cleaned domain strings or None
         """
-        if not v:
+        # If it's already a list, return it
+        if isinstance(v, list):
+            return v
+            
+        # If it's None, use default domains
+        if v is None:
+            return [".edu", ".gov", ".org"]
+            
+        # If it's empty string or just whitespace, return None
+        if isinstance(v, str) and not v.strip():
             return None
         
-        # Split by comma and clean each domain
-        domains = [d.strip() for d in v.split(",") if d.strip()]
+        # If it's a string, parse it
+        if isinstance(v, str):
+            # Split by comma and clean each domain
+            domains = [d.strip() for d in v.split(",") if d.strip()]
+            
+            # Ensure each domain starts with a dot
+            cleaned_domains = []
+            for domain in domains:
+                if not domain.startswith("."):
+                    domain = f".{domain}"
+                cleaned_domains.append(domain)
+            
+            return cleaned_domains if cleaned_domains else None
         
-        # Ensure each domain starts with a dot
-        cleaned_domains = []
-        for domain in domains:
-            if not domain.startswith("."):
-                domain = f".{domain}"
-            cleaned_domains.append(domain)
-        
-        return cleaned_domains if cleaned_domains else None
+        return None
     
     def get_tavily_config(self) -> dict:
         """

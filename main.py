@@ -14,12 +14,9 @@ import logging
 from rich.console import Console
 from rich.logging import RichHandler
 
-# Import our modules (to be implemented)
+# Import our modules
 from config import get_config
 from workflow import WorkflowOrchestrator
-
-# Import temporary agent patches (to be removed in Phase 3/4)
-import agent_patches
 
 # Set up rich console for beautiful output
 console = Console()
