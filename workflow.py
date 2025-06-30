@@ -7,16 +7,18 @@ managing data flow and error handling throughout the pipeline.
 
 # Import required libraries
 import asyncio
-from pathlib import Path
-from datetime import datetime
 import json
 import logging
+import re
+from datetime import datetime
+from pathlib import Path
 from typing import Optional, Tuple
+
 import backoff
 
 # Import our modules
 from config import Config
-from models import ResearchFindings, ArticleOutput
+from models import ArticleOutput, ResearchFindings
 from research_agent import create_research_agent, run_research_agent
 from writer_agent import create_writer_agent
 
@@ -27,62 +29,62 @@ logger = logging.getLogger(__name__)
 class WorkflowOrchestrator:
     """
     Orchestrates the content generation workflow.
-    
+
     This class manages the flow from keyword research through
     article generation, handling errors and saving outputs.
     """
-    
+
     def __init__(self, config: Config):
         """
         Initialize the workflow orchestrator.
-        
+
         Args:
             config: System configuration
         """
         self.config = config
-        
+
         # Create agents (will be implemented in agents.py)
         self.research_agent = create_research_agent(config)
         self.writer_agent = create_writer_agent(config)
-        
+
         # Set up output directory
         self.output_dir = config.output_dir
-        
+
     async def run_full_workflow(self, keyword: str) -> Path:
         """
         Run the complete workflow from research to article generation.
-        
+
         Args:
             keyword: The keyword to research and write about
-            
+
         Returns:
             Path to the generated article HTML file
-            
+
         Raises:
             Exception: If any step in the workflow fails
         """
         logger.info(f"Starting full workflow for keyword: {keyword}")
-        
+
         try:
             # Step 1: Run research
             logger.info("Step 1/3: Running research phase...")
             research_findings = await self.run_research(keyword)
-            
+
             # Step 2: Generate article
             logger.info("Step 2/3: Generating article...")
             article = await self.run_writing(keyword, research_findings)
-            
+
             # Step 3: Save outputs
             logger.info("Step 3/3: Saving outputs...")
             output_path = await self.save_outputs(keyword, research_findings, article)
-            
+
             logger.info(f"Workflow completed successfully. Output: {output_path}")
             return output_path
-            
+
         except Exception as e:
             logger.error(f"Workflow failed: {e}")
             raise
-            
+
     @backoff.on_exception(
         backoff.expo,
         Exception,
@@ -90,39 +92,39 @@ class WorkflowOrchestrator:
         max_time=300,
         on_backoff=lambda details: logger.warning(
             f"Research retry {details['tries']} after {details['wait']:.1f}s"
-        )
+        ),
     )
     async def run_research(self, keyword: str) -> ResearchFindings:
         """
         Execute the research phase using the Research Agent.
-        
+
         Args:
             keyword: The keyword to research
-            
+
         Returns:
             Research findings with academic sources
-            
+
         Raises:
             Exception: If research fails after retries
         """
         try:
             # Run the research agent with the new implementation
             logger.debug(f"Invoking research agent for: {keyword}")
-            
+
             # Use the new run_research_agent function
             result = await run_research_agent(self.research_agent, keyword)
-            
+
             # Validate the result
             if not result.academic_sources:
                 raise ValueError("No academic sources found in research results")
-            
+
             # Additional validation
             if len(result.academic_sources) < 3:
                 logger.warning(
                     f"Only found {len(result.academic_sources)} sources, "
                     f"which is below the recommended minimum of 3"
                 )
-            
+
             # Log detailed results
             logger.info(
                 f"Research completed successfully:\n"
@@ -131,46 +133,42 @@ class WorkflowOrchestrator:
                 f"  - Statistics extracted: {len(result.key_statistics)}\n"
                 f"  - Research gaps identified: {len(result.research_gaps)}"
             )
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Research phase failed: {e}")
             raise
-            
+
     async def run_writing(
-        self,
-        keyword: str,
-        research_findings: ResearchFindings
+        self, keyword: str, research_findings: ResearchFindings
     ) -> ArticleOutput:
         """
         Execute the writing phase using the Writer Agent.
-        
+
         Args:
             keyword: The target keyword for SEO
             research_findings: Research data to base the article on
-            
+
         Returns:
             Generated article with SEO optimization
-            
+
         Raises:
             Exception: If article generation fails
         """
         try:
             # Import the run_writer_agent function
             from writer_agent.agent import run_writer_agent
-            
+
             # Log the writing phase start
             logger.debug(f"Starting writing phase for keyword: {keyword}")
             logger.debug(f"Using {len(research_findings.academic_sources)} sources")
-            
+
             # Execute the writer agent
             result = await run_writer_agent(
-                self.writer_agent,
-                keyword,
-                research_findings
+                self.writer_agent, keyword, research_findings
             )
-            
+
             # Log detailed results
             logger.info(
                 f"Article generated successfully:\n"
@@ -180,79 +178,80 @@ class WorkflowOrchestrator:
                 f"  - Keyword density: {result.keyword_density:.2%}\n"
                 f"  - Sources cited: {len(result.sources_used)}"
             )
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Writing phase failed: {e}")
             raise
-            
+
     async def save_outputs(
-        self,
-        keyword: str,
-        research: ResearchFindings,
-        article: ArticleOutput
+        self, keyword: str, research: ResearchFindings, article: ArticleOutput
     ) -> Path:
         """
         Save all outputs to the filesystem.
-        
+
         Creates a directory for each article containing:
         - article.html: The generated article
         - research.json: Research data for reference
         - index.html: Review interface
-        
+
         Args:
             keyword: The keyword (used for directory naming)
             research: Research findings to save
             article: Generated article to save
-            
+
         Returns:
             Path to the output directory
         """
         try:
             # Create output directory with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_keyword = "".join(c if c.isalnum() or c in "-_" else "_" for c in keyword)
+            # Sanitize keyword for filename - replace special chars with single underscore
+            safe_keyword = re.sub(r'[^\w\-_]', '_', keyword)
+            # Remove multiple consecutive underscores
+            safe_keyword = re.sub(r'_+', '_', safe_keyword)
+            # Remove leading/trailing underscores
+            safe_keyword = safe_keyword.strip('_')
             output_dir = self.output_dir / f"{safe_keyword}_{timestamp}"
             output_dir.mkdir(parents=True, exist_ok=True)
-            
+
             # Save article HTML
             article_path = output_dir / "article.html"
             article_html = article.to_html()
-            
+
             # Add styling to the HTML
             styled_html = self._add_styling_to_html(article_html)
             article_path.write_text(styled_html, encoding="utf-8")
             logger.debug(f"Saved article to: {article_path}")
-            
+
             # Save research data as JSON
             research_path = output_dir / "research.json"
             research_data = research.model_dump()
             research_path.write_text(
-                json.dumps(research_data, indent=2, default=str),
-                encoding="utf-8"
+                json.dumps(research_data, indent=2, default=str), encoding="utf-8"
             )
             logger.debug(f"Saved research data to: {research_path}")
-            
+
             # Create review interface
             index_path = output_dir / "index.html"
             review_html = self._create_review_interface(keyword, article, research)
             index_path.write_text(review_html, encoding="utf-8")
             logger.debug(f"Created review interface at: {index_path}")
-            
+
             return index_path
-            
+
         except Exception as e:
             logger.error(f"Failed to save outputs: {e}")
             raise
-            
+
     def _add_styling_to_html(self, html: str) -> str:
         """
         Add CSS styling to the generated HTML.
-        
+
         Args:
             html: Raw HTML from article generation
-            
+
         Returns:
             HTML with embedded CSS styling
         """
@@ -310,24 +309,21 @@ class WorkflowOrchestrator:
             }
         </style>
         """
-        
+
         # Insert CSS before </head>
         return html.replace("</head>", f"{css}</head>")
-        
+
     def _create_review_interface(
-        self,
-        keyword: str,
-        article: ArticleOutput,
-        research: ResearchFindings
+        self, keyword: str, article: ArticleOutput, research: ResearchFindings
     ) -> str:
         """
         Create an HTML review interface for the generated content.
-        
+
         Args:
             keyword: The researched keyword
             article: Generated article
             research: Research findings
-            
+
         Returns:
             HTML for the review interface
         """

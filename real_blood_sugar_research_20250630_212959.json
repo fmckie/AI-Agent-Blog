@@ -1,0 +1,62 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Research on blood sugar monitoring indicates a growing acceptance and utilization of continuous glucose monitors (CGMs) in managing diabetes effectively. Key findings from recent studies show that CGMs can reduce the frequency of finger prick tests and provide real-time data that enhances patient understanding of their glucose levels and influences lifestyle choices. A study from the University of Colorado revealed that primary care clinics can facilitate the uptake of these devices, potentially leading to better health outcomes. Despite these advancements, further investigation is needed into the long-term impacts of CGM use in diverse populations, including non-diabetic individuals, with less than half of primary care practitioners currently prescribing them due to barriers in access and knowledge.",
+  "academic_sources": [
+    {
+      "title": "Scientists Seek Ways to Open More Patient Doors to Advanced Blood Sugar ...",
+      "url": "https://news.cuanschutz.edu/news-stories/primary-care-clinics-can-successfully-use-glucose-monitors-to-help-people-with-diabetes",
+      "authors": [
+        "University of Colorado Anschutz Medical Campus"
+      ],
+      "publication_date": "2023-07-12",
+      "journal_name": "BMC Primary Care",
+      "excerpt": "A new study from the University of Colorado Anschutz Medical Campus shows that primary care clinics can successfully help patients start using continuous glucose monitors (CGMs), which track blood sugar levels in real time.",
+      "domain": ".edu",
+      "credibility_score": 0.82,
+      "source_type": "journal"
+    },
+    {
+      "title": "Is blood sugar monitoring without diabetes worthwhile?",
+      "url": "https://www.health.harvard.edu/blog/is-blood-sugar-monitoring-without-diabetes-worthwhile-202106112473",
+      "authors": [
+        "Harvard Health"
+      ],
+      "publication_date": "2021-06-11",
+      "journal_name": "Harvard Health Blog",
+      "excerpt": "Implantable blood sugar monitoring devices known as CGMs have revolutionized care for millions of people with diabetes.",
+      "domain": ".edu",
+      "credibility_score": 0.8,
+      "source_type": "blog"
+    },
+    {
+      "title": "Continuous glucose monitors (CGMs) for type 2 diabetes: When and for ...",
+      "url": "https://www.health.harvard.edu/diseases-and-conditions/continuous-glucose-monitors-cgms-for-type-2-diabetes-when-and-for-whom-are-they-useful",
+      "authors": [
+        "Harvard Health"
+      ],
+      "publication_date": "2022-05-24",
+      "journal_name": "Harvard Health",
+      "excerpt": "Continuous glucose monitors, or CGMs, offer valuable and accurate insights into blood sugar levels, allowing some individuals with diabetes to make better-informed decisions about medications, diet, exercise, and overall diabetes management.",
+      "domain": ".edu",
+      "credibility_score": 0.8,
+      "source_type": "article"
+    }
+  ],
+  "key_statistics": [
+    "CGMs measure glucose levels every five minutes, providing real-time insights into blood sugar trends.",
+    "Less than 50% of primary care doctors in the U.S. have ever prescribed a CGM, despite their proven benefits."
+  ],
+  "research_gaps": [
+    "Further research is needed on the long-term efficacy of CGMs in non-diabetic individuals.",
+    "Exploration of barriers that prevent wider adoption of CGMs in primary care settings.",
+    "Investigating the impact of socioeconomic factors on the accessibility and utilization of CGMs."
+  ],
+  "main_findings": [
+    "CGMs significantly reduce the need for finger pricks, providing continuous monitoring of blood sugar levels.",
+    "Patients using CGMs can better manage their diabetes by making informed decisions based on real-time data.",
+    "There is a need for greater physician education on CGM benefits to enhance prescription rates."
+  ],
+  "total_sources_analyzed": 3,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-06-30 21:29:59.259156"
+}

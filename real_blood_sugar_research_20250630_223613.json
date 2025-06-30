@@ -1,0 +1,55 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Recent advancements in blood sugar monitoring highlight its critical role in diabetes management. The CDC emphasizes the importance of regular monitoring to identify patterns in blood glucose levels for personalized care. Continuous glucose monitoring (CGM) provides real-time data, which can significantly improve glycemic control. However, challenges remain in optimizing the use of these technologies, especially in diverse populations with varying access to resources and healthcare education.",
+  "academic_sources": [
+    {
+      "title": "Monitoring Your Blood Sugar | Diabetes | CDC",
+      "url": "https://www.cdc.gov/diabetes/diabetes-testing/monitoring-blood-sugar.html",
+      "authors": [
+        "Centers for Disease Control and Prevention"
+      ],
+      "publication_date": "2025-06-30T22:35:51.364926",
+      "journal_name": "CDC",
+      "excerpt": "Monitoring will help you figure out what affects your numbers, find patterns, and adjust as you go. By checking regularly you'll be more likely to achieve your blood sugar target ranges.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "government"
+    },
+    {
+      "title": "Blood glucose monitoring in diabetes: rationale and procedure",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30969870/",
+      "authors": [
+        "Not Specified"
+      ],
+      "publication_date": "2019-04-01",
+      "journal_name": "PubMed",
+      "excerpt": "Appropriate and timely monitoring of blood glucose will allow for successful management of blood glucose that is out of the target range.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "journal"
+    },
+    {
+      "title": "Continuous Glucose Monitoring: A Review of Available Systems",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6705487/",
+      "authors": [
+        "Not Specified"
+      ],
+      "publication_date": "2019-04-01",
+      "journal_name": "PMC",
+      "excerpt": "Continuous glucose monitoring measures glucose levels in the interstitial fluid as a way to optimize glucose control by keeping levels in their target range for a longer period of time, thereby improving HbA1c.",
+      "domain": ".gov",
+      "credibility_score": 0.75,
+      "source_type": "journal"
+    }
+  ],
+  "key_statistics": [],
+  "research_gaps": [],
+  "main_findings": [
+    "Regular blood sugar monitoring aids in understanding individual patterns of glucose levels, leading to better diabetes management.",
+    "Continuous glucose monitors can improve hemoglobin A1c levels and reduce complications in diabetes patients.",
+    "Healthcare professionals emphasize the importance of timely and accurate glucose monitoring procedures."
+  ],
+  "total_sources_analyzed": 10,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-06-30 22:35:51.365110"
+}

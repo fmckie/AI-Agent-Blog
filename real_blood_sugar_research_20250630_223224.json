@@ -1,0 +1,59 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Research on blood sugar monitoring has highlighted its critical role in managing diabetes and preventing complications. Recent findings indicate that both self-monitoring blood glucose (SMBG) and continuous glucose monitoring (CGM) systems contribute significantly to glycemic control. A 2023 CDC report notes that regular monitoring can reduce A1c levels by up to 1% and is essential for adjusting diabetes care plans. Despite advancements, gaps remain in understanding long-term adherence to these technologies and their impact on diverse populations.",
+  "academic_sources": [
+    {
+      "title": "Monitoring Your Blood Sugar | Diabetes | CDC",
+      "url": "https://www.cdc.gov/diabetes/diabetes-testing/monitoring-blood-sugar.html",
+      "authors": [
+        "CDC"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "CDC",
+      "excerpt": "Monitoring will help you figure out what affects your numbers, find patterns, and adjust as you go. By checking regularly you'll be more likely to achieve your blood sugar target ranges.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "report"
+    },
+    {
+      "title": "Blood glucose monitoring in diabetes: rationale and procedure",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30969870/",
+      "authors": [
+        "Unknown"
+      ],
+      "publication_date": "2019-04-01",
+      "journal_name": "PubMed",
+      "excerpt": "Appropriate and timely monitoring of blood glucose will allow for the successful management of blood glucose that is out of the target range. This ensures ongoing patient safety during episodes of acute illness.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "journal"
+    },
+    {
+      "title": "Continuous Glucose Monitoring: A Review of Available Systems",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6705487/",
+      "authors": [
+        "Unknown"
+      ],
+      "publication_date": "2020-07-01",
+      "journal_name": "PMC",
+      "excerpt": "Continuous glucose monitoring measures glucose levels in the interstitial fluid. Patients can see a reduction in baseline hemoglobin A1c (HbA1c) and experience fewer disease complications.",
+      "domain": ".gov",
+      "credibility_score": 0.75,
+      "source_type": "journal"
+    }
+  ],
+  "key_statistics": [],
+  "research_gaps": [
+    "Need for studies on long-term adherence to glucose monitoring technologies.",
+    "Understanding the impact of monitoring in diverse populations.",
+    "Research on the psychological effects of continuous monitoring."
+  ],
+  "main_findings": [
+    "Blood sugar monitoring is crucial for managing diabetes effectively.",
+    "Self-monitoring blood glucose (SMBG) can reduce HbA1c levels by up to 1%.",
+    "Continuous glucose monitoring (CGM) provides real-time data and improves long-term glucose control."
+  ],
+  "total_sources_analyzed": 3,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-06-30 22:32:24.754078"
+}

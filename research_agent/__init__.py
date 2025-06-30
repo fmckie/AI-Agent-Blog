@@ -7,4 +7,4 @@ academic sources using the Tavily API.
 
 from .agent import create_research_agent, run_research_agent
 
-__all__ = ['create_research_agent', 'run_research_agent']
+__all__ = ["create_research_agent", "run_research_agent"]

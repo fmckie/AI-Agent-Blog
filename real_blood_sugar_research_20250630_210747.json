@@ -1,0 +1,59 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Recent studies on blood sugar monitoring, particularly with the use of Continuous Glucose Monitors (CGMs), indicate significant advancements in diabetes management. CGMs provide real-time glucose tracking, allowing individuals to respond proactively to blood sugar fluctuations, which reduces the risk of complications. Despite their effectiveness, fewer than half of U.S. primary care physicians prescribe these devices. The effectiveness of CGM technology highlights areas needing further study, particularly regarding its application for non-diabetics and in diverse populations.",
+  "academic_sources": [
+    {
+      "title": "Scientists Seek Ways to Open More Patient Doors to Advanced Blood Sugar ...",
+      "url": "https://news.cuanschutz.edu/news-stories/primary-care-clinics-can-successfully-use-glucose-monitors-to-help-people-with-diabetes",
+      "authors": [
+        "University of Colorado Anschutz Medical Campus"
+      ],
+      "publication_date": "2023-02-02",
+      "journal_name": "BMC Primary Care",
+      "excerpt": "A new study from the University of Colorado Anschutz Medical Campus shows that primary care clinics can successfully help patients start using continuous glucose monitors (CGMs), which track blood sugar levels in real time.",
+      "domain": ".edu",
+      "credibility_score": 0.82,
+      "source_type": "journal"
+    },
+    {
+      "title": "Continuous glucose monitors (CGMs) for type 2 diabetes: When and for ...",
+      "url": "https://www.health.harvard.edu/diseases-and-conditions/continuous-glucose-monitors-cgms-for-type-2-diabetes-when-and-for-whom-are-they-useful",
+      "authors": [
+        "Harvard Health Publishing"
+      ],
+      "publication_date": "2023-05-15",
+      "journal_name": "Harvard Health Blog",
+      "excerpt": "Continuous glucose monitors, or CGMs, offer valuable and accurate insights into blood sugar levels, allowing some individuals with diabetes to make better-informed decisions about medications, diet, exercise, and overall diabetes management.",
+      "domain": ".edu",
+      "credibility_score": 0.8,
+      "source_type": "blog"
+    },
+    {
+      "title": "Blood Glucose Monitoring Devices",
+      "url": "https://www.fda.gov/medical-devices/in-vitro-diagnostics/blood-glucose-monitoring-devices",
+      "authors": [
+        "FDA"
+      ],
+      "publication_date": "2022-11-10",
+      "journal_name": "FDA",
+      "excerpt": "Blood glucose monitoring is essential for managing diabetes, as good glucose control reduces complications. Home monitors contribute to improved patient outcomes.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "government report"
+    }
+  ],
+  "key_statistics": [
+    "Fewer than half of U.S. primary care doctors prescribe CGMs despite their benefits.",
+    "CGMs provide continuous glucose monitoring every five minutes, allowing users to track trends in blood sugar levels.",
+    "Effective use of CGMs can lead to significant improvements in managing diabetes and reducing healthcare costs."
+  ],
+  "research_gaps": [
+    "The long-term effectiveness of CGMs for non-diabetic populations remains under-explored.",
+    "There is limited research on the accessibility and barriers to CGM use in diverse socioeconomic groups.",
+    "Further studies are needed to assess the integration of CGMs into primary care practices, especially in rural areas."
+  ],
+  "main_findings": [],
+  "total_sources_analyzed": 6,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-06-30 21:07:01.724911"
+}

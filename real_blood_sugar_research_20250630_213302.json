@@ -1,0 +1,62 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Recent studies regarding blood sugar monitoring underscore the critical role of continuous glucose monitors (CGMs) in managing diabetes. According to research from the University of Colorado Anschutz Medical Campus, CGMs help patients understand blood sugar fluctuations in real-time, significantly enhancing diabetes management. Despite substantial benefits, less than 50% of primary care doctors prescribe these devices, highlighting a gap in their utilization. Further, discussions surrounding the use of CGMs for non-diabetic individuals raise questions about accessibility and efficacy, necessitating additional research in these areas.",
+  "academic_sources": [
+    {
+      "title": "Scientists Seek Ways to Open More Patient Doors to Advanced Blood Sugar Monitoring",
+      "url": "https://news.cuanschutz.edu/news-stories/primary-care-clinics-can-successfully-use-glucose-monitors-to-help-people-with-diabetes",
+      "authors": [
+        "University of Colorado"
+      ],
+      "publication_date": "2023-07-05",
+      "journal_name": "CU Anschutz Medical Campus",
+      "excerpt": "A new study shows that primary care clinics can successfully help patients start using continuous glucose monitors (CGMs). These devices reduce or eliminate finger-prick checks and improve management of diabetes.",
+      "domain": ".edu",
+      "credibility_score": 0.82,
+      "source_type": "research article"
+    },
+    {
+      "title": "Is blood sugar monitoring without diabetes worthwhile?",
+      "url": "https://www.health.harvard.edu/blog/is-blood-sugar-monitoring-without-diabetes-worthwhile-202106112473",
+      "authors": [
+        "Harvard Health Publishing"
+      ],
+      "publication_date": "2021-06-11",
+      "journal_name": "Harvard Health Blog",
+      "excerpt": "Discussion about the use of CGMs for individuals without diabetes. Questions surrounding health benefits and potential evidence supporting such practices.",
+      "domain": ".edu",
+      "credibility_score": 0.8,
+      "source_type": "blog post"
+    },
+    {
+      "title": "Continuous glucose monitors (CGMs) for type 2 diabetes: When and for whom are they useful?",
+      "url": "https://www.health.harvard.edu/diseases-and-conditions/continuous-glucose-monitors-cgms-for-type-2-diabetes-when-and-for-whom-are-they-useful",
+      "authors": [
+        "Harvard Health Publishing"
+      ],
+      "publication_date": "2022-01-07",
+      "journal_name": "Harvard Health",
+      "excerpt": "CGMs provide real-time insights into blood sugar levels and help manage diabetes effectively. They measure glucose every five minutes, allowing timely dietary and medication adjustments.",
+      "domain": ".edu",
+      "credibility_score": 0.8,
+      "source_type": "information article"
+    }
+  ],
+  "key_statistics": [
+    "Continuous glucose monitors provide feedback every five minutes on glucose levels, significantly enhancing real-time diabetes management.",
+    "Less than 50% of primary care doctors have prescribed CGMs, despite their proven efficacy in improving patient outcomes."
+  ],
+  "research_gaps": [
+    "Further research is needed on the effectiveness of CGMs for non-diabetic individuals.",
+    "There is a need to explore the barriers preventing wider prescription of CGMs by healthcare providers.",
+    "Studies are lacking on the long-term impacts and accessibility issues associated with CGMs for underserved populations."
+  ],
+  "main_findings": [
+    "The use of continuous glucose monitors (CGMs) has shown to enhance diabetes management significantly.",
+    "CGMs allow for real-time tracking of glucose levels and can alert users to dangerous high or low levels.",
+    "A substantial barrier exists in the form of physician prescribing habits, with many not utilizing CGMs despite their benefits."
+  ],
+  "total_sources_analyzed": 6,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-06-30 21:32:18.045736"
+}

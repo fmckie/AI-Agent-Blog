@@ -1,0 +1,81 @@
+[run]
+# Coverage.py configuration
+
+# Source directories to measure
+source = .
+
+# Omit files from coverage
+omit = 
+    # Test files
+    tests/*
+    */tests/*
+    test_*.py
+    
+    # Virtual environment
+    venv/*
+    .venv/*
+    env/*
+    
+    # Cache and compiled files
+    __pycache__/*
+    *.pyc
+    
+    # Configuration and setup
+    setup.py
+    */setup.py
+    
+    # Documentation
+    docs/*
+    */docs/*
+
+# Include branch coverage
+branch = True
+
+# Parallel execution
+parallel = True
+
+[report]
+# Reporting configuration
+
+# Skip files with no executable code
+skip_empty = True
+
+# Precision for coverage percentages
+precision = 2
+
+# Show missing line numbers
+show_missing = True
+
+# Exclude lines from coverage
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+    
+    # Debug code
+    def __repr__
+    def __str__
+    
+    # Defensive programming
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Non-executable code
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstract
+    @abstractmethod
+    
+    # Logging
+    logger.debug
+    
+    # Pass statements
+    pass
+
+[html]
+# HTML report configuration
+directory = htmlcov
+title = SEO Content Automation Coverage Report
+
+[xml]
+# XML report configuration (for CI/CD)
+output = coverage.xml
