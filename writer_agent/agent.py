@@ -152,8 +152,8 @@ async def run_writer_agent(
         logger.info(f"Running writer agent for keyword: {keyword}")
         result = await agent.run(prompt, deps=context)
 
-        # Get the article from the result
-        article = result
+        # PydanticAI returns an AgentRunResult, access the data attribute
+        article = result.data
 
         # Validate the output
         if article.word_count < 1000:
