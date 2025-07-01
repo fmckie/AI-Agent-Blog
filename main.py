@@ -8,12 +8,14 @@ SEO-optimized articles by providing keywords.
 # Import required libraries
 import asyncio
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import click
 from rich.console import Console
 from rich.logging import RichHandler
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 
 # Import our modules
 from config import get_config
@@ -111,22 +113,80 @@ async def _run_generation(keyword: str, output_dir: Optional[Path], dry_run: boo
     if output_dir:
         config.output_dir = output_dir
 
-    # Create workflow orchestrator
+    # Create workflow orchestrator with progress callback
     orchestrator = WorkflowOrchestrator(config)
 
-    # Run the workflow
+    # Run the workflow with progress tracking
     if dry_run:
-        # Research only
+        # Research only with progress
         console.print("\n[yellow]Running in dry-run mode (research only)[/yellow]")
-        findings = await orchestrator.run_research(keyword)
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            # Add research task
+            research_task = progress.add_task("[cyan]Researching academic sources...", total=None)
+            
+            # Set up progress callback
+            orchestrator.set_progress_callback(lambda phase, msg: progress.update(research_task, description=f"[cyan]{msg}"))
+            
+            # Run research
+            findings = await orchestrator.run_research(keyword)
+            
+            # Mark complete
+            progress.update(research_task, description="[green]✓ Research completed!")
 
         # Display research results
         console.print("\n[bold green]✅ Research completed![/bold green]")
         console.print(findings.to_markdown_summary())
 
     else:
-        # Full workflow
-        article_path = await orchestrator.run_full_workflow(keyword)
+        # Full workflow with detailed progress
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            # Add main task
+            main_task = progress.add_task("[bold blue]Generating SEO article", total=3)
+            
+            # Sub-tasks
+            research_task = progress.add_task("[cyan]• Researching sources", total=None)
+            writing_task = progress.add_task("[yellow]• Writing article", total=None, visible=False)
+            saving_task = progress.add_task("[green]• Saving outputs", total=None, visible=False)
+            
+            # Create progress callback
+            def update_progress(phase: str, message: str):
+                if phase == "research":
+                    progress.update(research_task, description=f"[cyan]• {message}")
+                elif phase == "research_complete":
+                    progress.update(research_task, description="[green]✓ Research complete")
+                    progress.update(main_task, advance=1)
+                    progress.update(writing_task, visible=True)
+                elif phase == "writing":
+                    progress.update(writing_task, description=f"[yellow]• {message}")
+                elif phase == "writing_complete":
+                    progress.update(writing_task, description="[green]✓ Article written")
+                    progress.update(main_task, advance=1)
+                    progress.update(saving_task, visible=True)
+                elif phase == "saving":
+                    progress.update(saving_task, description=f"[green]• {message}")
+                elif phase == "complete":
+                    progress.update(saving_task, description="[green]✓ Outputs saved")
+                    progress.update(main_task, advance=1)
+            
+            # Set callback
+            orchestrator.set_progress_callback(update_progress)
+            
+            # Run workflow
+            article_path = await orchestrator.run_full_workflow(keyword)
 
         # Show success message
         console.print(f"\n[bold green]✅ Article generated successfully![/bold green]")
@@ -191,6 +251,85 @@ def test():
     # Run with test keyword
     ctx = click.get_current_context()
     ctx.invoke(generate, keyword="artificial intelligence", dry_run=True)
+
+
+@cli.command()
+@click.option(
+    "--older-than",
+    default=24,
+    help="Clean up files older than this many hours (default: 24)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be cleaned without actually deleting",
+)
+def cleanup(older_than: int, dry_run: bool):
+    """
+    Clean up orphaned workflow files and temporary directories.
+    
+    This command removes:
+    - Old workflow state files (.workflow_state_*.json)
+    - Old temporary directories (.temp_*)
+    
+    By default, only files older than 24 hours are cleaned.
+    """
+    try:
+        config = get_config()
+        
+        console.print(f"\n[bold]🧹 Cleaning up old workflow files...[/bold]")
+        console.print(f"[dim]Looking for files older than {older_than} hours[/dim]\n")
+        
+        if dry_run:
+            console.print("[yellow]DRY RUN MODE - No files will be deleted[/yellow]\n")
+        
+        # Count files before cleanup
+        state_files = list(config.output_dir.glob(".workflow_state_*.json"))
+        temp_dirs = list(config.output_dir.glob(".temp_*"))
+        
+        if not state_files and not temp_dirs:
+            console.print("[green]✨ No cleanup needed - everything is tidy![/green]")
+            return
+        
+        # Show what will be cleaned
+        console.print(f"Found {len(state_files)} state files and {len(temp_dirs)} temp directories")
+        
+        if not dry_run:
+            # Run actual cleanup
+            cleaned_state, cleaned_dirs = asyncio.run(
+                WorkflowOrchestrator.cleanup_orphaned_files(config.output_dir, older_than)
+            )
+            
+            console.print(f"\n[green]✅ Cleanup complete![/green]")
+            console.print(f"  • Removed {cleaned_state} state files")
+            console.print(f"  • Removed {cleaned_dirs} temp directories")
+        else:
+            # Dry run - just show what would be cleaned
+            current_time = datetime.now()
+            would_clean_state = 0
+            would_clean_dirs = 0
+            
+            for state_file in state_files:
+                file_time = datetime.fromtimestamp(state_file.stat().st_mtime)
+                age_hours = (current_time - file_time).total_seconds() / 3600
+                if age_hours > older_than:
+                    would_clean_state += 1
+                    console.print(f"  • Would delete: {state_file.name} (age: {age_hours:.1f} hours)")
+            
+            for temp_dir in temp_dirs:
+                if temp_dir.is_dir():
+                    dir_time = datetime.fromtimestamp(temp_dir.stat().st_mtime)
+                    age_hours = (current_time - dir_time).total_seconds() / 3600
+                    if age_hours > older_than:
+                        would_clean_dirs += 1
+                        console.print(f"  • Would delete: {temp_dir.name} (age: {age_hours:.1f} hours)")
+            
+            console.print(f"\n[yellow]Would clean {would_clean_state} state files and {would_clean_dirs} temp directories[/yellow]")
+            console.print("[dim]Run without --dry-run to actually clean these files[/dim]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Cleanup failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
 
 
 # Main entry point

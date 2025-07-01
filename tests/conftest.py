@@ -174,7 +174,7 @@ def mock_article_sections():
 def mock_article_output(mock_article_sections):
     """Create mock article output for testing."""
     return ArticleOutput(
-        title="The Complete Guide to Artificial Intelligence: Applications and Future Prospects",
+        title="Complete Guide to AI: Applications and Future",
         meta_description="Explore the world of artificial intelligence, its practical applications across industries, benefits for businesses, and future prospects.",
         focus_keyword="artificial intelligence",
         introduction="Artificial intelligence (AI) is revolutionizing how we live and work in the modern digital age. This comprehensive guide explores the latest developments in AI technology, its practical applications across various industries, and its potential to transform our future through innovative solutions and enhanced decision-making capabilities.",
