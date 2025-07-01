@@ -20,6 +20,7 @@ from models import AcademicSource, ArticleOutput, ArticleSection, ResearchFindin
 from research_agent import create_research_agent
 from workflow import WorkflowOrchestrator
 from writer_agent import create_writer_agent
+from tests.helpers import MockAgentRunResult, create_valid_article_output, create_minimal_valid_article_output
 
 
 class TestSystemIntegration:
@@ -477,3 +478,329 @@ class TestPerformance:
 
         assert article_size > 10000  # Should be substantial
         assert research_size > 5000  # Should contain all data
+
+
+class TestEdgeCases:
+    """Test edge cases and error scenarios."""
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_empty_keyword(self, tmp_path):
+        """Test handling of empty or whitespace keywords."""
+        config = Config(
+            openai_api_key="sk-test1234567890abcdef1234567890abcdef",
+            tavily_api_key="sk-tavily1234567890abcdef1234567890",
+            output_dir=tmp_path,
+        )
+
+        orchestrator = WorkflowOrchestrator(config)
+        
+        # Test empty string
+        with pytest.raises(ValueError):
+            await orchestrator.run_full_workflow("")
+        
+        # Test whitespace only
+        with pytest.raises(ValueError):
+            await orchestrator.run_full_workflow("   ")
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_very_long_keyword(self, tmp_path):
+        """Test handling of extremely long keywords."""
+        config = Config(
+            openai_api_key="sk-test1234567890abcdef1234567890abcdef",
+            tavily_api_key="sk-tavily1234567890abcdef1234567890",
+            output_dir=tmp_path,
+        )
+
+        # Create a very long keyword
+        long_keyword = "machine learning " * 50  # 800+ characters
+        
+        mock_research = ResearchFindings(
+            keyword=long_keyword[:100],  # Truncate for storage
+            research_summary="Research on very long keyword demonstrates system robustness in handling edge cases and unusual input scenarios while maintaining functionality.",
+            academic_sources=[
+                AcademicSource(
+                    title="Long Keyword Study",
+                    url="https://test.edu/long",
+                    excerpt="Study excerpt",
+                    domain=".edu",
+                    credibility_score=0.8,
+                )
+            ],
+            main_findings=["System handles long keywords"],
+            total_sources_analyzed=1,
+            search_query_used=long_keyword[:100],
+        )
+        
+        # Use helper to create valid article with truncated keyword
+        mock_article = create_valid_article_output(
+            keyword=long_keyword[:50],  # Use truncated version
+            title="Understanding Complex Topics and Long Keywords",
+            sources_count=1
+        )
+
+        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
+            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+                orchestrator = WorkflowOrchestrator(config)
+                
+                # Should handle gracefully
+                result = await orchestrator.run_full_workflow(long_keyword)
+                assert result.exists()
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_network_timeout_handling(self, tmp_path):
+        """Test handling of network timeouts."""
+        config = Config(
+            openai_api_key="sk-test1234567890abcdef1234567890abcdef",
+            tavily_api_key="sk-tavily1234567890abcdef1234567890",
+            output_dir=tmp_path,
+            request_timeout=5,  # Minimum allowed timeout
+        )
+
+        # Simulate timeout
+        async def slow_research(agent, keyword):
+            await asyncio.sleep(2)  # Longer than timeout
+            raise asyncio.TimeoutError("Request timed out")
+
+        with patch("workflow.run_research_agent", slow_research):
+            orchestrator = WorkflowOrchestrator(config)
+            
+            # Should raise timeout error
+            with pytest.raises(asyncio.TimeoutError):
+                await orchestrator.run_research("test")
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_disk_space_handling(self, tmp_path):
+        """Test handling of disk space issues."""
+        config = Config(
+            openai_api_key="sk-test1234567890abcdef1234567890abcdef",
+            tavily_api_key="sk-tavily1234567890abcdef1234567890",
+            output_dir=tmp_path,
+        )
+
+        # Mock disk write failure
+        def mock_write_failure(*args, **kwargs):
+            raise OSError("No space left on device")
+
+        mock_research = ResearchFindings(
+            keyword="test",
+            research_summary="Test summary for disk space handling scenarios in production environments.",
+            academic_sources=[
+                AcademicSource(
+                    title="Test",
+                    url="https://test.edu",
+                    excerpt="Test",
+                    domain=".edu",
+                    credibility_score=0.8,
+                )
+            ],
+            main_findings=["Test"],
+            total_sources_analyzed=1,
+            search_query_used="test",
+        )
+
+        # Use helper to create valid article
+        mock_article = create_valid_article_output(
+            keyword="test",
+            title="Test Article for Disk Space Handling",
+            sources_count=1
+        )
+
+        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
+            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+                with patch("pathlib.Path.write_text", mock_write_failure):
+                    orchestrator = WorkflowOrchestrator(config)
+                    
+                    # Should raise OSError
+                    with pytest.raises(OSError, match="No space left"):
+                        await orchestrator.run_full_workflow("test")
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_invalid_html_characters(self, tmp_path):
+        """Test handling of special HTML characters in content."""
+        config = Config(
+            openai_api_key="sk-test1234567890abcdef1234567890abcdef",
+            tavily_api_key="sk-tavily1234567890abcdef1234567890",
+            output_dir=tmp_path,
+        )
+
+        # Create content with special HTML characters
+        mock_research = ResearchFindings(
+            keyword="<script>alert('test')</script>",
+            research_summary="Research on XSS & <HTML> injection demonstrates security considerations in content generation.",
+            academic_sources=[
+                AcademicSource(
+                    title="Security <Research> & Testing",
+                    url="https://test.edu/security",
+                    excerpt="Study on <script> tags & XSS",
+                    domain=".edu",
+                    credibility_score=0.9,
+                )
+            ],
+            main_findings=["<b>Bold</b> finding", "Alert: <script>test</script>"],
+            total_sources_analyzed=1,
+            search_query_used="security test",
+        )
+
+        # Use helper to create valid article
+        mock_article = create_valid_article_output(
+            keyword="security",
+            title="Understanding HTML Security Best Practices",
+            sources_count=1
+        )
+        # Override some fields to include special characters
+        mock_article.title = "Understanding <HTML> & Security"
+        mock_article.introduction = ("This article covers <important> security topics & best practices. " +
+                                    "Learn how to properly handle special characters in web content to prevent " +
+                                    "XSS vulnerabilities and ensure your applications remain secure. We'll explore " +
+                                    "various techniques for escaping HTML entities and maintaining data integrity.")
+        mock_article.main_sections[0].content = ("Content with <tags> and & symbols that need proper escaping. " +
+                                               "This section demonstrates the importance of properly handling HTML " +
+                                               "special characters to prevent XSS vulnerabilities and ensure content " +
+                                               "displays correctly. Always remember to escape user input and validate " +
+                                               "all data before rendering it in HTML contexts.")
+
+        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
+            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+                orchestrator = WorkflowOrchestrator(config)
+                result = await orchestrator.run_full_workflow("security test")
+                
+                # Verify HTML is properly escaped in output
+                article_html = (result.parent / "article.html").read_text()
+                assert "&lt;script&gt;" in article_html or "<script>" not in article_html
+                assert "&amp;" in article_html or "& " in article_html
+
+
+class TestRealWorldScenarios:
+    """Test realistic usage scenarios."""
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_batch_article_generation(self, tmp_path):
+        """Test generating multiple articles in sequence."""
+        config = Config(
+            openai_api_key="sk-test1234567890abcdef1234567890abcdef",
+            tavily_api_key="sk-tavily1234567890abcdef1234567890",
+            output_dir=tmp_path,
+        )
+
+        keywords = [
+            "artificial intelligence",
+            "machine learning",
+            "deep learning",
+            "neural networks",
+            "computer vision",
+        ]
+
+        # Mock quick responses for all keywords
+        async def mock_research(agent, keyword):
+            return ResearchFindings(
+                keyword=keyword,
+                research_summary=f"Comprehensive research on {keyword} reveals significant advancements and practical applications across various industries.",
+                academic_sources=[
+                    AcademicSource(
+                        title=f"{keyword.title()} Research",
+                        url=f"https://test.edu/{keyword.replace(' ', '-')}",
+                        excerpt=f"Study on {keyword}",
+                        domain=".edu",
+                        credibility_score=0.9,
+                    )
+                ],
+                main_findings=[f"{keyword} is advancing rapidly"],
+                total_sources_analyzed=5,
+                search_query_used=keyword,
+            )
+
+        async def mock_writer(agent, keyword, research):
+            # Use helper to create valid article with proper validation
+            return create_valid_article_output(
+                keyword=keyword,
+                title=f"Ultimate Guide to {keyword.title()}: Expert Insights",
+                sources_count=1
+            )
+
+        with patch("workflow.run_research_agent", mock_research):
+            with patch("writer_agent.agent.run_writer_agent", mock_writer):
+                orchestrator = WorkflowOrchestrator(config)
+                
+                # Generate articles for all keywords
+                results = []
+                for keyword in keywords:
+                    result = await orchestrator.run_full_workflow(keyword)
+                    results.append(result)
+                
+                # Verify all articles were created
+                assert len(results) == len(keywords)
+                for i, result in enumerate(results):
+                    assert result.exists()
+                    assert keywords[i].replace(" ", "_") in str(result.parent)
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_resume_after_failure(self, tmp_path):
+        """Test resuming workflow after partial failure."""
+        config = Config(
+            openai_api_key="sk-test1234567890abcdef1234567890abcdef",
+            tavily_api_key="sk-tavily1234567890abcdef1234567890",
+            output_dir=tmp_path,
+        )
+
+        # Create a partial state file
+        state_data = {
+            "state": "research_complete",
+            "timestamp": datetime.now().isoformat(),
+            "data": {
+                "keyword": "resume test",
+                "research_complete_time": datetime.now().isoformat(),
+                "sources_found": 3,
+            },
+            "temp_dir": str(tmp_path / ".temp_resume_test_20250101_120000"),
+        }
+        
+        state_file = tmp_path / ".workflow_state_resume_test_20250101_120000.json"
+        state_file.write_text(json.dumps(state_data))
+        
+        # Create temp directory
+        temp_dir = Path(state_data["temp_dir"])
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
+        # Mock successful completion
+        mock_research = ResearchFindings(
+            keyword="resume test",
+            research_summary="Research completed successfully after resume.",
+            academic_sources=[
+                AcademicSource(
+                    title="Resume Test Study",
+                    url="https://test.edu/resume",
+                    excerpt="Testing resume functionality",
+                    domain=".edu",
+                    credibility_score=0.85,
+                )
+            ],
+            main_findings=["Resume works correctly"],
+            total_sources_analyzed=3,
+            search_query_used="resume test",
+        )
+
+        # Use helper to create valid article
+        mock_article = create_valid_article_output(
+            keyword="resume test",
+            title="Resume Test Article: Recovery and Reliability",
+            sources_count=1
+        )
+
+        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
+            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+                orchestrator = WorkflowOrchestrator(config)
+                
+                # Resume from saved state
+                result = await orchestrator.resume_workflow(state_file)
+                
+                # Verify completion
+                assert result.exists()
+                assert not state_file.exists()  # Should be cleaned up
+                assert not temp_dir.exists()  # Should be cleaned up

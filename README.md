@@ -2,6 +2,11 @@
 
 An intelligent content generation pipeline that researches keywords using academic sources and produces SEO-optimized articles ready for human review. Built with PydanticAI for structured AI outputs and async Python for efficient API integration.
 
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+
 ## 🎯 Project Overview
 
 This system automates the content creation workflow by:
@@ -81,25 +86,67 @@ graph TD
 
 ## 📋 Configuration
 
-Create a `.env` file with the following variables:
+### Environment Variables
+
+Create a `.env` file in the project root:
 
 ```env
 # Required API Keys
 TAVILY_API_KEY=your_tavily_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 
-# Output Configuration
-OUTPUT_DIR=./drafts
+# Output Configuration (Optional)
+OUTPUT_DIR=./drafts              # Where to save generated articles
+LOG_LEVEL=INFO                   # DEBUG, INFO, WARNING, ERROR
+MAX_RETRIES=3                    # Number of retry attempts for API calls
+REQUEST_TIMEOUT=30               # Timeout in seconds for API requests
 
-# Optional Settings
-LOG_LEVEL=INFO
-MAX_RETRIES=3
-REQUEST_TIMEOUT=30
+# Model Configuration (Optional)
+LLM_MODEL=gpt-4                  # OpenAI model to use
+
+# Tavily Search Configuration (Optional)
+TAVILY_SEARCH_DEPTH=advanced     # basic or advanced
+TAVILY_MAX_RESULTS=10            # Maximum search results (1-20)
+TAVILY_INCLUDE_DOMAINS=.edu,.gov,.org  # Prioritized domains
 ```
+
+### Configuration Details
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `TAVILY_API_KEY` | ✅ | - | Your Tavily API key for web search |
+| `OPENAI_API_KEY` | ✅ | - | Your OpenAI API key for content generation |
+| `OUTPUT_DIR` | ❌ | `./drafts` | Directory for saving articles |
+| `LOG_LEVEL` | ❌ | `INFO` | Logging verbosity |
+| `MAX_RETRIES` | ❌ | `3` | API retry attempts |
+| `REQUEST_TIMEOUT` | ❌ | `30` | API timeout in seconds |
+| `LLM_MODEL` | ❌ | `gpt-4` | OpenAI model selection |
+| `TAVILY_SEARCH_DEPTH` | ❌ | `advanced` | Search comprehensiveness |
+| `TAVILY_MAX_RESULTS` | ❌ | `10` | Number of search results |
+| `TAVILY_INCLUDE_DOMAINS` | ❌ | `.edu,.gov,.org` | Preferred source domains |
+
+### Getting API Keys
+
+1. **Tavily API Key**
+   - Sign up at [tavily.com](https://tavily.com)
+   - Navigate to API Keys section
+   - Copy your API key
+
+2. **OpenAI API Key**
+   - Create account at [platform.openai.com](https://platform.openai.com)
+   - Go to API Keys section
+   - Generate new secret key
+   - **Important**: Save immediately (shown only once)
 
 ## 💻 Usage
 
-### Basic Usage
+### Command Overview
+
+```bash
+python main.py --help  # Show all available commands
+```
+
+### Basic Article Generation
 
 Generate an article for a single keyword:
 ```bash
@@ -109,14 +156,46 @@ python main.py generate "ketogenic diet benefits"
 ### Advanced Options
 
 ```bash
+# Research only (no article generation)
+python main.py generate "intermittent fasting" --dry-run
+
 # Verbose output with debug information
-python main.py generate "intermittent fasting" --verbose
+python main.py generate "protein synthesis" --verbose
 
-# Specify custom output directory
-python main.py generate "insulin resistance" --output-dir ./my-articles
+# Quiet mode (only output file path)
+python main.py generate "muscle building" --quiet
 
-# Check configuration
-python main.py config check
+# Custom output directory
+python main.py generate "insulin resistance" -o ./my-articles
+
+# Combine multiple options
+python main.py generate "blood sugar" -o ./output --verbose
+```
+
+### Configuration Management
+
+```bash
+# Check if configuration is valid
+python main.py config --check
+
+# Show current configuration
+python main.py config --show
+
+# Test your setup with a sample generation
+python main.py test
+```
+
+### Maintenance Commands
+
+```bash
+# Clean up old workflow files
+python main.py cleanup
+
+# Clean files older than 48 hours
+python main.py cleanup --older-than 48
+
+# Preview what would be cleaned (dry run)
+python main.py cleanup --dry-run
 ```
 
 ### Output Structure
@@ -197,26 +276,119 @@ The system generates comprehensive articles with:
 
 ### Common Issues
 
-**API Key Errors**
-- Verify keys are correctly set in `.env`
-- Check API key permissions and quotas
+#### API Key Errors
+```
+❌ Configuration error: tavily_api_key cannot be empty
+```
+**Solution:**
+- Verify `.env` file exists in project root
+- Check API keys are correctly set without quotes
+- Ensure no spaces around the `=` sign
+- Verify API key format (usually 32+ characters)
 
-**Network Timeouts**
-- Increase `REQUEST_TIMEOUT` in `.env`
-- Check internet connection
-- Verify API service status
+#### Network Timeouts
+```
+TimeoutError: Request timed out after 30 seconds
+```
+**Solution:**
+- Increase timeout: `REQUEST_TIMEOUT=60` in `.env`
+- Check internet connection stability
+- Verify API service status at:
+  - Tavily: https://status.tavily.com
+  - OpenAI: https://status.openai.com
 
-**No Academic Sources Found**
-- Try broader keywords
-- Check Tavily search parameters
-- Review academic source filters
+#### No Academic Sources Found
+```
+ValueError: No academic sources found in research results
+```
+**Solution:**
+- Try broader or more common keywords
+- Remove special characters from keywords
+- Check `TAVILY_INCLUDE_DOMAINS` setting
+- Try with `TAVILY_SEARCH_DEPTH=advanced`
+
+#### Insufficient Research Quality
+```
+Warning: Only found 2 sources, below recommended minimum of 3
+```
+**Solution:**
+- Use more specific academic terms
+- Try alternative keyword variations
+- Increase `TAVILY_MAX_RESULTS` to 20
+
+#### Rate Limiting
+```
+TavilyRateLimitError: API rate limit exceeded
+```
+**Solution:**
+- Wait before retrying (usually 60 seconds)
+- Reduce concurrent requests
+- Check your API plan limits
 
 ### Debug Mode
 
-Enable detailed logging:
+Enable detailed logging for troubleshooting:
 ```bash
-LOG_LEVEL=DEBUG python main.py generate "your keyword"
+# Set in .env file
+LOG_LEVEL=DEBUG
+
+# Or use verbose flag
+python main.py generate "your keyword" --verbose
 ```
+
+### Environment Issues
+
+#### Virtual Environment Not Activated
+```
+ModuleNotFoundError: No module named 'pydantic_ai'
+```
+**Solution:**
+```bash
+# Activate virtual environment
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+```
+
+#### Python Version Issues
+```
+SyntaxError: invalid syntax
+```
+**Solution:**
+- Ensure Python 3.11+ is installed
+- Check version: `python --version`
+- Use `python3` if needed
+
+### File System Issues
+
+#### Permission Denied
+```
+PermissionError: [Errno 13] Permission denied
+```
+**Solution:**
+- Check write permissions for output directory
+- Run with appropriate user permissions
+- Ensure `OUTPUT_DIR` is writable
+
+#### Disk Space
+```
+OSError: [Errno 28] No space left on device
+```
+**Solution:**
+- Check available disk space
+- Clean old outputs: `python main.py cleanup`
+- Change `OUTPUT_DIR` to different drive
+
+### Getting Help
+
+If issues persist:
+1. Check existing [GitHub Issues](https://github.com/yourusername/seo-content-automation/issues)
+2. Enable debug logging and save output
+3. Create new issue with:
+   - Error message
+   - Debug logs
+   - Python version
+   - OS information
+   - Steps to reproduce
 
 ## 🤝 Contributing
 

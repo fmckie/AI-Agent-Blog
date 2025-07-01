@@ -20,13 +20,7 @@ from models import AcademicSource, ArticleOutput, ArticleSection, ResearchFindin
 
 # Import workflow components to test
 from workflow import WorkflowOrchestrator
-
-
-def create_mock_agent_result(data):
-    """Create a mock AgentRunResult with data attribute."""
-    mock_result = Mock()
-    mock_result.data = data
-    return mock_result
+from tests.helpers import MockAgentRunResult, create_valid_article_output
 
 
 class TestWorkflowOrchestrator:
@@ -1001,3 +995,201 @@ class TestWorkflowIntegration:
                     result = await orchestrator.run_research("test")
                     assert result == test_research
                     assert call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_workflow_with_unicode_keyword(self, mock_config, tmp_path):
+        """Test workflow handles unicode and special characters in keywords."""
+        mock_config.output_dir = tmp_path
+        
+        # Test various unicode keywords
+        unicode_keywords = [
+            "健康管理",  # Japanese
+            "santé",  # French with accent
+            "α-β testing",  # Greek letters
+            "emoji 🚀 test",  # Emoji
+            "test/slash",  # Path separator
+            "test\\backslash",  # Backslash
+        ]
+        
+        test_research = ResearchFindings(
+            keyword="test",
+            research_summary="Test summary for unicode handling.",
+            academic_sources=[
+                AcademicSource(
+                    title="Unicode Test Study",
+                    url="https://test.edu/unicode",
+                    excerpt="Testing unicode handling",
+                    domain=".edu",
+                    credibility_score=0.9,
+                )
+            ],
+            main_findings=["Unicode works"],
+            total_sources_analyzed=1,
+            search_query_used="test",
+        )
+        
+        # Use helper to create valid article
+        test_article = create_valid_article_output(
+            keyword="test",
+            title="Unicode Article Test: Special Characters Support",
+            sources_count=1
+        )
+        # Add unicode content to test unicode handling
+        test_article.main_sections[0].content = ("Content with unicode: 测试 santé α-β 🚀. " +
+                                                test_article.main_sections[0].content)
+        
+        with patch("workflow.create_research_agent", return_value=Mock()):
+            with patch("workflow.create_writer_agent", return_value=Mock()):
+                with patch("workflow.run_research_agent", AsyncMock(return_value=test_research)):
+                    with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=test_article)):
+                        orchestrator = WorkflowOrchestrator(mock_config)
+                        
+                        for keyword in unicode_keywords:
+                            # Should not raise any exceptions
+                            result = await orchestrator.run_full_workflow(keyword)
+                            assert result.exists()
+                            
+                            # Verify safe filename was created
+                            output_dir = result.parent
+                            assert output_dir.exists()
+
+    @pytest.mark.asyncio
+    async def test_workflow_performance_benchmark(self, mock_config, tmp_path):
+        """Test workflow performance meets expectations."""
+        import time
+        
+        mock_config.output_dir = tmp_path
+        
+        # Create minimal test data for speed
+        test_research = ResearchFindings(
+            keyword="performance test",
+            research_summary="Quick performance test.",
+            academic_sources=[
+                AcademicSource(
+                    title="Perf Test",
+                    url="https://test.edu/perf",
+                    excerpt="Performance testing",
+                    domain=".edu",
+                    credibility_score=0.9,
+                )
+            ],
+            main_findings=["Fast"],
+            total_sources_analyzed=1,
+            search_query_used="performance test",
+        )
+        
+        # Use helper to create valid article
+        test_article = create_valid_article_output(
+            keyword="performance test",
+            title="Performance Test Article: Benchmarking Results",
+            sources_count=1
+        )
+        
+        # Mock agents with instant responses
+        with patch("workflow.create_research_agent", return_value=Mock()):
+            with patch("workflow.create_writer_agent", return_value=Mock()):
+                with patch("workflow.run_research_agent", AsyncMock(return_value=test_research)):
+                    with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=test_article)):
+                        orchestrator = WorkflowOrchestrator(mock_config)
+                        
+                        start_time = time.time()
+                        result = await orchestrator.run_full_workflow("performance test")
+                        end_time = time.time()
+                        
+                        # Workflow should complete quickly when agents are mocked
+                        execution_time = end_time - start_time
+                        assert execution_time < 1.0  # Should complete in under 1 second
+                        assert result.exists()
+
+    @pytest.mark.asyncio
+    async def test_workflow_with_minimal_research(self, mock_config, tmp_path):
+        """Test workflow handles cases with minimal research findings."""
+        mock_config.output_dir = tmp_path
+        
+        # Create research with minimal data
+        minimal_research = ResearchFindings(
+            keyword="obscure topic",
+            research_summary="Very limited information available.",
+            academic_sources=[],  # No sources found
+            main_findings=[],  # No findings
+            key_statistics=[],  # No statistics
+            research_gaps=["Everything needs more research"],
+            total_sources_analyzed=0,
+            search_query_used="obscure topic",
+        )
+        
+        with patch("workflow.create_research_agent", return_value=Mock()):
+            with patch("workflow.create_writer_agent", return_value=Mock()):
+                with patch("workflow.run_research_agent", AsyncMock(return_value=minimal_research)):
+                    orchestrator = WorkflowOrchestrator(mock_config)
+                    
+                    # Should raise ValueError for no sources
+                    with pytest.raises(ValueError, match="No academic sources found"):
+                        await orchestrator.run_research("obscure topic")
+
+    @pytest.mark.asyncio
+    async def test_workflow_large_content_handling(self, mock_config, tmp_path):
+        """Test workflow handles large articles properly."""
+        mock_config.output_dir = tmp_path
+        
+        # Create large content
+        large_content = "This is a test paragraph. " * 200  # ~2000 words
+        
+        test_research = ResearchFindings(
+            keyword="large content",
+            research_summary="Testing large content handling.",
+            academic_sources=[
+                AcademicSource(
+                    title="Large Content Study",
+                    url="https://test.edu/large",
+                    excerpt="Study on large content",
+                    domain=".edu",
+                    credibility_score=0.9,
+                )
+            ],
+            main_findings=["Large content works"],
+            total_sources_analyzed=1,
+            search_query_used="large content",
+        )
+        
+        test_article = ArticleOutput(
+            title="Large Content Article",
+            meta_description="Testing system handling of large articles and content generation with comprehensive validation of performance and reliability for extensive content volumes.",
+            focus_keyword="large content",
+            introduction=large_content[:500],
+            main_sections=[
+                ArticleSection(
+                    heading="Section 1",
+                    content=large_content,
+                ),
+                ArticleSection(
+                    heading="Section 2",
+                    content=large_content,
+                ),
+                ArticleSection(
+                    heading="Section 3",
+                    content=large_content,
+                ),
+            ],
+            conclusion="Large article conclusion. This comprehensive test demonstrates the system's ability to handle substantial content volumes while maintaining performance and quality standards.",
+            word_count=6000,  # Large word count
+            reading_time_minutes=24,
+            keyword_density=0.015,
+            sources_used=["https://test.edu/large"],
+        )
+        
+        with patch("workflow.create_research_agent", return_value=Mock()):
+            with patch("workflow.create_writer_agent", return_value=Mock()):
+                with patch("workflow.run_research_agent", AsyncMock(return_value=test_research)):
+                    with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=test_article)):
+                        orchestrator = WorkflowOrchestrator(mock_config)
+                        result = await orchestrator.run_full_workflow("large content")
+                        
+                        # Verify large content was saved properly
+                        assert result.exists()
+                        output_dir = result.parent
+                        article_content = (output_dir / "article.html").read_text()
+                        
+                        # Should contain the large content
+                        assert len(article_content) > 10000  # Should be a large file
+                        assert "Large Content Article" in article_content

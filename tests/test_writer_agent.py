@@ -29,6 +29,7 @@ from writer_agent.utilities import (
     find_transition_words,
     validate_header_hierarchy,
 )
+from tests.helpers import MockAgentRunResult, create_valid_article_output
 
 
 # Fixtures
@@ -324,39 +325,17 @@ class TestWriterAgent:
         """Test successful writer agent execution."""
         agent = create_writer_agent(test_config)
 
-        # Mock the agent's run method
-        expected_article = ArticleOutput(
+        # Use helper to create valid article output
+        expected_article = create_valid_article_output(
+            keyword="artificial intelligence",
             title="Artificial Intelligence: The Future is Now",
-            meta_description="Discover how artificial intelligence is transforming industries with 78% improvements in healthcare and 45% efficiency gains in business.",
-            focus_keyword="artificial intelligence",
-            introduction="Artificial intelligence is revolutionizing the way we live and work. This comprehensive guide explores the fundamental concepts, practical applications, and transformative potential of AI technology across various industries and domains.",
-            main_sections=[
-                ArticleSection(
-                    heading="Understanding AI Technology",
-                    content="Artificial intelligence encompasses machine learning..."
-                    + " test" * 100,
-                ),
-                ArticleSection(
-                    heading="Healthcare Applications",
-                    content="Recent studies show 78% improvement..." + " test" * 100,
-                ),
-                ArticleSection(
-                    heading="Business Automation Benefits",
-                    content="Companies report 45% efficiency gains..." + " test" * 100,
-                ),
-            ],
-            conclusion="The future of artificial intelligence is bright, offering unprecedented opportunities for innovation, efficiency, and problem-solving across all sectors of society.",
-            word_count=1200,
-            reading_time_minutes=6,
-            keyword_density=0.015,
-            sources_used=[
-                "https://example.edu/ai-healthcare",
-                "https://journal.org/ai-business",
-                "https://ethics.edu/ai-ethics",
-            ],
+            sources_count=3
         )
-
-        with patch.object(agent, "run", new=AsyncMock(return_value=expected_article)):
+        
+        # Mock the agent's run method to return a proper AgentRunResult
+        mock_result = MockAgentRunResult(expected_article)
+        
+        with patch.object(agent, "run", new=AsyncMock(return_value=mock_result)):
             result = await run_writer_agent(
                 agent, "artificial intelligence", mock_research_findings
             )
@@ -374,37 +353,16 @@ class TestWriterAgent:
         """Test writer agent with no sources cited."""
         agent = create_writer_agent(test_config)
 
-        # Mock article without sources
-        bad_article = ArticleOutput(
-            title="Test Article",
-            meta_description="Test meta description for the article about testing that is long enough to meet the minimum requirements. This meta description contains exactly 120 characters.",
-            focus_keyword="test",
-            introduction="Test introduction that meets the minimum character requirement. This introduction provides context about the test article and ensures we have at least 150 characters of content to satisfy validation requirements.",
-            main_sections=[
-                ArticleSection(
-                    heading="Test Section One",
-                    content="Test content that is long enough to meet the 200 character minimum requirement. This section contains detailed information about testing and validation to ensure proper content length. We need to make sure all validation rules are satisfied."
-                    * 2,
-                ),
-                ArticleSection(
-                    heading="Test Section Two",
-                    content="Another test section with sufficient content to meet validation requirements. This section also contains at least 200 characters of meaningful content about testing procedures and best practices for content validation."
-                    * 2,
-                ),
-                ArticleSection(
-                    heading="Test Section Three",
-                    content="A third test section to meet the minimum requirement of three sections. This content also needs to be at least 200 characters long to pass validation. We're adding comprehensive test content here."
-                    * 2,
-                ),
-            ],
-            conclusion="Test conclusion that meets the 100 character minimum requirement. This conclusion summarizes the key points of our test article and provides final thoughts.",
-            word_count=1000,
-            reading_time_minutes=5,
-            keyword_density=0.01,
-            sources_used=[],  # No sources!
+        # Create article without sources using helper
+        bad_article = create_valid_article_output(
+            keyword="test",
+            sources_count=0  # No sources!
         )
+        
+        # Mock the agent's run method to return a proper AgentRunResult
+        mock_result = MockAgentRunResult(bad_article)
 
-        with patch.object(agent, "run", new=AsyncMock(return_value=bad_article)):
+        with patch.object(agent, "run", new=AsyncMock(return_value=mock_result)):
             with pytest.raises(ValueError, match="must cite research sources"):
                 await run_writer_agent(agent, "test", mock_research_findings)
 

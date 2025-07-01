@@ -19,6 +19,7 @@ from config import Config
 # Import CLI components to test
 from main import _run_generation, cli, config, generate, test
 from models import AcademicSource, ArticleOutput, ArticleSection, ResearchFindings
+from tests.helpers import MockAgentRunResult, create_valid_article_output
 
 
 # Module-level fixtures

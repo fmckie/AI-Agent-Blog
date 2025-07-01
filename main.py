@@ -41,6 +41,34 @@ def cli():
 
     This tool researches keywords using academic sources and generates
     SEO-optimized articles ready for publishing.
+
+    \b
+    Examples:
+      # Generate an article about a topic
+      $ seo-content generate "blood sugar management"
+      
+      # Run research only without generating article
+      $ seo-content generate "keto diet benefits" --dry-run
+      
+      # Generate with verbose output
+      $ seo-content generate "intermittent fasting" --verbose
+      
+      # Check your configuration
+      $ seo-content config --check
+      
+      # Run a test to verify setup
+      $ seo-content test
+      
+      # Clean up old workflow files
+      $ seo-content cleanup
+
+    \b
+    Quick Start:
+      1. Copy .env.example to .env
+      2. Add your API keys (Tavily and OpenAI)
+      3. Run: seo-content generate "your keyword"
+    
+    For more help on a command: seo-content COMMAND --help
     """
     # Load configuration at startup to catch errors early
     try:
@@ -61,10 +89,11 @@ def cli():
     help="Override output directory from config",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress all output except errors")
 @click.option(
     "--dry-run", is_flag=True, help="Run research only, don't generate article"
 )
-def generate(keyword: str, output_dir: Optional[Path], verbose: bool, dry_run: bool):
+def generate(keyword: str, output_dir: Optional[Path], verbose: bool, quiet: bool, dry_run: bool):
     """
     Generate an SEO-optimized article for the given KEYWORD.
 
@@ -73,19 +102,63 @@ def generate(keyword: str, output_dir: Optional[Path], verbose: bool, dry_run: b
     2. Generate an SEO-optimized article
     3. Save the output as HTML with metadata
 
-    Example:
-        seo-content generate "blood sugar management"
+    \b
+    Examples:
+        # Basic usage
+        $ seo-content generate "blood sugar management"
+        
+        # Research only (no article generation)
+        $ seo-content generate "keto diet benefits" --dry-run
+        
+        # Custom output directory
+        $ seo-content generate "intermittent fasting" -o ./my-articles
+        
+        # Verbose output for debugging
+        $ seo-content generate "protein synthesis" --verbose
+        
+        # Combine multiple options
+        $ seo-content generate "muscle building" -o ./output -v
+
+    \b
+    Output Structure:
+        drafts/
+        └── keyword_20250701_120000/
+            ├── index.html      # Review interface
+            ├── article.html    # Generated article
+            └── research.json   # Research data
+
+    \b
+    Tips:
+        - Use quotes around multi-word keywords
+        - Keywords should be specific but not too narrow
+        - Check logs in verbose mode if generation fails
     """
-    # Set verbose logging if requested
+    # Handle conflicting verbose/quiet options
+    if verbose and quiet:
+        console.print("[yellow]Warning: Both --verbose and --quiet specified. Using verbose mode.[/yellow]")
+        quiet = False
+    
+    # Set logging level based on flags
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+        # Also enable debug for all our modules
+        logging.getLogger("workflow").setLevel(logging.DEBUG)
+        logging.getLogger("research_agent").setLevel(logging.DEBUG)
+        logging.getLogger("writer_agent").setLevel(logging.DEBUG)
+        logging.getLogger("tools").setLevel(logging.DEBUG)
+        console.print("[dim]Verbose mode enabled - showing detailed debug logs[/dim]")
+    elif quiet:
+        logging.getLogger().setLevel(logging.ERROR)
+        # Disable console output for quiet mode
+        console._quiet = True  # type: ignore
 
-    # Show what we're doing
-    console.print(f"\n[bold blue]🔍 Researching '{keyword}'...[/bold blue]")
+    # Show what we're doing (unless quiet)
+    if not quiet:
+        console.print(f"\n[bold blue]🔍 Researching '{keyword}'...[/bold blue]")
 
     try:
         # Create and run the workflow
-        asyncio.run(_run_generation(keyword, output_dir, dry_run))
+        asyncio.run(_run_generation(keyword, output_dir, dry_run, quiet))
 
     except KeyboardInterrupt:
         console.print("\n[yellow]⚠️  Generation cancelled by user[/yellow]")
@@ -97,7 +170,7 @@ def generate(keyword: str, output_dir: Optional[Path], verbose: bool, dry_run: b
         raise click.exceptions.Exit(1)
 
 
-async def _run_generation(keyword: str, output_dir: Optional[Path], dry_run: bool):
+async def _run_generation(keyword: str, output_dir: Optional[Path], dry_run: bool, quiet: bool = False):
     """
     Internal async function to run the generation workflow.
 
@@ -115,83 +188,106 @@ async def _run_generation(keyword: str, output_dir: Optional[Path], dry_run: boo
 
     # Create workflow orchestrator with progress callback
     orchestrator = WorkflowOrchestrator(config)
+    
+    # In verbose mode, show configuration details
+    if logging.getLogger().level == logging.DEBUG:
+        logger.debug(f"Configuration loaded:")
+        logger.debug(f"  - Output directory: {config.output_dir}")
+        logger.debug(f"  - LLM Model: {config.llm_model}")
+        logger.debug(f"  - Tavily search depth: {config.tavily_search_depth}")
+        logger.debug(f"  - Max retries: {config.max_retries}")
+        logger.debug(f"  - Request timeout: {config.request_timeout}s")
 
     # Run the workflow with progress tracking
     if dry_run:
         # Research only with progress
-        console.print("\n[yellow]Running in dry-run mode (research only)[/yellow]")
+        if not quiet:
+            console.print("\n[yellow]Running in dry-run mode (research only)[/yellow]")
         
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            TimeElapsedColumn(),
-            console=console,
-        ) as progress:
-            # Add research task
-            research_task = progress.add_task("[cyan]Researching academic sources...", total=None)
-            
-            # Set up progress callback
-            orchestrator.set_progress_callback(lambda phase, msg: progress.update(research_task, description=f"[cyan]{msg}"))
-            
-            # Run research
+        # Skip progress display in quiet mode
+        if quiet:
             findings = await orchestrator.run_research(keyword)
-            
-            # Mark complete
-            progress.update(research_task, description="[green]✓ Research completed!")
+        else:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                TimeElapsedColumn(),
+                console=console,
+            ) as progress:
+                # Add research task
+                research_task = progress.add_task("[cyan]Researching academic sources...", total=None)
+                
+                # Set up progress callback
+                orchestrator.set_progress_callback(lambda phase, msg: progress.update(research_task, description=f"[cyan]{msg}"))
+                
+                # Run research
+                findings = await orchestrator.run_research(keyword)
+                
+                # Mark complete
+                progress.update(research_task, description="[green]✓ Research completed!")
 
-        # Display research results
-        console.print("\n[bold green]✅ Research completed![/bold green]")
-        console.print(findings.to_markdown_summary())
+        # Display research results (unless quiet)
+        if not quiet:
+            console.print("\n[bold green]✅ Research completed![/bold green]")
+            console.print(findings.to_markdown_summary())
 
     else:
         # Full workflow with detailed progress
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-            console=console,
-        ) as progress:
-            # Add main task
-            main_task = progress.add_task("[bold blue]Generating SEO article", total=3)
-            
-            # Sub-tasks
-            research_task = progress.add_task("[cyan]• Researching sources", total=None)
-            writing_task = progress.add_task("[yellow]• Writing article", total=None, visible=False)
-            saving_task = progress.add_task("[green]• Saving outputs", total=None, visible=False)
-            
-            # Create progress callback
-            def update_progress(phase: str, message: str):
-                if phase == "research":
-                    progress.update(research_task, description=f"[cyan]• {message}")
-                elif phase == "research_complete":
-                    progress.update(research_task, description="[green]✓ Research complete")
-                    progress.update(main_task, advance=1)
-                    progress.update(writing_task, visible=True)
-                elif phase == "writing":
-                    progress.update(writing_task, description=f"[yellow]• {message}")
-                elif phase == "writing_complete":
-                    progress.update(writing_task, description="[green]✓ Article written")
-                    progress.update(main_task, advance=1)
-                    progress.update(saving_task, visible=True)
-                elif phase == "saving":
-                    progress.update(saving_task, description=f"[green]• {message}")
-                elif phase == "complete":
-                    progress.update(saving_task, description="[green]✓ Outputs saved")
-                    progress.update(main_task, advance=1)
-            
-            # Set callback
-            orchestrator.set_progress_callback(update_progress)
-            
-            # Run workflow
+        if quiet:
+            # Run without progress display
             article_path = await orchestrator.run_full_workflow(keyword)
+        else:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                TimeElapsedColumn(),
+                TimeRemainingColumn(),
+                console=console,
+            ) as progress:
+                # Add main task
+                main_task = progress.add_task("[bold blue]Generating SEO article", total=3)
+                
+                # Sub-tasks
+                research_task = progress.add_task("[cyan]• Researching sources", total=None)
+                writing_task = progress.add_task("[yellow]• Writing article", total=None, visible=False)
+                saving_task = progress.add_task("[green]• Saving outputs", total=None, visible=False)
+                
+                # Create progress callback
+                def update_progress(phase: str, message: str):
+                    if phase == "research":
+                        progress.update(research_task, description=f"[cyan]• {message}")
+                    elif phase == "research_complete":
+                        progress.update(research_task, description="[green]✓ Research complete")
+                        progress.update(main_task, advance=1)
+                        progress.update(writing_task, visible=True)
+                    elif phase == "writing":
+                        progress.update(writing_task, description=f"[yellow]• {message}")
+                    elif phase == "writing_complete":
+                        progress.update(writing_task, description="[green]✓ Article written")
+                        progress.update(main_task, advance=1)
+                        progress.update(saving_task, visible=True)
+                    elif phase == "saving":
+                        progress.update(saving_task, description=f"[green]• {message}")
+                    elif phase == "complete":
+                        progress.update(saving_task, description="[green]✓ Outputs saved")
+                        progress.update(main_task, advance=1)
+                
+                # Set callback
+                orchestrator.set_progress_callback(update_progress)
+                
+                # Run workflow
+                article_path = await orchestrator.run_full_workflow(keyword)
 
-        # Show success message
-        console.print(f"\n[bold green]✅ Article generated successfully![/bold green]")
-        console.print(f"📄 Output saved to: [cyan]{article_path}[/cyan]")
-        console.print(f"\n[dim]Open the file in your browser to review.[/dim]")
+        # Show success message (unless quiet)
+        if not quiet:
+            console.print(f"\n[bold green]✅ Article generated successfully![/bold green]")
+            console.print(f"📄 Output saved to: [cyan]{article_path}[/cyan]")
+            console.print(f"\n[dim]Open the file in your browser to review.[/dim]")
+        elif quiet:
+            # In quiet mode, just print the output path
+            click.echo(str(article_path))
 
 
 @cli.command()
