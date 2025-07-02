@@ -1,0 +1,53 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Recent studies on blood sugar monitoring have underscored its critical role in diabetes management, particularly highlighting advancements in continuous glucose monitoring (CGM) technology. Research indicates that CGMs provide real-time blood glucose tracking, enabling better control and fewer complications associated with diabetes. However, while self-monitoring effectively guides treatment plans, there exists a gap in understanding the long-term psychological effects of using these technologies.",
+  "academic_sources": [
+    {
+      "title": "Blood Glucose Monitoring Devices",
+      "url": "https://www.fda.gov/medical-devices/in-vitro-diagnostics/blood-glucose-monitoring-devices",
+      "authors": null,
+      "publication_date": "2025-07-02",
+      "journal_name": "FDA",
+      "excerpt": "A blood glucose monitoring device is a device that may be used in the home and health care settings to measure the amount of sugar (glucose) in your blood.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "report"
+    },
+    {
+      "title": "Continuous Glucose Monitoring - NIDDK",
+      "url": "https://www.niddk.nih.gov/health-information/diabetes/overview/managing-diabetes/continuous-glucose-monitoring",
+      "authors": null,
+      "publication_date": "2025-07-02",
+      "journal_name": "NIDDK",
+      "excerpt": "Continuous glucose monitoring means using a device to automatically estimate your blood glucose level throughout the day and night.",
+      "domain": ".gov",
+      "credibility_score": 0.75,
+      "source_type": "report"
+    },
+    {
+      "title": "Type 2 and Blood Glucose Checks - American Diabetes Association",
+      "url": "https://diabetes.org/about-diabetes/devices-technology/blood-sugar-checks-type-2",
+      "authors": null,
+      "publication_date": "2025-07-02",
+      "journal_name": "American Diabetes Association",
+      "excerpt": "Structured self-monitoring of blood glucose can be useful to help people understand the impact of food and activity on their blood glucose levels.",
+      "domain": ".org",
+      "credibility_score": 0.69,
+      "source_type": "report"
+    }
+  ],
+  "key_statistics": [],
+  "research_gaps": [
+    "Understanding the long-term psychological effects of using monitoring technology.",
+    "Need for studies on the effectiveness of personalized diabetes management plans using blood sugar monitoring.",
+    "Investigate disparities in access to monitoring technologies among different populations."
+  ],
+  "main_findings": [
+    "Blood sugar monitoring is essential for diabetes management, helping patients prevent complications.",
+    "Continuous glucose monitors allow real-time tracking of glucose levels, providing beneficial data for dietary and lifestyle decisions.",
+    "Structured self-monitoring is more effective when integrated into personalized treatment plans."
+  ],
+  "total_sources_analyzed": 3,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-07-02 13:54:04.613830"
+}

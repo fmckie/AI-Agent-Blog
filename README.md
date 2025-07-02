@@ -5,7 +5,7 @@ An intelligent content generation pipeline that researches keywords using academ
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
-![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-81%25-brightgreen.svg)
 
 ## 🎯 Project Overview
 

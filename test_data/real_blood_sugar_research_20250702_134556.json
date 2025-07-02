@@ -1,0 +1,59 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Blood sugar monitoring is vital for diabetes management, utilizing devices such as blood glucose meters and Continuous Glucose Monitors (CGMs). Recent studies emphasize that structured self-monitoring can significantly improve diabetes control and patient understanding of blood glucose management. While CGMs provide continuous, real-time data, their optimal use remains under-researched. Future studies are needed to explore effective patient education protocols and long-term outcomes of CGM use in diverse populations.",
+  "academic_sources": [
+    {
+      "title": "Blood Glucose Monitoring Devices",
+      "url": "https://www.fda.gov/medical-devices/in-vitro-diagnostics/blood-glucose-monitoring-devices",
+      "authors": [
+        "U.S. Food and Drug Administration"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "FDA",
+      "excerpt": "Blood glucose monitoring devices are crucial for diabetes management and consist of a meter and test strips that measure glucose levels.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "government website"
+    },
+    {
+      "title": "Continuous Glucose Monitoring - NIDDK",
+      "url": "https://www.niddk.nih.gov/health-information/diabetes/overview/managing-diabetes/continuous-glucose-monitoring",
+      "authors": [
+        "National Institute of Diabetes and Digestive and Kidney Diseases"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "NIDDK",
+      "excerpt": "Continuous glucose monitoring allows for real-time blood glucose tracking, improving management strategies for diabetes.",
+      "domain": ".gov",
+      "credibility_score": 0.75,
+      "source_type": "government website"
+    },
+    {
+      "title": "Type 2 and Blood Glucose Checks - American Diabetes Association",
+      "url": "https://diabetes.org/about-diabetes/devices-technology/blood-sugar-checks-type-2",
+      "authors": [
+        "American Diabetes Association"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "ADA",
+      "excerpt": "Self-monitoring of blood glucose, when structured correctly, can help individuals understand the effects of their lifestyle on blood glucose levels.",
+      "domain": ".org",
+      "credibility_score": 0.69,
+      "source_type": "non-profit organization"
+    }
+  ],
+  "key_statistics": [],
+  "research_gaps": [
+    "Limited research on long-term outcomes of CGM use in diverse populations.",
+    "Need for standardized protocols to educate patients on blood glucose monitoring.",
+    "Exploration of the psychological impact of continuous monitoring on patients' lifestyle choices."
+  ],
+  "main_findings": [
+    "Structured self-monitoring helps improve diabetes control and understanding.",
+    "CGMs facilitate continuous monitoring, providing comprehensive data compared to traditional methods.",
+    "Patient education is crucial for leveraging blood glucose monitoring tools effectively."
+  ],
+  "total_sources_analyzed": 3,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-07-02 13:45:56.006525"
+}

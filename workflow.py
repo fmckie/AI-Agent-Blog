@@ -244,6 +244,8 @@ class WorkflowOrchestrator:
                 
                 if state_data.get("temp_dir"):
                     self.temp_output_dir = Path(state_data["temp_dir"])
+                    # Ensure the temp directory exists when loading state
+                    self.temp_output_dir.mkdir(parents=True, exist_ok=True)
                     
                 logger.info(f"Loaded workflow state: {self.current_state.value}")
                 return True
@@ -402,6 +404,9 @@ class WorkflowOrchestrator:
         safe_keyword = re.sub(r'[^\w\-_]', '_', keyword).strip('_')
         self.state_file = self.output_dir / f".workflow_state_{safe_keyword}_{timestamp}.json"
         self.temp_output_dir = self.output_dir / f".temp_{safe_keyword}_{timestamp}"
+        
+        # Create the temporary directory
+        self.temp_output_dir.mkdir(parents=True, exist_ok=True)
         
         # Store initial workflow data
         self.workflow_data = {

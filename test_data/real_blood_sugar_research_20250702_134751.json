@@ -1,0 +1,55 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Blood sugar monitoring is essential for the management of diabetes, with methods including glucose meters and continuous glucose monitors (CGMs). Recent studies highlight the efficacy of CGMs in providing real-time data that helps patients make informed decisions regarding their diet and medication, ultimately leading to better glycemic control and fewer complications. However, a critical need for more personalized training on effective data interpretation and integration into patient care plans remains evident, as well as a focus on the feasibility of CGMs in various demographic settings.",
+  "academic_sources": [
+    {
+      "title": "Blood Glucose Monitoring Devices",
+      "url": "https://www.fda.gov/medical-devices/in-vitro-diagnostics/blood-glucose-monitoring-devices",
+      "authors": [
+        "U.S. Food and Drug Administration"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "FDA",
+      "excerpt": "Blood glucose monitoring device, also referred to as a blood glucose meter, is a device that may be used in the home and health care settings to measure the amount of sugar (glucose) in your blood.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "government report"
+    },
+    {
+      "title": "Continuous Glucose Monitoring - NIDDK",
+      "url": "https://www.niddk.nih.gov/health-information/diabetes/overview/managing-diabetes/continuous-glucose-monitoring",
+      "authors": [
+        "National Institute of Diabetes and Digestive and Kidney Diseases"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "NIDDK",
+      "excerpt": "Continuous glucose monitoring means using a device to automatically estimate your blood glucose level throughout the day and night, helping to make informed decisions about diet and medications.",
+      "domain": ".gov",
+      "credibility_score": 0.75,
+      "source_type": "government report"
+    },
+    {
+      "title": "Type 2 and Blood Glucose Checks - American Diabetes Association",
+      "url": "https://diabetes.org/about-diabetes/devices-technology/blood-sugar-checks-type-2",
+      "authors": [
+        "American Diabetes Association"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "ADA",
+      "excerpt": "Structured self-monitoring of blood glucose can be useful to help understand the impact of food and activity on blood glucose levels.",
+      "domain": ".org",
+      "credibility_score": 0.69,
+      "source_type": "report"
+    }
+  ],
+  "key_statistics": [],
+  "research_gaps": [],
+  "main_findings": [
+    "Blood glucose monitoring is crucial for diabetes management, employing both traditional glucose meters and advanced continuous glucose monitoring (CGM) technology.",
+    "Studies indicate that CGMs allow for better daily management by providing real-time feedback on blood sugar fluctuations, aiding dietary and medication decisions.",
+    "Structured self-monitoring of blood glucose improves patient awareness and can facilitate improved glycemic control."
+  ],
+  "total_sources_analyzed": 10,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-07-02 13:47:38.575526"
+}

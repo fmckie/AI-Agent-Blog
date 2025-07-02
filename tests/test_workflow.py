@@ -133,7 +133,7 @@ class TestWorkflowOrchestrator:
         # Mock the individual steps
         orchestrator.run_research = AsyncMock(return_value=mock_research_findings)
         orchestrator.run_writing = AsyncMock(return_value=mock_article_output)
-        orchestrator.save_outputs = AsyncMock(
+        orchestrator._save_outputs_atomic = AsyncMock(
             return_value=Path("/tmp/test_output/index.html")
         )
 
@@ -145,7 +145,7 @@ class TestWorkflowOrchestrator:
         orchestrator.run_writing.assert_called_once_with(
             "artificial intelligence", mock_research_findings
         )
-        orchestrator.save_outputs.assert_called_once_with(
+        orchestrator._save_outputs_atomic.assert_called_once_with(
             "artificial intelligence", mock_research_findings, mock_article_output
         )
 
@@ -184,7 +184,7 @@ class TestWorkflowOrchestrator:
         # Mock steps succeed but save fails
         orchestrator.run_research = AsyncMock(return_value=mock_research_findings)
         orchestrator.run_writing = AsyncMock(return_value=mock_article_output)
-        orchestrator.save_outputs = AsyncMock(side_effect=Exception("Disk full"))
+        orchestrator._save_outputs_atomic = AsyncMock(side_effect=Exception("Disk full"))
 
         # Workflow should propagate the error
         with pytest.raises(Exception, match="Disk full"):
