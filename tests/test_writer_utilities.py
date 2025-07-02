@@ -18,7 +18,6 @@ from writer_agent.utilities import (
     calculate_readability_score,
     extract_headers_structure,
     find_transition_words,
-    suggest_internal_links,
     validate_header_hierarchy,
 )
 
@@ -432,56 +431,6 @@ class TestKeywordAnalysis:
             assert "machine learning" in header["text"].lower()
 
 
-class TestInternalLinks:
-    """Test cases for internal link suggestions."""
-
-    def test_suggest_internal_links_guide_keyword(self):
-        """Test link suggestions for guide-type keywords."""
-        content = (
-            "This comprehensive guide covers beginner topics and advanced concepts."
-        )
-
-        suggestions = suggest_internal_links(content, "python guide")
-
-        # Should suggest links based on content and keyword
-        assert len(suggestions) <= 5
-        # May include suggestions like "beginner python guide", "comprehensive python guide"
-
-    def test_suggest_internal_links_tips_keyword(self):
-        """Test link suggestions for tips-type keywords."""
-        content = "Here are the best practices and proven methods for success."
-
-        suggestions = suggest_internal_links(content, "SEO tips")
-
-        # Should identify tip-related content
-        assert len(suggestions) <= 5
-
-    def test_suggest_internal_links_ing_words(self):
-        """Test link suggestions with -ing keywords."""
-        content = "Learning programming requires dedication."
-
-        suggestions = suggest_internal_links(content, "programming")
-
-        # Should create variations like "program guide", "program tips"
-        assert any("program" in s for s in suggestions)
-
-    def test_suggest_internal_links_plural_words(self):
-        """Test link suggestions with plural keywords."""
-        content = "Multiple strategies for success."
-
-        suggestions = suggest_internal_links(content, "strategies")
-
-        # Should handle plural forms
-        assert len(suggestions) > 0
-
-    def test_suggest_internal_links_no_duplicates(self):
-        """Test that suggestions don't contain duplicates."""
-        content = "Best tips and best practices for best results."
-
-        suggestions = suggest_internal_links(content, "marketing tips")
-
-        # Check no duplicates
-        assert len(suggestions) == len(set(suggestions))
 
 
 class TestContentScoring:

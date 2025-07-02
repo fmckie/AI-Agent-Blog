@@ -65,7 +65,7 @@ seo_content_automation/
 
 ## Development Guidelines
 
-1. **Before starting work**: Read `PLANNING.md` and check `TASK.md` for current objectives
+1. **Before starting work**: Read `PLANNING.md` and check `TASK_2.md` for current objectives
 2. **Code style**: Follow PEP8, use type hints, write Google-style docstrings
 3. **Testing**: Write pytest unit tests for all new functionality
 4. **File size**: Keep files under 500 lines (enforced by .clinerules)
@@ -75,7 +75,7 @@ seo_content_automation/
 
 ### 🔄 Project Awareness & Context
 - **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
-- **Check `TASK.md`** before starting a new task. If the task isn't listed, add it with a brief description and today's date.
+- **Check `TASK_2.md`** before starting a new task. If the task isn't listed, add it with a brief description and today's date.
 - **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
 
 ### 🧱 Code Structure & Modularity
@@ -98,8 +98,8 @@ seo_content_automation/
 - Always test the individual functions for agent tools.
 
 ### ✅ Task Completion
-- **Mark completed tasks in `TASK.md`** immediately after finishing them.
-- Add new sub-tasks or TODOs discovered during development to `TASK.md` under a "Discovered During Work" section.
+- **Mark completed tasks in `TASK_2.md`** immediately after finishing them.
+- Add new sub-tasks or TODOs discovered during development to `TASK_2.md` under a "Discovered During Work" section.
 
 ### 📎 Style & Conventions
 - **Use Python** as the primary language.
@@ -127,7 +127,7 @@ seo_content_automation/
 ### 🧠 AI Behavior Rules
 - **Never assume missing context. Ask questions if uncertain.**
 - **Always confirm file paths & module names** exist before using
-- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
+- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK_2.md`.
 
 ## Special Instructions - Teaching Mode (VITAL)
 

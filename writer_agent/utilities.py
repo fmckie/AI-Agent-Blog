@@ -343,55 +343,6 @@ def analyze_keyword_placement(content: str, keyword: str) -> Dict[str, Any]:
     return placement
 
 
-def suggest_internal_links(content: str, keyword: str) -> List[str]:
-    """
-    Suggest potential internal linking opportunities.
-
-    Args:
-        content: The article content
-        keyword: The main keyword
-
-    Returns:
-        List of suggested internal link anchors
-    """
-    suggestions = []
-
-    # Common related topics that could be linked
-    link_patterns = {
-        "guide": ["beginner", "complete", "ultimate", "comprehensive"],
-        "tips": ["best", "top", "essential", "proven"],
-        "how to": ["step by step", "tutorial", "learn"],
-        "benefits": ["advantages", "why", "reasons"],
-        "examples": ["case studies", "real world", "practical"],
-    }
-
-    # Find potential anchor texts
-    words = content.lower().split()
-
-    for pattern, related in link_patterns.items():
-        if pattern in keyword.lower():
-            for rel in related:
-                if rel in content.lower():
-                    suggestions.append(f"{rel} {keyword}")
-
-    # Look for related concepts mentioned
-    # This is simplified - in production, you'd want more sophisticated NLP
-    keyword_words = keyword.lower().split()
-    for word in keyword_words:
-        # Find variations
-        if word.endswith("ing"):
-            base = word[:-3]
-            suggestions.append(f"{base} guide")
-            suggestions.append(f"{base} tips")
-        elif word.endswith("s"):
-            singular = word[:-1]
-            suggestions.append(f"{singular} guide")
-            suggestions.append(f"best {singular}")
-
-    # Remove duplicates and limit
-    suggestions = list(set(suggestions))[:5]
-
-    return suggestions
 
 
 def calculate_content_score(
