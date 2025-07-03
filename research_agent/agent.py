@@ -9,6 +9,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
+
 from pydantic_ai import Agent, RunContext
 
 from config import Config
@@ -20,6 +21,7 @@ from .tools import search_academic
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
 
 
 def create_research_agent(config: Config) -> Agent[None, ResearchFindings]:

@@ -87,3 +87,6 @@ celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
+
+# Example projects
+Example RAG Pipeline/
