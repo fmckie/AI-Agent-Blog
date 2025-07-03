@@ -1,0 +1,63 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Recent research highlights the critical role of blood sugar monitoring in diabetes management. Continuous glucose monitors (CGMs) offer real-time data, enhancing patient engagement and glycemic control, while self-monitoring of blood glucose (SMBG) remains a standard practice. A 2023 study found that CGMs could significantly reduce hypoglycemic events and improve overall health outcomes for diverse patient populations. However, inconsistencies in access and technology usage, alongside limited large-scale studies, indicate essential gaps in understanding long-term effects and implications in broader demographics.",
+  "academic_sources": [
+    {
+      "title": "A Study of Access to Continuous Glucose Monitors by ...",
+      "url": "https://diabetes.org/sites/default/files/2023-09/ADA-CGM-Utilization-White-Paper-Oct-2022.pdf",
+      "authors": [
+        "American Diabetes Association"
+      ],
+      "publication_date": "2023-09-01",
+      "journal_name": "American Diabetes Association",
+      "excerpt": "CGM (including flash glucose monitoring) systems are safe and effective in both type 1 and type 2 diabetes and can improve quality of glycemic control, reduce risk of hypoglycemia, and permit selection of lower target levels for mean glucose and HbA1c.",
+      "domain": ".org",
+      "credibility_score": 0.75,
+      "source_type": "report"
+    },
+    {
+      "title": "Effectiveness of Digital Diabetes Management Technology ...",
+      "url": "https://www.jmir.org/2025/1/e66441",
+      "authors": [
+        "Various"
+      ],
+      "publication_date": "2025-01-01",
+      "journal_name": "JMIR",
+      "excerpt": "continuous innovation in sensor, microelectronics, and data analysis technologies, researchers have been actively investing in research and development.",
+      "domain": ".org",
+      "credibility_score": 0.69,
+      "source_type": "journal"
+    },
+    {
+      "title": "The Clinical Impact of Flash Glucose Monitoring\u2014a Digital ...",
+      "url": "https://diabetes.jmir.org/2023/1/e42389/",
+      "authors": [
+        "Zahedani et al."
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "JMIR",
+      "excerpt": "A desired outcome of any glucose monitoring modality is the use of real-time data to promote positive behavior and therapeutic changes.",
+      "domain": ".org",
+      "credibility_score": 0.67,
+      "source_type": "journal"
+    }
+  ],
+  "key_statistics": [
+    "665 participants involved in the study on the impact of flash glucose monitoring.",
+    "CGMs can reduce the risk of hypoglycemia in type 1 and type 2 diabetes.",
+    "Improvement in glycemic control by monitoring glucose levels between 54-180 mg/dL for Type 2 diabetes patients."
+  ],
+  "research_gaps": [
+    "Need for larger, long-term studies on CGM effectiveness across diverse populations.",
+    "Investigating the barriers to accessibility and technology adoption for glucose monitoring.",
+    "Understanding patient experiences and preferences regarding blood sugar monitoring methods."
+  ],
+  "main_findings": [
+    "Continuous glucose monitoring systems improve glycemic control and reduce hypoglycemia risks.",
+    "Self-monitoring of blood glucose remains a critical component despite advancements in technology.",
+    "Digital diabetes management technologies show promising results in home settings for managing Type 2 diabetes."
+  ],
+  "total_sources_analyzed": 10,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-07-03 15:04:01.817599"
+}
