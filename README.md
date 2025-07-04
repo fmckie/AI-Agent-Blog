@@ -138,6 +138,80 @@ TAVILY_INCLUDE_DOMAINS=.edu,.gov,.org  # Prioritized domains
    - Generate new secret key
    - **Important**: Save immediately (shown only once)
 
+## 🗄️ Database Setup (Phase 7 - RAG System)
+
+The system includes a sophisticated caching and knowledge management layer using Supabase with pgvector for semantic search capabilities.
+
+### Supabase Setup
+
+1. **Create a Supabase Project**
+   - Sign up at [supabase.com](https://supabase.com)
+   - Create a new project
+   - Note your project URL and service role key
+
+2. **Initialize the Database**
+   
+   Run the SQL scripts in order:
+   ```bash
+   # In Supabase SQL Editor, run each script:
+   
+   # 1. Enable extensions and create base types
+   sql/init_database.sql
+   
+   # 2. Create research storage with vector embeddings
+   sql/research_documents.sql
+   
+   # 3. Set up source credibility tracking
+   sql/research_metadata.sql
+   
+   # 4. Create cache for API responses
+   sql/research_cache.sql
+   
+   # 5. Track generated articles
+   sql/generated_articles.sql
+   
+   # 6. Placeholder for future Drive integration
+   sql/drive_documents.sql
+   ```
+
+3. **Configure Environment Variables**
+   
+   Add to your `.env` file:
+   ```env
+   # Supabase Configuration
+   SUPABASE_URL=your_project_url
+   SUPABASE_SERVICE_KEY=your_service_key
+   
+   # Embedding Configuration
+   EMBEDDING_MODEL_NAME=text-embedding-3-small
+   EMBEDDING_BATCH_SIZE=100
+   
+   # Cache Settings
+   CACHE_SIMILARITY_THRESHOLD=0.8
+   CACHE_TTL_DAYS=7
+   ```
+
+### Database Features
+
+- **Semantic Search**: Find similar research using vector embeddings
+- **Exact Cache**: Reduce API calls for repeated searches
+- **Source Tracking**: Monitor credibility and usage of sources
+- **Quality Metrics**: Track article performance and SEO scores
+- **Version Control**: Future support for document versioning
+
+### Maintenance
+
+```bash
+# Clean expired cache entries (run periodically)
+SELECT cleanup_expired_research_cache(30);
+
+# Get cache statistics
+SELECT * FROM get_cache_statistics();
+
+# Check research diversity for a keyword
+SELECT * FROM analyze_source_diversity('your-keyword');
+```
+
 ## 💻 Usage
 
 ### Command Overview

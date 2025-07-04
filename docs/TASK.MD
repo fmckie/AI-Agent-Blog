@@ -216,10 +216,148 @@ This document tracks all tasks for building the SEO Content Automation System MV
 
 ---
 
+## Phase 7: RAG System & Knowledge Management
+*Implement vector storage for research caching and Google Drive integration*
+
+### 7.1 Database Setup
+- [✓] Create Supabase project with pgvector extension
+- [✓] Write SQL schemas for all tables:
+  - [✓] research_documents.sql (chunks with embeddings)
+  - [✓] research_metadata.sql (source tracking)
+  - [✓] research_cache.sql (complete Tavily responses)
+  - [✓] generated_articles.sql (article tracking)
+  - [✓] drive_documents.sql (Drive file embeddings)
+- [✓] Create database initialization script
+- [✓] Test vector similarity search functionality
+- [✓] Set up proper indexes for performance
+
+### 7.2 RAG Core Components
+- [ ] Implement text processor (rag/processor.py):
+  - [ ] Text chunking with configurable size/overlap
+  - [ ] Support for multiple file formats
+  - [ ] Metadata extraction
+- [ ] Create embedding generator (rag/embeddings.py):
+  - [ ] OpenAI embedding integration
+  - [ ] Batch processing for efficiency
+  - [ ] Error handling for API limits
+- [ ] Build storage layer (rag/storage.py):
+  - [ ] Supabase client wrapper
+  - [ ] Vector storage operations
+  - [ ] Transaction support
+- [ ] Implement semantic retriever (rag/retriever.py):
+  - [ ] Similarity search implementation
+  - [ ] Hybrid search (exact + semantic)
+  - [ ] Result ranking and filtering
+- [ ] Create RAG configuration (rag/config.py):
+  - [ ] Embedding model settings
+  - [ ] Chunk size configuration
+  - [ ] Similarity thresholds
+
+### 7.3 Research Agent Integration
+- [ ] Modify research_agent/tools.py:
+  - [ ] Add cache check before Tavily call
+  - [ ] Implement cache storage after API call
+  - [ ] Add cache hit/miss logging
+- [ ] Create hybrid search function:
+  - [ ] Check exact cache first
+  - [ ] Fall back to semantic search
+  - [ ] Combine results intelligently
+- [ ] Add cache warming functionality:
+  - [ ] Pre-populate common topics
+  - [ ] Bulk import existing research
+- [ ] Implement cache management:
+  - [ ] TTL-based expiration
+  - [ ] Manual cache invalidation
+  - [ ] Storage usage monitoring
+
+### 7.4 Google Drive Integration
+- [ ] Set up Google Drive API:
+  - [ ] Create Google Cloud project
+  - [ ] Enable Drive API
+  - [ ] Generate OAuth credentials
+- [ ] Implement authentication (rag/drive/auth.py):
+  - [ ] OAuth 2.0 flow
+  - [ ] Token management
+  - [ ] Service account support
+- [ ] Create article uploader (rag/drive/uploader.py):
+  - [ ] HTML to Google Docs conversion
+  - [ ] Folder organization by date
+  - [ ] Metadata attachment
+  - [ ] Version tracking
+- [ ] Build folder watcher (rag/drive/watcher.py):
+  - [ ] Monitor specific folders
+  - [ ] Detect new/modified files
+  - [ ] Queue for processing
+  - [ ] Error recovery
+- [ ] Test Drive operations:
+  - [ ] Upload test files
+  - [ ] Verify folder monitoring
+  - [ ] Test permission handling
+
+### 7.5 Workflow Enhancement
+- [ ] Modify workflow.py:
+  - [ ] Add Drive upload after article generation
+  - [ ] Trigger embedding generation
+  - [ ] Link research to articles in database
+- [ ] Implement post-generation pipeline:
+  - [ ] Save locally first
+  - [ ] Upload to Drive
+  - [ ] Generate embeddings
+  - [ ] Update metadata
+- [ ] Add error recovery:
+  - [ ] Retry failed uploads
+  - [ ] Queue for later processing
+  - [ ] Notification system
+- [ ] Create cleanup utilities:
+  - [ ] Remove old cache entries
+  - [ ] Archive old articles
+  - [ ] Database maintenance
+
+### 7.6 CLI Commands for RAG
+- [ ] Enhance generate command:
+  - [ ] Add --use-cache flag
+  - [ ] Add --force-fresh flag
+  - [ ] Show cache statistics
+- [ ] Create cache management commands:
+  - [ ] python main.py cache search "query"
+  - [ ] python main.py cache clear [--older-than days]
+  - [ ] python main.py cache stats
+  - [ ] python main.py cache warm "topic"
+- [ ] Add Drive commands:
+  - [ ] python main.py drive sync
+  - [ ] python main.py drive list-articles
+  - [ ] python main.py drive upload "file"
+- [ ] Implement RAG utilities:
+  - [ ] python main.py rag search "query"
+  - [ ] python main.py rag rebuild
+  - [ ] python main.py rag export
+
+### 7.7 Testing & Documentation
+- [ ] Write unit tests:
+  - [ ] test_embeddings.py
+  - [ ] test_storage.py
+  - [ ] test_retriever.py
+  - [ ] test_processor.py
+- [ ] Create integration tests:
+  - [ ] End-to-end cache flow
+  - [ ] Drive upload/download
+  - [ ] Research to article pipeline
+- [ ] Write documentation:
+  - [ ] RAG system overview
+  - [ ] Setup guide
+  - [ ] API reference
+  - [ ] Troubleshooting guide
+- [ ] Create examples:
+  - [ ] Cache usage examples
+  - [ ] Drive integration demos
+  - [ ] Performance benchmarks
+
+---
+
 ## Testing & Documentation
 *Ensure code quality and maintainability*
 
-### 7.1 Integration Testing
+### 8.1 Integration Testing
 - [✓] Create test_workflow.py:
   - [✓] Test complete keyword-to-article flow
   - [✓] Test with various keywords
@@ -228,7 +366,7 @@ This document tracks all tasks for building the SEO Content Automation System MV
 - [✓] Add performance benchmarks
 - [✓] Create test data fixtures
 
-### 7.2 Documentation
+### 8.2 Documentation
 - [✓] Update README.md:
   - [✓] Installation instructions
   - [✓] Configuration guide
@@ -238,7 +376,7 @@ This document tracks all tasks for building the SEO Content Automation System MV
 - [✓] Create API documentation
 - [✓] Add architecture diagrams
 
-### 7.3 Final Testing
+### 8.3 Final Testing
 - [🚧] Run full system test with real APIs
 - [✓] Test with edge cases:
   - [✓] Very niche keywords
@@ -254,13 +392,21 @@ This document tracks all tasks for building the SEO Content Automation System MV
 
 ### Future Enhancements
 - [ ] Batch keyword processing
-- [ ] Research result caching
 - [ ] WordPress integration
 - [ ] SEO scoring dashboard
 - [ ] Alternative API providers
 - [ ] Web UI with Streamlit
 - [ ] Scheduled generation
 - [ ] Multi-language support
+
+### Advanced RAG Features
+- [ ] Multi-modal embeddings for images
+- [ ] Automatic knowledge graph generation
+- [ ] Cross-article linking suggestions
+- [ ] Research quality scoring
+- [ ] Collaborative filtering for content recommendations
+- [ ] Real-time embedding updates
+- [ ] A/B testing for different research strategies
 
 ### Performance Optimizations
 - [ ] Implement connection pooling
@@ -315,13 +461,29 @@ This document tracks all tasks for building the SEO Content Automation System MV
   - Updated README with detailed installation, usage, and troubleshooting
   - Added configuration table and API key setup instructions
   - All CLI commands fully documented with examples
+- **Phase 7 Planning Notes** (July 3, 2025):
+  - Designed comprehensive RAG system architecture with Supabase pgvector
+  - Planned Google Drive integration for article backup and knowledge ingestion
+  - Created hybrid search strategy combining exact and semantic matching
+  - Defined clear separation between cache storage and Drive document management
+  - Established embedding strategy using OpenAI's text-embedding-3-small model
+  - Planned CLI extensions for cache and Drive management
+- **Phase 7.1 Completion Notes** (July 3, 2025):
+  - Implemented complete database schema with pgvector for semantic search
+  - Created 6 SQL files with comprehensive table structures and functions
+  - Added automatic credibility scoring for research sources
+  - Implemented multi-factor quality scoring for generated articles
+  - Created cache system with TTL and access tracking
+  - Added extensive documentation with learning-focused explanations
+  - Updated .env.example and README with database setup instructions
+  - Prepared placeholder for future Google Drive integration
 
 ---
 
 ## Current Sprint Focus
 *Active work items - Update daily*
 
-**Sprint Goal**: Finalize MVP with comprehensive testing and documentation
+**Sprint Goal**: Implement RAG system with research caching and Google Drive integration
 
 **Active Tasks**:
 1. ✅ Phase 1: Foundation Setup - COMPLETED
@@ -330,13 +492,13 @@ This document tracks all tasks for building the SEO Content Automation System MV
 4. ✅ Phase 4: Writer Agent - COMPLETED
 5. ✅ Phase 5: Workflow Orchestration - COMPLETED
 6. ✅ Phase 6: User Interface - COMPLETED
-7. 🎯 Next: Final system testing with real APIs
-8. 📝 Status: MVP is feature-complete and ready for final testing
+7. 🚧 Phase 7: RAG System & Knowledge Management - IN PROGRESS
+8. 📝 Status: Core MVP complete, enhancing with intelligent caching
 
 **Daily Standup Notes**:
-- Yesterday: Completed Phase 5 Workflow Orchestration with transaction support
-- Today: Completed Phase 6 User Interface with enhanced CLI, documentation, and tests
-- Blockers: None - MVP is ready for final testing and release preparation
+- Yesterday: Completed Phase 6 User Interface with full CLI implementation
+- Today: Starting Phase 7 RAG system implementation with Supabase and Google Drive
+- Blockers: None - Need to set up Supabase project and Google Cloud credentials
 
 ---
 
