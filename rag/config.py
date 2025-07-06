@@ -93,7 +93,7 @@ class RAGConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="",
         case_sensitive=False,
-        env_file=".env",
+        env_file=".env" if os.getenv("DISABLE_DOTENV") != "true" else None,
         env_file_encoding="utf-8",
         extra="ignore",
     )

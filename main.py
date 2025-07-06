@@ -26,6 +26,7 @@ from rich.progress import (
 
 # Import our modules
 from config import get_config
+from rag.config import get_rag_config
 from rag.retriever import ResearchRetriever
 from rag.storage import VectorStorage
 from workflow import WorkflowOrchestrator
@@ -540,10 +541,10 @@ def cache_search(query: str, limit: int, threshold: float):
 async def _cache_search(query: str, limit: int, threshold: float):
     """Execute cache search asynchronously."""
     try:
-        config = get_config()
+        rag_config = get_rag_config()
 
         # Create storage instance
-        async with VectorStorage(config) as storage:
+        async with VectorStorage(rag_config) as storage:
             # Create embeddings generator
             from rag.embeddings import EmbeddingGenerator
 
@@ -608,9 +609,9 @@ def cache_stats(detailed: bool):
 async def _cache_stats(detailed: bool):
     """Get and display cache statistics."""
     try:
-        config = get_config()
+        rag_config = get_rag_config()
 
-        async with VectorStorage(config) as storage:
+        async with VectorStorage(rag_config) as storage:
             # Get cache statistics
             stats = await storage.get_cache_stats()
 
@@ -721,9 +722,9 @@ async def _cache_clear(
 ):
     """Clear cache entries based on criteria."""
     try:
-        config = get_config()
+        rag_config = get_rag_config()
 
-        async with VectorStorage(config) as storage:
+        async with VectorStorage(rag_config) as storage:
             # First, show what will be cleared
             if older_than:
                 console.print(

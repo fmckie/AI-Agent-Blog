@@ -5,12 +5,20 @@ This test suite ensures that the RAG configuration properly validates
 settings, handles environment variables, and provides correct defaults.
 """
 
+import os
 from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
 
 from rag.config import RAGConfig, get_rag_config
+
+
+@pytest.fixture(autouse=True)
+def disable_env_file_loading(monkeypatch):
+    """Disable automatic .env file loading for tests."""
+    # This prevents Pydantic Settings from loading the .env file
+    monkeypatch.setenv("DISABLE_DOTENV", "true")
 
 
 class TestRAGConfig:
@@ -73,6 +81,7 @@ class TestRAGConfig:
                 "CHUNK_SIZE": "500",
                 "CHUNK_OVERLAP": "100",
             },
+            clear=True,
         ):
             config = RAGConfig()
             assert config.chunk_size == 500
@@ -87,6 +96,7 @@ class TestRAGConfig:
                 "CHUNK_SIZE": "500",
                 "CHUNK_OVERLAP": "600",
             },
+            clear=True,
         ):
             with pytest.raises(ValidationError) as exc_info:
                 RAGConfig()
@@ -105,6 +115,7 @@ class TestRAGConfig:
                 "SUPABASE_URL": "https://myproject.supabase.co",
                 "SUPABASE_SERVICE_KEY": "test-key",
             },
+            clear=True,
         ):
             config = RAGConfig()
             assert config.supabase_url == "https://myproject.supabase.co"
@@ -116,6 +127,7 @@ class TestRAGConfig:
                 "SUPABASE_URL": "http://myproject.supabase.co",
                 "SUPABASE_SERVICE_KEY": "test-key",
             },
+            clear=True,
         ):
             with pytest.raises(ValidationError) as exc_info:
                 RAGConfig()
@@ -130,6 +142,7 @@ class TestRAGConfig:
                 "SUPABASE_URL": "https://myproject.wrongdomain.com",
                 "SUPABASE_SERVICE_KEY": "test-key",
             },
+            clear=True,
         ):
             with pytest.raises(ValidationError):
                 RAGConfig()
@@ -151,6 +164,7 @@ class TestRAGConfig:
                     "SUPABASE_SERVICE_KEY": "test-key",
                     "EMBEDDING_MODEL_NAME": model,
                 },
+                clear=True,
             ):
                 config = RAGConfig()
                 assert config.embedding_model_name == model
@@ -163,6 +177,7 @@ class TestRAGConfig:
                 "SUPABASE_SERVICE_KEY": "test-key",
                 "EMBEDDING_MODEL_NAME": "invalid-model",
             },
+            clear=True,
         ):
             with pytest.raises(ValidationError) as exc_info:
                 RAGConfig()
@@ -180,6 +195,7 @@ class TestRAGConfig:
                 "SUPABASE_SERVICE_KEY": "test-key",
                 "EMBEDDING_BATCH_SIZE": "0",  # Below minimum
             },
+        clear=True,
         ):
             with pytest.raises(ValidationError):
                 RAGConfig()
@@ -191,6 +207,7 @@ class TestRAGConfig:
                 "SUPABASE_SERVICE_KEY": "test-key",
                 "EMBEDDING_BATCH_SIZE": "3000",  # Above maximum
             },
+        clear=True,
         ):
             with pytest.raises(ValidationError):
                 RAGConfig()
@@ -203,6 +220,7 @@ class TestRAGConfig:
                 "SUPABASE_SERVICE_KEY": "test-key",
                 "SIMILARITY_THRESHOLD": "1.5",  # Above 1.0
             },
+        clear=True,
         ):
             with pytest.raises(ValidationError):
                 RAGConfig()
@@ -218,6 +236,7 @@ class TestRAGConfig:
                 "CONNECTION_TIMEOUT": "30",
                 "EMBEDDING_BATCH_SIZE": "50",
             },
+        clear=True,
         ):
             config = RAGConfig()
 
@@ -249,6 +268,7 @@ class TestRAGConfig:
                 "SUPABASE_URL": "https://test.supabase.co",
                 "SUPABASE_SERVICE_KEY": "test-key",
             },
+            clear=True,
         ):
             # Clear any existing instance
             import rag.config
@@ -318,6 +338,7 @@ class TestRAGConfig:
                 "supabase_url": "https://lowercase.supabase.co",  # lowercase
                 "SUPABASE_SERVICE_KEY": "test-key",  # uppercase
             },
+        clear=True,
         ):
             config = RAGConfig()
             assert config.supabase_url == "https://lowercase.supabase.co"
