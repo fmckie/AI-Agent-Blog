@@ -14,6 +14,7 @@ import pytest
 
 from config import Config
 from models import AcademicSource, ArticleOutput, ArticleSection, ResearchFindings
+from tests.helpers import MockAgentRunResult, create_valid_article_output
 from writer_agent import create_writer_agent, run_writer_agent
 from writer_agent.tools import (
     calculate_keyword_density,
@@ -29,7 +30,6 @@ from writer_agent.utilities import (
     find_transition_words,
     validate_header_hierarchy,
 )
-from tests.helpers import MockAgentRunResult, create_valid_article_output
 
 
 # Fixtures
@@ -329,12 +329,12 @@ class TestWriterAgent:
         expected_article = create_valid_article_output(
             keyword="artificial intelligence",
             title="Artificial Intelligence: The Future is Now",
-            sources_count=3
+            sources_count=3,
         )
-        
+
         # Mock the agent's run method to return a proper AgentRunResult
         mock_result = MockAgentRunResult(expected_article)
-        
+
         with patch.object(agent, "run", new=AsyncMock(return_value=mock_result)):
             result = await run_writer_agent(
                 agent, "artificial intelligence", mock_research_findings
@@ -355,10 +355,9 @@ class TestWriterAgent:
 
         # Create article without sources using helper
         bad_article = create_valid_article_output(
-            keyword="test",
-            sources_count=0  # No sources!
+            keyword="test", sources_count=0  # No sources!
         )
-        
+
         # Mock the agent's run method to return a proper AgentRunResult
         mock_result = MockAgentRunResult(bad_article)
 

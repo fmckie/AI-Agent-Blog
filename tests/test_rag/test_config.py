@@ -195,7 +195,7 @@ class TestRAGConfig:
                 "SUPABASE_SERVICE_KEY": "test-key",
                 "EMBEDDING_BATCH_SIZE": "0",  # Below minimum
             },
-        clear=True,
+            clear=True,
         ):
             with pytest.raises(ValidationError):
                 RAGConfig()
@@ -207,7 +207,7 @@ class TestRAGConfig:
                 "SUPABASE_SERVICE_KEY": "test-key",
                 "EMBEDDING_BATCH_SIZE": "3000",  # Above maximum
             },
-        clear=True,
+            clear=True,
         ):
             with pytest.raises(ValidationError):
                 RAGConfig()
@@ -220,7 +220,7 @@ class TestRAGConfig:
                 "SUPABASE_SERVICE_KEY": "test-key",
                 "SIMILARITY_THRESHOLD": "1.5",  # Above 1.0
             },
-        clear=True,
+            clear=True,
         ):
             with pytest.raises(ValidationError):
                 RAGConfig()
@@ -236,7 +236,7 @@ class TestRAGConfig:
                 "CONNECTION_TIMEOUT": "30",
                 "EMBEDDING_BATCH_SIZE": "50",
             },
-        clear=True,
+            clear=True,
         ):
             config = RAGConfig()
 
@@ -338,7 +338,7 @@ class TestRAGConfig:
                 "supabase_url": "https://lowercase.supabase.co",  # lowercase
                 "SUPABASE_SERVICE_KEY": "test-key",  # uppercase
             },
-        clear=True,
+            clear=True,
         ):
             config = RAGConfig()
             assert config.supabase_url == "https://lowercase.supabase.co"

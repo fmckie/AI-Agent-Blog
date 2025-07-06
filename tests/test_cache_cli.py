@@ -6,7 +6,9 @@ clear, and warm operations.
 """
 
 import asyncio
+import os
 from datetime import datetime, timezone
+from functools import wraps
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -15,9 +17,28 @@ from click.testing import CliRunner
 from main import cache, cache_clear, cache_search, cache_stats, cache_warm
 
 
+def with_mocked_env(func):
+    """Decorator to mock environment variables for tests."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        env_vars = {
+            "SUPABASE_URL": "https://test.supabase.co",
+            "SUPABASE_SERVICE_KEY": "test-key",
+            "OPENAI_API_KEY": "sk-test-" + "x" * 40,  # Make it long enough
+            "TAVILY_API_KEY": "tvly-" + "x" * 40,  # Make it long enough
+            "DISABLE_DOTENV": "true",  # Prevent loading .env file
+        }
+        with patch.dict(os.environ, env_vars):
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
 class TestCacheSearch:
     """Test the cache search command."""
 
+    @with_mocked_env
     def test_cache_search_basic(self):
         """Test basic cache search functionality."""
         # Create a test runner
@@ -26,44 +47,57 @@ class TestCacheSearch:
         # Mock the async components
         with patch("main.VectorStorage") as mock_storage_class:
             with patch("rag.embeddings.EmbeddingGenerator") as mock_embeddings_class:
-                with patch("rag.processor.TextProcessor") as mock_processor_class:
-                    with patch("main.ResearchRetriever") as mock_retriever_class:
-                        # Set up mock instances
-                        mock_storage = AsyncMock()
-                        mock_embeddings = AsyncMock()
+                # Set up mock instances
+                mock_storage = AsyncMock()
+                mock_embeddings = AsyncMock()
 
-                        # Configure mock classes to return mock instances
-                        mock_storage_class.return_value = mock_storage
-                        mock_embeddings_class.return_value = mock_embeddings
+                # Configure mock classes to return mock instances
+                mock_storage_class.return_value = mock_storage
+                mock_embeddings_class.return_value = mock_embeddings
 
-                        # Mock the embedding generation
-                        mock_embeddings.generate_embedding.return_value = [0.1] * 1536
+                # Mock the embedding generation
+                mock_embeddings.generate_embedding.return_value = [0.1] * 1536
 
-                        # Mock search results
-                        mock_storage.search_similar.return_value = [
-                            {
-                                "similarity": 0.95,
-                                "keyword": "test keyword",
-                                "content": "This is test content about the topic...",
-                                "created_at": "2024-01-01T12:00:00Z",
-                                "metadata": {},
-                            }
-                        ]
+                # Mock search results
+                mock_storage.search_similar.return_value = [
+                    {
+                        "similarity": 0.95,
+                        "keyword": "test keyword",
+                        "content": "This is test content about the topic...",
+                        "created_at": "2024-01-01T12:00:00Z",
+                        "metadata": {},
+                    }
+                ]
 
-                        # Mock async context manager
-                        mock_storage.__aenter__.return_value = mock_storage
-                        mock_storage.__aexit__.return_value = None
+                # Mock async context manager
+                mock_storage.__aenter__.return_value = mock_storage
+                mock_storage.__aexit__.return_value = None
 
-                        # Run the command
-                        result = runner.invoke(cache_search, ["test query"])
+                # Run the command
+                result = runner.invoke(cache_search, ["test query"])
 
-                        # Check the result
-                        assert result.exit_code == 0
-                        assert "Searching cache for: 'test query'" in result.output
-                        assert "Found 1 matching results" in result.output
-                        assert "95.00%" in result.output  # Similarity score
-                        assert "test keyword" in result.output
+                # Debug output if test fails
+                if result.exit_code != 0:
+                    print(f"Exit code: {result.exit_code}")
+                    print(f"Output: {result.output}")
+                    if result.exception:
+                        print(f"Exception: {result.exception}")
+                        import traceback
 
+                        traceback.print_exception(
+                            type(result.exception),
+                            result.exception,
+                            result.exception.__traceback__,
+                        )
+
+                # Check the result
+                assert result.exit_code == 0
+                assert "Searching cache for: 'test query'" in result.output
+                assert "Found 1 matching results" in result.output
+                assert "95.00%" in result.output  # Similarity score
+                assert "test keyword" in result.output
+
+    @with_mocked_env
     def test_cache_search_no_results(self):
         """Test cache search with no results."""
         runner = CliRunner()
@@ -85,7 +119,7 @@ class TestCacheSearch:
 
                 # Run the command
                 result = runner.invoke(cache_search, ["no matches"])
-                
+
                 # Debug output if test fails
                 if result.exit_code != 0:
                     print(f"Exit code: {result.exit_code}")
@@ -96,6 +130,7 @@ class TestCacheSearch:
                 assert "No matching results found" in result.output
                 assert "Try lowering the threshold" in result.output
 
+    @with_mocked_env
     def test_cache_search_with_options(self):
         """Test cache search with custom options."""
         runner = CliRunner()
@@ -131,6 +166,7 @@ class TestCacheSearch:
 class TestCacheStats:
     """Test the cache stats command."""
 
+    @with_mocked_env
     def test_cache_stats_basic(self):
         """Test basic cache statistics display."""
         runner = CliRunner()
@@ -166,6 +202,7 @@ class TestCacheStats:
                 assert "Unique keywords: 25" in result.output
                 assert "Storage used: 10.00 MB" in result.output
 
+    @with_mocked_env
     def test_cache_stats_detailed(self):
         """Test detailed cache statistics."""
         runner = CliRunner()
@@ -216,6 +253,7 @@ class TestCacheStats:
 class TestCacheClear:
     """Test the cache clear command."""
 
+    @with_mocked_env
     def test_cache_clear_dry_run(self):
         """Test cache clear in dry run mode."""
         runner = CliRunner()
@@ -239,6 +277,7 @@ class TestCacheClear:
             # Verify cleanup was not called
             mock_storage.cleanup_cache.assert_not_called()
 
+    @with_mocked_env
     def test_cache_clear_with_confirmation(self):
         """Test cache clear with user confirmation."""
         runner = CliRunner()
@@ -262,6 +301,7 @@ class TestCacheClear:
             assert "Are you sure you want to proceed?" in result.output
             assert "Cleared 25 cache entries" in result.output
 
+    @with_mocked_env
     def test_cache_clear_force(self):
         """Test cache clear with force flag."""
         runner = CliRunner()
@@ -287,6 +327,7 @@ class TestCacheClear:
 class TestCacheWarm:
     """Test the cache warm command."""
 
+    @with_mocked_env
     def test_cache_warm_basic(self):
         """Test basic cache warming."""
         runner = CliRunner()
@@ -304,10 +345,18 @@ class TestCacheWarm:
                 # Run the command
                 result = runner.invoke(cache_warm, ["diabetes"])
 
+                # Debug output if test fails
+                if result.exit_code != 0:
+                    print(f"Exit code: {result.exit_code}")
+                    print(f"Output: {result.output}")
+                    if result.exception:
+                        print(f"Exception: {result.exception}")
+
                 assert result.exit_code == 0
                 assert "Warming cache for topic: 'diabetes'" in result.output
                 assert "Successfully cached: 3/3" in result.output
 
+    @with_mocked_env
     def test_cache_warm_with_variations(self):
         """Test cache warming with custom variations."""
         runner = CliRunner()
@@ -332,6 +381,7 @@ class TestCacheWarm:
                 # Should research 5 keywords total
                 assert mock_run_agent.call_count == 5
 
+    @with_mocked_env
     def test_cache_warm_error_handling(self):
         """Test cache warming with errors."""
         runner = CliRunner()

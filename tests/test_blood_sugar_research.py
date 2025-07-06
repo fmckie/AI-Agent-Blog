@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 def create_mock_agent_result(data):
     """Create a mock AgentRunResult with data attribute."""
     from unittest.mock import MagicMock
+
     mock_result = MagicMock()
     mock_result.data = data
     return mock_result
@@ -149,7 +150,9 @@ async def test_blood_sugar_research():
     )
 
     # Mock the agent's run method to return AgentRunResult
-    with patch.object(agent, "run", return_value=create_mock_agent_result(mock_findings)):
+    with patch.object(
+        agent, "run", return_value=create_mock_agent_result(mock_findings)
+    ):
         # Run the research
         logger.info("🔍 Researching: 'blood sugar monitoring'...\n")
         findings = await run_research_agent(agent, "blood sugar monitoring")

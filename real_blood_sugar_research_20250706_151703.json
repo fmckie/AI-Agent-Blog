@@ -1,0 +1,59 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Recent studies indicate that blood sugar monitoring is critical for managing diabetes effectively, with significant advancements in technology aiding both patients and clinicians. Continuous glucose monitoring offers real-time insights into blood sugar levels, enhancing treatment adjustments. However, gaps persist in understanding the long-term psychological effects of self-monitoring and the integration of this data into broader health outcomes.",
+  "academic_sources": [
+    {
+      "title": "Blood Glucose Monitoring Devices",
+      "url": "https://www.fda.gov/medical-devices/in-vitro-diagnostics/blood-glucose-monitoring-devices",
+      "authors": [
+        "U.S. Food and Drug Administration"
+      ],
+      "publication_date": "2023-01-01",
+      "journal_name": "FDA",
+      "excerpt": "Blood glucose monitoring devices are used to measure the amount of sugar (glucose) in your blood. Good glucose control using home monitors leads to fewer disease complications.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "report"
+    },
+    {
+      "title": "Blood Glucose Monitoring - StatPearls",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK555976/",
+      "authors": [
+        "StatPearls"
+      ],
+      "publication_date": "2020-04-15",
+      "journal_name": "StatPearls Publishing",
+      "excerpt": "Blood glucose monitoring helps to identify fluctuations in blood sugar levels and guide diabetes management. Patterns can be linked to diet, exercise, medications, and health conditions.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "textbook"
+    },
+    {
+      "title": "Monitoring Your Blood Sugar | Diabetes | CDC",
+      "url": "https://www.cdc.gov/diabetes/diabetes-testing/monitoring-blood-sugar.html",
+      "authors": [
+        "Centers for Disease Control and Prevention"
+      ],
+      "publication_date": "2021-06-01",
+      "journal_name": "CDC",
+      "excerpt": "Regular monitoring helps track blood sugar and enables adjustments in diabetes care plans. Understanding triggers affecting blood sugar can improve management and reduce complications.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "report"
+    }
+  ],
+  "key_statistics": [],
+  "research_gaps": [
+    "Lack of studies on the psychological impact of frequent blood sugar monitoring.",
+    "Need for research on long-term outcomes of using continuous glucose monitoring in different populations.",
+    "Exploration of how self-monitoring data can influence lifestyle changes and overall health outcomes."
+  ],
+  "main_findings": [
+    "Blood sugar monitoring is essential for diabetes management, helping avoid complications.",
+    "Continuous glucose monitoring (CGM) provides real-time data, improving treatment efficacy.",
+    "Devices increasingly integrate with mobile technology, enhancing user experience and data tracking."
+  ],
+  "total_sources_analyzed": 7,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-07-06 15:17:03.916735"
+}

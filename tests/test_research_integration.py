@@ -196,7 +196,9 @@ async def test_error_handling():
         search_query_used="rare topic",
     )
 
-    with patch.object(agent, "run", return_value=create_mock_agent_result(low_source_findings)):
+    with patch.object(
+        agent, "run", return_value=create_mock_agent_result(low_source_findings)
+    ):
         # This should succeed but log a warning
         result = await run_research_agent(agent, "rare topic")
         logger.info("✅ Handled low source count appropriately")

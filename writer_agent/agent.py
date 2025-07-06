@@ -6,7 +6,6 @@ into SEO-optimized articles.
 """
 
 import logging
-
 from typing import Any, Dict, List
 
 from pydantic_ai import Agent, RunContext
@@ -25,8 +24,6 @@ from .tools import (
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-
 
 
 def create_writer_agent(config: Config) -> Agent[Dict[str, Any], ArticleOutput]:

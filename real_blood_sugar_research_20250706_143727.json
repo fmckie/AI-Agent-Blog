@@ -1,0 +1,53 @@
+{
+  "keyword": "blood sugar monitoring",
+  "research_summary": "Recent findings on blood sugar monitoring emphasize its critical role in diabetes management. Studies indicate that almost 11% of the global population is affected by diabetes, making effective monitoring essential for preventing complications. Technological advancements in monitoring devices, such as continuous glucose monitors (CGM), have improved patient compliance and outcomes. However, research gaps remain in understanding long-term implications of monitoring practices and improving accessibility in underserved populations.",
+  "academic_sources": [
+    {
+      "title": "Blood Glucose Monitoring Devices",
+      "url": "https://www.fda.gov/medical-devices/in-vitro-diagnostics/blood-glucose-monitoring-devices",
+      "authors": null,
+      "publication_date": "2025-07-06",
+      "journal_name": null,
+      "excerpt": "A blood glucose monitoring device is used to measure the amount of sugar in your blood, essential for diabetes management.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "government report"
+    },
+    {
+      "title": "Blood Glucose Monitoring - StatPearls",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK555976/",
+      "authors": null,
+      "publication_date": "2025-07-06",
+      "journal_name": null,
+      "excerpt": "Blood glucose monitoring helps identify fluctuations occurring in response to various factors, crucial in diabetes management.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "government report"
+    },
+    {
+      "title": "Monitoring Your Blood Sugar | Diabetes | CDC",
+      "url": "https://www.cdc.gov/diabetes/diabetes-testing/monitoring-blood-sugar.html",
+      "authors": null,
+      "publication_date": "2025-07-06",
+      "journal_name": null,
+      "excerpt": "Regular monitoring of blood sugar levels helps achieve target ranges and informs treatment plans.",
+      "domain": ".gov",
+      "credibility_score": 0.77,
+      "source_type": "government report"
+    }
+  ],
+  "key_statistics": [],
+  "research_gaps": [
+    "Further exploration of the long-term effects of continuous glucose monitoring on patient outcomes is needed.",
+    "There is a need for studies focusing on the use of glucose monitors in underserved populations.",
+    "Investigations into the psychological impacts of self-monitoring diabetes management remain limited."
+  ],
+  "main_findings": [
+    "Blood glucose monitoring devices are essential for managing diabetes effectively.",
+    "Approximately 1 in 11 people worldwide are affected by diabetes, highlighting the importance of monitoring.",
+    "Continuous glucose monitors (CGM) have improved patient access to real-time glucose data, enhancing diabetes management."
+  ],
+  "total_sources_analyzed": 3,
+  "search_query_used": "blood sugar monitoring",
+  "research_timestamp": "2025-07-06 14:37:27.169755"
+}

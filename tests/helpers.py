@@ -10,13 +10,12 @@ from unittest.mock import Mock
 
 from models import ArticleOutput, ArticleSection, ArticleSubsection, ResearchFindings
 
-
 T = TypeVar("T")
 
 
 class MockAgentRunResult:
     """Mock for PydanticAI AgentRunResult."""
-    
+
     def __init__(self, data: T):
         """Initialize with result data."""
         self.data = data
@@ -26,24 +25,22 @@ class MockAgentRunResult:
 
 
 def create_valid_article_output(
-    keyword: str = "test keyword",
-    title: str = None,
-    sources_count: int = 3
+    keyword: str = "test keyword", title: str = None, sources_count: int = 3
 ) -> ArticleOutput:
     """
     Create a valid ArticleOutput that meets all validation requirements.
-    
+
     Args:
         keyword: The focus keyword
         title: Optional custom title
         sources_count: Number of sources to include
-        
+
     Returns:
         Valid ArticleOutput instance
     """
     if title is None:
         title = f"Comprehensive Guide to {keyword.title()}: Expert Insights"
-    
+
     # Ensure meta description fits within 120-160 char limit
     meta_desc = f"Discover everything about {keyword} with our comprehensive guide. Expert insights, practical tips, and proven strategies for success included."
     if len(meta_desc) > 160:
@@ -53,7 +50,7 @@ def create_valid_article_output(
     elif len(meta_desc) < 120:
         # Extend if too short
         meta_desc = f"Discover everything about {keyword} in our comprehensive guide. Learn from expert insights, practical implementation tips, and proven strategies."
-    
+
     return ArticleOutput(
         title=title,
         meta_description=meta_desc,
@@ -73,7 +70,7 @@ def create_valid_article_output(
                     f"basic principles, and foundational knowledge needed to understand {keyword}. "
                     f"Our comprehensive analysis covers theoretical aspects and practical applications, "
                     f"ensuring you gain a complete understanding of {keyword} fundamentals."
-                )
+                ),
             ),
             ArticleSection(
                 heading=f"Advanced {keyword.title()} Techniques",
@@ -83,7 +80,7 @@ def create_valid_article_output(
                     f"expert-level strategies, cutting-edge methodologies, and proven best practices. "
                     f"Learn how professionals leverage advanced {keyword} techniques to achieve "
                     f"exceptional results in real-world applications."
-                )
+                ),
             ),
             ArticleSection(
                 heading=f"Practical Applications of {keyword.title()}",
@@ -103,9 +100,9 @@ def create_valid_article_output(
                             f"industries, highlighting key strategies, challenges overcome, and results "
                             f"achieved. These examples provide valuable insights for your own {keyword} "
                             f"implementation efforts."
-                        )
+                        ),
                     )
-                ]
+                ],
             ),
             ArticleSection(
                 heading=f"Future Trends in {keyword.title()}",
@@ -115,8 +112,8 @@ def create_valid_article_output(
                     f"the field. Stay ahead of the curve by understanding where {keyword} is heading "
                     f"and how to prepare for upcoming changes. Expert insights provide valuable "
                     f"perspective on the future direction of {keyword}."
-                )
-            )
+                ),
+            ),
         ],
         conclusion=(
             f"In conclusion, mastering {keyword} requires understanding both fundamental concepts "
@@ -127,17 +124,17 @@ def create_valid_article_output(
         word_count=1500,
         reading_time_minutes=7,
         keyword_density=0.015,
-        sources_used=[f"https://example{i}.edu/research" for i in range(sources_count)]
+        sources_used=[f"https://example{i}.edu/research" for i in range(sources_count)],
     )
 
 
 def create_minimal_valid_article_output(keyword: str = "test") -> ArticleOutput:
     """
     Create a minimal valid ArticleOutput that just meets validation requirements.
-    
+
     Args:
         keyword: The focus keyword
-        
+
     Returns:
         Minimal valid ArticleOutput instance
     """
@@ -148,8 +145,7 @@ def create_minimal_valid_article_output(keyword: str = "test") -> ArticleOutput:
         introduction="x" * 150,  # Exactly 150 chars
         main_sections=[
             ArticleSection(
-                heading=f"Section {i}",
-                content="x" * 100  # Exactly 100 chars
+                heading=f"Section {i}", content="x" * 100  # Exactly 100 chars
             )
             for i in range(3)  # Exactly 3 sections
         ],
@@ -157,5 +153,5 @@ def create_minimal_valid_article_output(keyword: str = "test") -> ArticleOutput:
         word_count=1000,
         reading_time_minutes=5,
         keyword_density=0.01,
-        sources_used=["https://example.com"]
+        sources_used=["https://example.com"],
     )

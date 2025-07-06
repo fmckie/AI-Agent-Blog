@@ -29,3 +29,10 @@ flake8>=6.1.0  # Linter
 
 # Logging
 rich>=13.7.0  # For beautiful terminal output
+
+# RAG System Dependencies
+supabase>=2.0.0  # Supabase Python client
+asyncpg>=0.29.0  # Async PostgreSQL adapter
+pgvector>=0.2.0  # PostgreSQL vector extension support
+tenacity>=8.2.0  # Retry logic for API calls
+numpy>=1.24.0  # For vector operations

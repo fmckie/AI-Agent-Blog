@@ -62,7 +62,9 @@ def run_command(command: list[str], description: str) -> bool:
 
     try:
         # Run the command with inherited environment variables
-        result = subprocess.run(command, capture_output=True, text=True, check=True, env=os.environ)
+        result = subprocess.run(
+            command, capture_output=True, text=True, check=True, env=os.environ
+        )
 
         # Print output if any
         if result.stdout:

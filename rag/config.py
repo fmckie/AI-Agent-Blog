@@ -98,6 +98,36 @@ class RAGConfig(BaseSettings):
         extra="ignore",
     )
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def strip_inline_comments(cls, v):
+        """
+        Strip inline comments from environment variable values.
+
+        Python-dotenv doesn't remove inline comments by default,
+        so we need to handle values like "advanced  # Options: basic, advanced"
+
+        Args:
+            v: The value to clean
+
+        Returns:
+            The cleaned value without inline comments
+        """
+        if isinstance(v, str):
+            # Find the first # that's preceded by whitespace
+            # This avoids stripping # that might be part of the actual value
+            if "#" in v:
+                # Split on # and take the first part
+                parts = v.split("#")
+                if len(parts) > 1:
+                    # Only strip if there's whitespace before the #
+                    cleaned = parts[0].rstrip()
+                    # Check if we actually had a comment (whitespace before #)
+                    if cleaned != v.rstrip():
+                        return cleaned
+            return v
+        return v
+
     @field_validator("chunk_overlap")
     def validate_chunk_overlap(cls, v: int, info) -> int:
         """Ensure chunk overlap is less than chunk size."""

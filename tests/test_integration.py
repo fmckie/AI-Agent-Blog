@@ -18,9 +18,13 @@ import pytest
 from config import Config, get_config
 from models import AcademicSource, ArticleOutput, ArticleSection, ResearchFindings
 from research_agent import create_research_agent
+from tests.helpers import (
+    MockAgentRunResult,
+    create_minimal_valid_article_output,
+    create_valid_article_output,
+)
 from workflow import WorkflowOrchestrator
 from writer_agent import create_writer_agent
-from tests.helpers import MockAgentRunResult, create_valid_article_output, create_minimal_valid_article_output
 
 
 class TestSystemIntegration:
@@ -494,11 +498,11 @@ class TestEdgeCases:
         )
 
         orchestrator = WorkflowOrchestrator(config)
-        
+
         # Test empty string
         with pytest.raises(ValueError):
             await orchestrator.run_full_workflow("")
-        
+
         # Test whitespace only
         with pytest.raises(ValueError):
             await orchestrator.run_full_workflow("   ")
@@ -515,7 +519,7 @@ class TestEdgeCases:
 
         # Create a very long keyword
         long_keyword = "machine learning " * 50  # 800+ characters
-        
+
         mock_research = ResearchFindings(
             keyword=long_keyword[:100],  # Truncate for storage
             research_summary="Research on very long keyword demonstrates system robustness in handling edge cases and unusual input scenarios while maintaining functionality.",
@@ -532,18 +536,23 @@ class TestEdgeCases:
             total_sources_analyzed=1,
             search_query_used=long_keyword[:100],
         )
-        
+
         # Use helper to create valid article with truncated keyword
         mock_article = create_valid_article_output(
             keyword=long_keyword[:50],  # Use truncated version
             title="Understanding Complex Topics and Long Keywords",
-            sources_count=1
+            sources_count=1,
         )
 
-        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
-            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+        with patch(
+            "workflow.run_research_agent", AsyncMock(return_value=mock_research)
+        ):
+            with patch(
+                "writer_agent.agent.run_writer_agent",
+                AsyncMock(return_value=mock_article),
+            ):
                 orchestrator = WorkflowOrchestrator(config)
-                
+
                 # Should handle gracefully
                 result = await orchestrator.run_full_workflow(long_keyword)
                 assert result.exists()
@@ -566,7 +575,7 @@ class TestEdgeCases:
 
         with patch("workflow.run_research_agent", slow_research):
             orchestrator = WorkflowOrchestrator(config)
-            
+
             # Should raise timeout error
             with pytest.raises(asyncio.TimeoutError):
                 await orchestrator.run_research("test")
@@ -606,14 +615,19 @@ class TestEdgeCases:
         mock_article = create_valid_article_output(
             keyword="test",
             title="Test Article for Disk Space Handling",
-            sources_count=1
+            sources_count=1,
         )
 
-        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
-            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+        with patch(
+            "workflow.run_research_agent", AsyncMock(return_value=mock_research)
+        ):
+            with patch(
+                "writer_agent.agent.run_writer_agent",
+                AsyncMock(return_value=mock_article),
+            ):
                 with patch("pathlib.Path.write_text", mock_write_failure):
                     orchestrator = WorkflowOrchestrator(config)
-                    
+
                     # Should raise OSError
                     with pytest.raises(OSError, match="No space left"):
                         await orchestrator.run_full_workflow("test")
@@ -650,28 +664,39 @@ class TestEdgeCases:
         mock_article = create_valid_article_output(
             keyword="security",
             title="Understanding HTML Security Best Practices",
-            sources_count=1
+            sources_count=1,
         )
         # Override some fields to include special characters
         mock_article.title = "Understanding <HTML> & Security"
-        mock_article.introduction = ("This article covers <important> security topics & best practices. " +
-                                    "Learn how to properly handle special characters in web content to prevent " +
-                                    "XSS vulnerabilities and ensure your applications remain secure. We'll explore " +
-                                    "various techniques for escaping HTML entities and maintaining data integrity.")
-        mock_article.main_sections[0].content = ("Content with <tags> and & symbols that need proper escaping. " +
-                                               "This section demonstrates the importance of properly handling HTML " +
-                                               "special characters to prevent XSS vulnerabilities and ensure content " +
-                                               "displays correctly. Always remember to escape user input and validate " +
-                                               "all data before rendering it in HTML contexts.")
+        mock_article.introduction = (
+            "This article covers <important> security topics & best practices. "
+            + "Learn how to properly handle special characters in web content to prevent "
+            + "XSS vulnerabilities and ensure your applications remain secure. We'll explore "
+            + "various techniques for escaping HTML entities and maintaining data integrity."
+        )
+        mock_article.main_sections[0].content = (
+            "Content with <tags> and & symbols that need proper escaping. "
+            + "This section demonstrates the importance of properly handling HTML "
+            + "special characters to prevent XSS vulnerabilities and ensure content "
+            + "displays correctly. Always remember to escape user input and validate "
+            + "all data before rendering it in HTML contexts."
+        )
 
-        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
-            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+        with patch(
+            "workflow.run_research_agent", AsyncMock(return_value=mock_research)
+        ):
+            with patch(
+                "writer_agent.agent.run_writer_agent",
+                AsyncMock(return_value=mock_article),
+            ):
                 orchestrator = WorkflowOrchestrator(config)
                 result = await orchestrator.run_full_workflow("security test")
-                
+
                 # Verify HTML is properly escaped in output
                 article_html = (result.parent / "article.html").read_text()
-                assert "&lt;script&gt;" in article_html or "<script>" not in article_html
+                assert (
+                    "&lt;script&gt;" in article_html or "<script>" not in article_html
+                )
                 assert "&amp;" in article_html or "& " in article_html
 
 
@@ -720,19 +745,19 @@ class TestRealWorldScenarios:
             return create_valid_article_output(
                 keyword=keyword,
                 title=f"Ultimate Guide to {keyword.title()}: Expert Insights",
-                sources_count=1
+                sources_count=1,
             )
 
         with patch("workflow.run_research_agent", mock_research):
             with patch("writer_agent.agent.run_writer_agent", mock_writer):
                 orchestrator = WorkflowOrchestrator(config)
-                
+
                 # Generate articles for all keywords
                 results = []
                 for keyword in keywords:
                     result = await orchestrator.run_full_workflow(keyword)
                     results.append(result)
-                
+
                 # Verify all articles were created
                 assert len(results) == len(keywords)
                 for i, result in enumerate(results):
@@ -760,10 +785,10 @@ class TestRealWorldScenarios:
             },
             "temp_dir": str(tmp_path / ".temp_resume_test_20250101_120000"),
         }
-        
+
         state_file = tmp_path / ".workflow_state_resume_test_20250101_120000.json"
         state_file.write_text(json.dumps(state_data))
-        
+
         # Create temp directory
         temp_dir = Path(state_data["temp_dir"])
         temp_dir.mkdir(parents=True, exist_ok=True)
@@ -790,16 +815,21 @@ class TestRealWorldScenarios:
         mock_article = create_valid_article_output(
             keyword="resume test",
             title="Resume Test Article: Recovery and Reliability",
-            sources_count=1
+            sources_count=1,
         )
 
-        with patch("workflow.run_research_agent", AsyncMock(return_value=mock_research)):
-            with patch("writer_agent.agent.run_writer_agent", AsyncMock(return_value=mock_article)):
+        with patch(
+            "workflow.run_research_agent", AsyncMock(return_value=mock_research)
+        ):
+            with patch(
+                "writer_agent.agent.run_writer_agent",
+                AsyncMock(return_value=mock_article),
+            ):
                 orchestrator = WorkflowOrchestrator(config)
-                
+
                 # Resume from saved state
                 result = await orchestrator.resume_workflow(state_file)
-                
+
                 # Verify completion
                 assert result.exists()
                 assert not state_file.exists()  # Should be cleaned up

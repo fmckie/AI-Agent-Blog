@@ -26,8 +26,14 @@ Our system follows a user-initiated pipeline where each component has a single, 
           |                                     |
           |                                     |
 +---------v---------+                 +---------v---------+
-|   Tavily API      |                 |  Prompt Templates |
-|   Integration     |                 |   Management      |
+|   RAG Cache       |                 |  Prompt Templates |
+|   (Supabase)      |                 |   Management      |
++---------+---------+                 +-------------------+
+          |                                     |
+          |                                     |
++---------v---------+                 +---------v---------+
+|   Tavily API      |                 |  Google Drive     |
+|   Integration     |                 |  Integration      |
 +-------------------+                 +-------------------+
                              |
                     +--------v---------+
@@ -77,6 +83,20 @@ Our system follows a user-initiated pipeline where each component has a single, 
    - Workflow initialization
    - Result presentation
 
+7. **RAG Cache System (`rag/`)**
+   - Vector storage using Supabase with pgvector
+   - Semantic search for cached research
+   - Embedding generation with OpenAI
+   - Automatic cache warming and management
+   - Hybrid search combining exact and semantic matches
+
+8. **Google Drive Integration (`rag/drive/`)**
+   - OAuth 2.0 authentication
+   - Automatic article upload to Drive
+   - Document folder monitoring
+   - File format conversion (HTML to Google Docs)
+   - Version tracking and metadata management
+
 ## Development Phases
 
 The project is organized into manageable phases that build upon each other:
@@ -99,6 +119,9 @@ Connect all components into a cohesive workflow with proper error handling.
 ### Phase 6: User Interface
 Build the CLI interface for easy interaction with the system.
 
+### Phase 7: RAG System & Knowledge Management
+Implement vector storage for research caching and Google Drive integration for knowledge persistence.
+
 ## Environment Configuration
 
 The system uses environment variables for secure configuration:
@@ -115,6 +138,17 @@ OUTPUT_DIR=./drafts          # Directory for saving article drafts
 LOG_LEVEL=INFO               # Logging verbosity (DEBUG, INFO, WARNING, ERROR)
 MAX_RETRIES=3                # Maximum retry attempts for API calls
 REQUEST_TIMEOUT=30           # API request timeout in seconds
+
+# RAG System Configuration
+SUPABASE_URL=                # Your Supabase project URL
+SUPABASE_SERVICE_KEY=        # Your Supabase service key
+EMBEDDING_MODEL_NAME=text-embedding-3-small  # OpenAI embedding model
+EMBEDDING_BASE_URL=https://api.openai.com/v1  # Embedding API base URL
+
+# Google Drive Configuration
+GOOGLE_DRIVE_FOLDER_ID=      # Folder ID for monitoring documents
+GOOGLE_DRIVE_UPLOAD_FOLDER_ID= # Folder ID for uploading articles
+GOOGLE_DRIVE_CREDENTIALS_PATH=credentials.json  # Path to Google credentials
 ```
 
 ## File Structure
@@ -135,6 +169,24 @@ seo_content_automation/
 ├── tools.py               # API integrations and utilities
 ├── prompts/               # Prompt template directory
 │   └── article_template.txt    # Article generation prompt
+├── rag/                   # RAG system module
+│   ├── __init__.py       # Module initialization
+│   ├── embeddings.py     # OpenAI embedding generation
+│   ├── storage.py        # Supabase vector operations
+│   ├── retriever.py      # Semantic search logic
+│   ├── processor.py      # Text chunking and processing
+│   ├── config.py         # RAG-specific configuration
+│   └── drive/            # Google Drive integration
+│       ├── __init__.py   # Drive module init
+│       ├── uploader.py   # Article upload to Drive
+│       ├── watcher.py    # Folder monitoring
+│       └── auth.py       # OAuth authentication
+├── sql/                   # Database schemas
+│   ├── research_documents.sql   # Research chunks table
+│   ├── research_metadata.sql    # Source tracking table
+│   ├── research_cache.sql       # Complete Tavily responses
+│   ├── generated_articles.sql   # Article tracking table
+│   └── drive_documents.sql      # Drive document embeddings
 ├── drafts/                # Output directory for articles
 │   └── {keyword}_{timestamp}/  # Per-article output
 │       ├── index.html          # Review interface
@@ -144,7 +196,12 @@ seo_content_automation/
     ├── test_config.py     # Configuration tests
     ├── test_tools.py      # API wrapper tests
     ├── test_agents.py     # Agent tests
-    └── test_workflow.py   # Workflow tests
+    ├── test_workflow.py   # Workflow tests
+    └── test_rag/          # RAG system tests
+        ├── test_embeddings.py
+        ├── test_storage.py
+        ├── test_retriever.py
+        └── test_drive.py
 ```
 
 ## Data Flow
@@ -179,6 +236,84 @@ class ArticleOutput(BaseModel):
     word_count: int
 ```
 
+## Data Persistence & Knowledge Management
+
+The RAG system provides intelligent caching and knowledge persistence:
+
+### RAG System Architecture
+
+```
+                    +------------------+
+                    |  Research Query  |
+                    +--------+---------+
+                             |
+                    +--------v---------+
+                    |   RAG Retriever  |
+                    |  (Semantic Search)|
+                    +--------+---------+
+                             |
+                +------------+------------+
+                |                         |
+       +--------v--------+       +--------v--------+
+       |  Cache Hit?     |  No   |   Tavily API   |
+       |  (Similarity>0.8)| ----> |   (Fresh Data)  |
+       +--------+--------+       +--------+--------+
+                |                         |
+                | Yes                     |
+                |                +--------v--------+
+                |                |  Store in RAG   |
+                |                |  (Embeddings)   |
+                +--------+-------+--------+--------+
+                         |                |
+                +--------v--------+       |
+                | Return Cached   |<------+
+                | Research Data   |
+                +-----------------+
+```
+
+### Google Drive Integration
+
+```
+SEO Content Automation/
+├── Generated Articles/          # Auto-uploaded articles
+│   ├── 2024-01/                # Monthly organization
+│   │   ├── keyword1_article.gdoc
+│   │   └── keyword2_article.gdoc
+│   └── 2024-02/
+└── Knowledge Base/             # Monitored for embeddings
+    ├── Research/               # External research docs
+    └── References/             # Reference materials
+```
+
+### Vector Storage Design
+
+1. **Research Documents Table**
+   - Stores text chunks with embeddings
+   - Enables semantic similarity search
+   - Links to source metadata
+
+2. **Research Cache Table**
+   - Stores complete Tavily API responses
+   - Enables exact match lookups
+   - Reduces API calls for identical queries
+
+3. **Generated Articles Table**
+   - Tracks all generated articles
+   - Links research to outputs
+   - Enables performance analytics
+
+4. **Drive Documents Table**
+   - Stores embeddings from Drive files
+   - Enables cross-source search
+   - Maintains document versioning
+
+### Caching Strategy
+
+1. **Semantic Cache**: Find similar research even with different keywords
+2. **Exact Cache**: Return identical results for repeated queries
+3. **TTL Management**: Expire old cache entries (configurable)
+4. **Cache Warming**: Pre-populate with common topics
+
 ## Error Handling Strategy
 
 The system implements graceful degradation at each level:
@@ -203,18 +338,25 @@ These enhancements are planned for after MVP completion:
 
 ### Phase 1 Enhancements
 - Keyword batch processing
-- Research result caching
 - Alternative API fallbacks
+- Multi-language content generation
 
 ### Phase 2 Enhancements
 - WordPress draft integration
 - SEO scoring metrics
-- Performance analytics
+- Advanced performance analytics dashboard
 
 ### Phase 3 Enhancements
 - Web UI with Streamlit
 - Scheduled article generation
 - Multi-topic support beyond blood sugar/keto
+
+### RAG System Enhancements
+- Multi-modal embeddings for images
+- Automatic knowledge graph generation
+- Cross-article linking suggestions
+- Research quality scoring
+- Collaborative filtering for content recommendations
 
 ## Success Criteria
 
