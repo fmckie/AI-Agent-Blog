@@ -100,8 +100,9 @@ async def search_academic(
 
         # Log cache statistics periodically
         stats = retriever.get_statistics()
-        cache_hit_rate = stats["retriever"]["cache_hit_rate"]
-        logger.info(f"Cache hit rate: {cache_hit_rate}")
+        if stats and "retriever" in stats:
+            cache_hit_rate = stats["retriever"]["cache_hit_rate"]
+            logger.info(f"Cache hit rate: {cache_hit_rate}")
 
         logger.info(f"Returned {len(result_dict['results'])} academic sources")
         return result_dict

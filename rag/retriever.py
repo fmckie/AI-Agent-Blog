@@ -319,10 +319,13 @@ class ResearchRetriever:
 
             # Only process academic source chunks
             if chunk_metadata.get("source_type") == "academic_source":
+                # Truncate excerpt to max 500 chars to comply with model validation
+                excerpt = chunk.get("content", "")[:500]
+                
                 source = AcademicSource(
                     title=chunk_metadata.get("source_title", ""),
                     url=chunk_metadata.get("source_url", ""),
-                    excerpt=chunk.get("content", ""),
+                    excerpt=excerpt,
                     domain=chunk_metadata.get("domain", ".com"),
                     credibility_score=chunk_metadata.get("credibility_score", 0.5),
                     authors=chunk_metadata.get("authors"),
@@ -379,10 +382,13 @@ class ResearchRetriever:
 
             elif source_type == "academic_source":
                 # Reconstruct academic source
+                # Truncate excerpt to max 500 chars to comply with model validation
+                excerpt = chunk_data.get("content", "")[:500]
+                
                 source = AcademicSource(
                     title=metadata.get("source_title", ""),
                     url=metadata.get("source_url", ""),
-                    excerpt=chunk_data.get("content", ""),
+                    excerpt=excerpt,
                     domain=metadata.get("domain", ".com"),
                     credibility_score=metadata.get("credibility_score", 0.5),
                     authors=metadata.get("authors"),
