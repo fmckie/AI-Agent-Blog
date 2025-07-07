@@ -27,6 +27,12 @@ omit =
     # Documentation
     docs/*
     */docs/*
+    
+    # Utility scripts
+    run_tests.py
+    populate_test_data.py
+    verify_supabase_cache.py
+    resume_workflow.py
 
 # Include branch coverage
 branch = True

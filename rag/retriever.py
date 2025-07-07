@@ -136,8 +136,26 @@ class ResearchRetriever:
 
         # Track this instance for statistics access
         ResearchRetriever._instances.append(self)
+        
+        # Flag to track if we've warmed the pool
+        self._pool_warmed = False
 
         logger.info("Initialized ResearchRetriever")
+
+    async def _ensure_pool_warmed(self):
+        """Ensure connection pool is warmed on first use."""
+        # Only warm once
+        if not self._pool_warmed:
+            logger.info("Warming connection pool on first use...")
+            try:
+                # Warm the storage connection pool
+                await self.storage.warm_pool()
+                self._pool_warmed = True
+                logger.info("Connection pool warmed successfully")
+            except Exception as e:
+                # Log error but don't fail - pool will still work
+                logger.warning(f"Failed to warm connection pool: {e}")
+                self._pool_warmed = True  # Don't retry
 
     async def retrieve_or_research(
         self, keyword: str, research_function: Callable[[], Any]
@@ -152,6 +170,9 @@ class ResearchRetriever:
         Returns:
             ResearchFindings from cache or fresh research
         """
+        # Ensure pool is warmed on first use
+        await self._ensure_pool_warmed()
+        
         # Track start time for performance metrics
         start_time = datetime.now(timezone.utc)
 

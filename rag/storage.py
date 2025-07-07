@@ -708,3 +708,40 @@ class VectorStorage:
         except Exception as e:
             logger.error(f"Failed to cleanup cache: {e}")
             return 0
+
+    async def warm_pool(self) -> bool:
+        """
+        Warm the connection pool by establishing connections.
+        
+        This method pre-establishes database connections to avoid cold start
+        latency on first use. It's especially useful when starting the application.
+        
+        Returns:
+            True if warming successful, False otherwise
+        """
+        try:
+            logger.info("Warming connection pool...")
+            
+            # Get the pool to trigger creation
+            pool = await self._get_pool()
+            
+            # Execute a simple query on each connection to warm them up
+            # This ensures connections are fully established and ready
+            tasks = []
+            for i in range(min(3, self.config.connection_pool_size)):
+                async def warm_connection():
+                    async with self.get_connection() as conn:
+                        # Simple query to test connection
+                        await conn.fetchval("SELECT 1")
+                
+                tasks.append(warm_connection())
+            
+            # Run warming tasks concurrently
+            await asyncio.gather(*tasks)
+            
+            logger.info(f"Successfully warmed {len(tasks)} connections")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to warm connection pool: {e}")
+            return False
