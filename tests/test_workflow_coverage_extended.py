@@ -57,16 +57,24 @@ class TestWorkflowExecute:
         """Create mock article output."""
         return ArticleOutput(
             title="Test Article Title",
-            meta_description="Test meta description for SEO",
+            meta_description="Test meta description for SEO that provides comprehensive information about the topic and meets search engine requirements.",
             focus_keyword="test keyword",
-            introduction="Test introduction paragraph",
+            introduction="Test introduction paragraph that engages readers and provides a comprehensive overview of the topic. This introduction sets the stage for the detailed content that follows, ensuring readers understand what they will learn.",
             main_sections=[
                 ArticleSection(
-                    heading="Test Section",
-                    content="Test content with sufficient length to meet requirements.",
-                )
+                    heading="Test Section One",
+                    content="Test content with sufficient length to meet requirements. This section provides detailed information about the topic, including examples, explanations, and practical insights that readers will find valuable.",
+                ),
+                ArticleSection(
+                    heading="Test Section Two", 
+                    content="Additional test content that explores different aspects of the topic. This section builds upon the previous one, offering deeper insights and more advanced concepts for readers to understand.",
+                ),
+                ArticleSection(
+                    heading="Test Section Three",
+                    content="Final test section that concludes the main body of the article. This content ties together all the previous sections and prepares readers for the conclusion that follows.",
+                ),
             ],
-            conclusion="Test conclusion paragraph",
+            conclusion="Test conclusion paragraph that summarizes the key points covered in the article and provides actionable takeaways for readers. This conclusion reinforces the main message and encourages further exploration.",
             word_count=1000,
             reading_time_minutes=4,
             keyword_density=0.02,
