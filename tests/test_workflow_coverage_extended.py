@@ -66,7 +66,7 @@ class TestWorkflowExecute:
                     content="Test content with sufficient length to meet requirements. This section provides detailed information about the topic, including examples, explanations, and practical insights that readers will find valuable.",
                 ),
                 ArticleSection(
-                    heading="Test Section Two", 
+                    heading="Test Section Two",
                     content="Additional test content that explores different aspects of the topic. This section builds upon the previous one, offering deeper insights and more advanced concepts for readers to understand.",
                 ),
                 ArticleSection(
@@ -87,52 +87,56 @@ class TestWorkflowExecute:
     ):
         """Test successful execution of full workflow."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
-                with patch('workflow.run_research_agent') as mock_run_research:
-                    with patch('writer_agent.agent.run_writer_agent') as mock_run_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
+                with patch("workflow.run_research_agent") as mock_run_research:
+                    with patch(
+                        "writer_agent.agent.run_writer_agent"
+                    ) as mock_run_writer:
                         # Setup mocks
                         mock_research_agent = Mock()
                         mock_writer_agent = Mock()
                         mock_create_research.return_value = mock_research_agent
                         mock_create_writer.return_value = mock_writer_agent
-                        
+
                         mock_run_research.return_value = mock_research_findings
                         mock_run_writer.return_value = mock_article_output
-                        
+
                         # Execute workflow
                         orchestrator = WorkflowOrchestrator(mock_config)
-                        result_dir = await orchestrator.run_full_workflow("test keyword")
-                        
+                        result_dir = await orchestrator.run_full_workflow(
+                            "test keyword"
+                        )
+
                         # Verify results
                         assert result_dir.exists()
                         assert (result_dir / "article.html").exists()
                         assert (result_dir / "research_data.json").exists()
                         assert (result_dir / "metadata.json").exists()
-                        
+
                         # Verify state progression
                         assert orchestrator.current_state == WorkflowState.COMPLETE
 
     @pytest.mark.asyncio
     async def test_execute_with_research_failure(self, mock_config):
         """Test workflow handling of research failure."""
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
-                with patch('workflow.run_research_agent') as mock_run_research:
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
+                with patch("workflow.run_research_agent") as mock_run_research:
                     # Setup mocks
                     mock_create_research.return_value = Mock()
                     mock_create_writer.return_value = Mock()
-                    
+
                     # Make research fail
                     mock_run_research.side_effect = Exception("Research API failed")
-                    
+
                     # Execute workflow
                     orchestrator = WorkflowOrchestrator(mock_config)
-                    
+
                     with pytest.raises(Exception) as exc_info:
                         await orchestrator.run_full_workflow("test keyword")
-                    
+
                     assert "Research API failed" in str(exc_info.value)
                     assert orchestrator.current_state == WorkflowState.FAILED
 
@@ -141,24 +145,26 @@ class TestWorkflowExecute:
         self, mock_config, mock_research_findings
     ):
         """Test workflow handling of writing failure."""
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
-                with patch('workflow.run_research_agent') as mock_run_research:
-                    with patch('writer_agent.agent.run_writer_agent') as mock_run_writer:
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
+                with patch("workflow.run_research_agent") as mock_run_research:
+                    with patch(
+                        "writer_agent.agent.run_writer_agent"
+                    ) as mock_run_writer:
                         # Setup mocks
                         mock_create_research.return_value = Mock()
                         mock_create_writer.return_value = Mock()
-                        
+
                         mock_run_research.return_value = mock_research_findings
                         # Make writing fail
                         mock_run_writer.side_effect = Exception("Writer API failed")
-                        
+
                         # Execute workflow
                         orchestrator = WorkflowOrchestrator(mock_config)
-                        
+
                         with pytest.raises(Exception) as exc_info:
                             await orchestrator.run_full_workflow("test keyword")
-                        
+
                         assert "Writing phase failed" in str(exc_info.value)
                         assert orchestrator.current_state == WorkflowState.FAILED
 
@@ -167,29 +173,31 @@ class TestWorkflowExecute:
         self, mock_config, mock_research_findings, mock_article_output
     ):
         """Test workflow handling of save failure."""
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
-                with patch('workflow.run_research_agent') as mock_run_research:
-                    with patch('writer_agent.agent.run_writer_agent') as mock_run_writer:
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
+                with patch("workflow.run_research_agent") as mock_run_research:
+                    with patch(
+                        "writer_agent.agent.run_writer_agent"
+                    ) as mock_run_writer:
                         # Setup mocks
                         mock_create_research.return_value = Mock()
                         mock_create_writer.return_value = Mock()
-                        
+
                         mock_run_research.return_value = mock_research_findings
                         mock_run_writer.return_value = mock_article_output
-                        
+
                         # Make save fail
                         with patch.object(
-                            WorkflowOrchestrator, 
-                            '_save_outputs', 
-                            side_effect=Exception("Disk full")
+                            WorkflowOrchestrator,
+                            "_save_outputs",
+                            side_effect=Exception("Disk full"),
                         ):
                             # Execute workflow
                             orchestrator = WorkflowOrchestrator(mock_config)
-                            
+
                             with pytest.raises(Exception) as exc_info:
                                 await orchestrator.run_full_workflow("test keyword")
-                            
+
                             assert "Save phase failed" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -198,29 +206,32 @@ class TestWorkflowExecute:
     ):
         """Test workflow execution with progress callback."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
-                with patch('workflow.run_research_agent') as mock_run_research:
-                    with patch('writer_agent.agent.run_writer_agent') as mock_run_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
+                with patch("workflow.run_research_agent") as mock_run_research:
+                    with patch(
+                        "writer_agent.agent.run_writer_agent"
+                    ) as mock_run_writer:
                         # Setup mocks
                         mock_create_research.return_value = Mock()
                         mock_create_writer.return_value = Mock()
-                        
+
                         mock_run_research.return_value = mock_research_findings
                         mock_run_writer.return_value = mock_article_output
-                        
+
                         # Track progress callbacks
                         progress_updates = []
+
                         def progress_callback(state, message):
                             progress_updates.append((state, message))
-                        
+
                         # Execute workflow
                         orchestrator = WorkflowOrchestrator(mock_config)
                         orchestrator.progress_callback = progress_callback
-                        
+
                         await orchestrator.run_full_workflow("test keyword")
-                        
+
                         # Verify progress updates
                         assert len(progress_updates) > 0
                         states = [update[0] for update in progress_updates]
@@ -235,34 +246,36 @@ class TestWorkflowExecute:
     ):
         """Test resuming workflow from research complete state."""
         mock_config.output_dir = tmp_path
-        
+
         # Create state file
         state_data = {
             "state": WorkflowState.RESEARCH_COMPLETE.value,
             "data": {
                 "keyword": "test keyword",
-                "research_findings": mock_research_findings.model_dump()
+                "research_findings": mock_research_findings.model_dump(),
             },
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
         state_file = tmp_path / ".workflow_state_test_keyword_20240101_120000.json"
         state_file.write_text(json.dumps(state_data))
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
-                with patch('writer_agent.agent.run_writer_agent') as mock_run_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
+                with patch("writer_agent.agent.run_writer_agent") as mock_run_writer:
                     # Setup mocks
                     mock_create_research.return_value = Mock()
                     mock_create_writer.return_value = Mock()
-                    
+
                     mock_run_writer.return_value = mock_article_output
-                    
+
                     # Execute workflow with resume
                     orchestrator = WorkflowOrchestrator(mock_config)
-                    
-                    with patch.object(orchestrator, '_find_state_file', return_value=state_file):
+
+                    with patch.object(
+                        orchestrator, "_find_state_file", return_value=state_file
+                    ):
                         result_dir = await orchestrator.resume_workflow(state_file)
-                    
+
                     # Verify resumed from correct state
                     assert result_dir.exists()
                     assert orchestrator.current_state == WorkflowState.COMPLETE
@@ -273,25 +286,23 @@ class TestWorkflowExecute:
     ):
         """Test that save_outputs creates all expected files."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
-                
+
                 # Create temp directory
                 orchestrator.temp_output_dir = tmp_path / "temp"
                 orchestrator.temp_output_dir.mkdir()
-                
+
                 # Save outputs
                 await orchestrator._save_outputs_atomic(
-                    "test keyword",
-                    mock_research_findings,
-                    mock_article_output
+                    "test keyword", mock_research_findings, mock_article_output
                 )
-                
+
                 # Verify all files created
                 assert (orchestrator.temp_output_dir / "article.html").exists()
                 assert (orchestrator.temp_output_dir / "research_data.json").exists()
@@ -302,23 +313,22 @@ class TestWorkflowExecute:
     async def test_handle_error_with_rollback(self, mock_config, tmp_path):
         """Test error handling with rollback."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
-                
+
                 # Create temp directory
                 orchestrator.temp_output_dir = tmp_path / "temp"
                 orchestrator.temp_output_dir.mkdir()
-                
+
                 # Handle error
                 test_error = Exception("Test error")
                 await orchestrator._rollback()
-                
+
                 # Verify rollback
                 assert orchestrator.current_state == WorkflowState.FAILED
                 assert not orchestrator.temp_output_dir.exists()
-

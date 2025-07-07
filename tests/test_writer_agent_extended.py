@@ -24,8 +24,8 @@ def create_valid_sections(count: int = 3) -> List[ArticleSection]:
         ArticleSection(
             heading=f"Section {i}: Important Information",
             content=f"This is section {i} with comprehensive content that provides valuable information to readers. "
-                   f"The content is detailed enough to meet the minimum length requirements while being informative. "
-                   f"We ensure each section has substantial content that adds value to the article."
+            f"The content is detailed enough to meet the minimum length requirements while being informative. "
+            f"We ensure each section has substantial content that adds value to the article.",
         )
         for i in range(1, count + 1)
     ]
@@ -57,7 +57,7 @@ class TestWriterAgentExtended:
                 credibility_score=0.95,
             ),
         ]
-        
+
         return ResearchFindings(
             keyword="AI healthcare",
             research_summary="AI is transforming healthcare through improved diagnostics.",
@@ -74,20 +74,24 @@ class TestWriterAgentExtended:
         """Test writer agent creation."""
         with patch("writer_agent.agent.Agent") as mock_agent_class:
             agent = create_writer_agent(mock_config)
-            
+
             # Verify agent was created with correct parameters
             mock_agent_class.assert_called_once()
             call_args = mock_agent_class.call_args
-            
+
             assert call_args[1]["model"] == "openai:gpt-4"
-            assert "output_type" in call_args[1]  # Changed from result_type to output_type
+            assert (
+                "output_type" in call_args[1]
+            )  # Changed from result_type to output_type
 
     @pytest.mark.asyncio
-    async def test_run_writer_agent_success(self, mock_config, sample_research_findings):
+    async def test_run_writer_agent_success(
+        self, mock_config, sample_research_findings
+    ):
         """Test successful writer agent execution."""
         mock_agent = Mock()
         mock_result = Mock()
-        
+
         # Create expected article output
         sections = [
             ArticleSection(
@@ -99,15 +103,15 @@ class TestWriterAgentExtended:
                 content="Modern AI applications include diagnostic imaging analysis, drug discovery, predictive analytics for patient outcomes, and automated administrative tasks. These innovations are improving healthcare delivery significantly.",
             ),
         ]
-        
+
         # Add a third section to meet validation requirements
         sections.append(
             ArticleSection(
                 heading="Future Directions and Research Opportunities",
-                content="The future of AI in healthcare holds immense promise. Emerging areas include precision medicine, where AI analyzes genetic data to create personalized treatment plans. Additionally, AI-powered virtual health assistants are becoming more sophisticated, providing 24/7 patient support and monitoring."
+                content="The future of AI in healthcare holds immense promise. Emerging areas include precision medicine, where AI analyzes genetic data to create personalized treatment plans. Additionally, AI-powered virtual health assistants are becoming more sophisticated, providing 24/7 patient support and monitoring.",
             )
         )
-        
+
         mock_result.data = ArticleOutput(
             title="The Future of AI in Healthcare",
             meta_description="Discover how AI is transforming healthcare with improved diagnostics and personalized treatments for better patient outcomes.",
@@ -120,22 +124,26 @@ class TestWriterAgentExtended:
             keyword_density=0.015,
             sources_used=["https://journal.edu/ai-health"],
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
-        result = await run_writer_agent(mock_agent, "AI healthcare", sample_research_findings)
-        
+
+        result = await run_writer_agent(
+            mock_agent, "AI healthcare", sample_research_findings
+        )
+
         assert isinstance(result, ArticleOutput)
         assert result.title == "The Future of AI in Healthcare"
         assert len(result.main_sections) == 3  # Updated to 3 sections
         assert result.focus_keyword == "AI healthcare"
 
     @pytest.mark.asyncio
-    async def test_run_writer_agent_with_sources_validation(self, mock_config, sample_research_findings):
+    async def test_run_writer_agent_with_sources_validation(
+        self, mock_config, sample_research_findings
+    ):
         """Test writer agent validates sources are used."""
         mock_agent = Mock()
         mock_result = Mock()
-        
+
         # Create output without sources
         mock_result.data = ArticleOutput(
             title="Test Article",
@@ -149,13 +157,13 @@ class TestWriterAgentExtended:
             keyword_density=0.01,
             sources_used=[],  # No sources - should fail validation
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         # Should raise ValueError for missing sources
         with pytest.raises(ValueError) as exc_info:
             await run_writer_agent(mock_agent, "test", sample_research_findings)
-        
+
         assert "Article must cite research sources" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -163,7 +171,7 @@ class TestWriterAgentExtended:
         """Test writer agent with empty research findings."""
         mock_agent = Mock()
         mock_result = Mock()
-        
+
         empty_findings = ResearchFindings(
             keyword="topic",
             research_summary="No research available.",
@@ -174,7 +182,7 @@ class TestWriterAgentExtended:
             total_sources_analyzed=0,
             search_query_used="topic",
         )
-        
+
         mock_result.data = ArticleOutput(
             title="Understanding the Topic",
             meta_description="An overview of the topic based on general knowledge, providing comprehensive insights and practical applications for readers.",
@@ -198,24 +206,28 @@ class TestWriterAgentExtended:
             word_count=1000,
             reading_time_minutes=4,
             keyword_density=0.01,
-            sources_used=["https://example.com/general-source"],  # At least one source required
+            sources_used=[
+                "https://example.com/general-source"
+            ],  # At least one source required
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         result = await run_writer_agent(mock_agent, "topic", empty_findings)
-        
+
         assert isinstance(result, ArticleOutput)
         assert len(result.sources_used) == 1  # We added one general source
 
     @pytest.mark.asyncio
-    async def test_run_writer_agent_long_keyword(self, mock_config, sample_research_findings):
+    async def test_run_writer_agent_long_keyword(
+        self, mock_config, sample_research_findings
+    ):
         """Test writer agent with long keyword phrase."""
         mock_agent = Mock()
         mock_result = Mock()
-        
+
         long_keyword = "artificial intelligence machine learning healthcare diagnostics"
-        
+
         mock_result.data = ArticleOutput(
             title="AI and ML in Healthcare Diagnostics",
             meta_description="Exploring AI and ML applications in healthcare diagnostics with improved accuracy, predictive analytics, and personalized patient care.",
@@ -228,22 +240,26 @@ class TestWriterAgentExtended:
             keyword_density=0.02,
             sources_used=["https://example.edu/ai-health"],
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
-        result = await run_writer_agent(mock_agent, long_keyword, sample_research_findings)
-        
+
+        result = await run_writer_agent(
+            mock_agent, long_keyword, sample_research_findings
+        )
+
         assert isinstance(result, ArticleOutput)
         assert long_keyword in result.focus_keyword
 
     @pytest.mark.asyncio
-    async def test_run_writer_agent_unicode_keyword(self, mock_config, sample_research_findings):
+    async def test_run_writer_agent_unicode_keyword(
+        self, mock_config, sample_research_findings
+    ):
         """Test writer agent with unicode characters in keyword."""
         mock_agent = Mock()
         mock_result = Mock()
-        
+
         unicode_keyword = "café société résumé"
-        
+
         mock_result.data = ArticleOutput(
             title="Understanding Café Société",
             meta_description="A comprehensive guide to café société culture, exploring its rich history, social dynamics, and cultural significance in Europe.",
@@ -256,23 +272,27 @@ class TestWriterAgentExtended:
             keyword_density=0.015,
             sources_used=["https://example.edu/cafe-culture"],
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
-        result = await run_writer_agent(mock_agent, unicode_keyword, sample_research_findings)
-        
+
+        result = await run_writer_agent(
+            mock_agent, unicode_keyword, sample_research_findings
+        )
+
         assert isinstance(result, ArticleOutput)
         assert unicode_keyword == result.focus_keyword
 
     @pytest.mark.asyncio
-    async def test_run_writer_agent_max_retries_exceeded(self, mock_config, sample_research_findings):
+    async def test_run_writer_agent_max_retries_exceeded(
+        self, mock_config, sample_research_findings
+    ):
         """Test writer agent fails after max retries."""
         mock_agent = Mock()
         mock_agent.run = AsyncMock(side_effect=Exception("Persistent API Error"))
-        
+
         with pytest.raises(Exception) as exc_info:
             await run_writer_agent(mock_agent, "test", sample_research_findings)
-        
+
         assert "Persistent API Error" in str(exc_info.value)
         # The run_writer_agent doesn't have built-in retry logic, so it should only be called once
         assert mock_agent.run.call_count == 1
@@ -293,7 +313,7 @@ class TestWriterAgentExtended:
             )
             for i in range(1, 11)
         ]
-        
+
         extensive_findings = ResearchFindings(
             keyword="artificial intelligence",
             research_summary="Comprehensive synthesis of all findings...",
@@ -304,21 +324,21 @@ class TestWriterAgentExtended:
             total_sources_analyzed=10,
             search_query_used="artificial intelligence",
         )
-        
+
         mock_agent = Mock()
         mock_result = Mock()
-        
+
         # Expected output with multiple sections
         sections = [
             ArticleSection(
                 heading=f"Section {i}: AI Applications",
                 content=f"This section discusses important aspects of artificial intelligence. "
-                       f"Section {i} covers various applications and implementations of AI technology. "
-                       f"The content provides detailed insights into how AI is transforming different industries.",
+                f"Section {i} covers various applications and implementations of AI technology. "
+                f"The content provides detailed insights into how AI is transforming different industries.",
             )
             for i in range(1, 6)
         ]
-        
+
         mock_result.data = ArticleOutput(
             title="Comprehensive Guide to AI",
             meta_description="Everything you need to know about AI, from basic concepts to advanced applications. Learn how AI is revolutionizing industries.",
@@ -331,29 +351,31 @@ class TestWriterAgentExtended:
             keyword_density=0.018,
             sources_used=[s.url for s in sources[:5]],  # Uses top 5 sources
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         result = await run_writer_agent(
             mock_agent, "artificial intelligence", extensive_findings
         )
-        
+
         assert isinstance(result, ArticleOutput)
         assert len(result.main_sections) == 5
         assert len(result.sources_used) == 5
         assert result.word_count == 2000
 
     @pytest.mark.asyncio
-    async def test_writer_agent_context_handling(self, mock_config, sample_research_findings):
+    async def test_writer_agent_context_handling(
+        self, mock_config, sample_research_findings
+    ):
         """Test writer agent properly uses context from research."""
         mock_agent = Mock()
-        
+
         # Verify the agent receives proper context
         async def mock_run(keyword, deps):
             # Check that research findings are passed as dependency
             assert "research" in deps
             assert deps["research"] == sample_research_findings
-            
+
             mock_result = Mock()
             mock_result.data = ArticleOutput(
                 title="Context-Aware Article",
@@ -365,15 +387,19 @@ class TestWriterAgentExtended:
                 word_count=1200,
                 reading_time_minutes=5,
                 keyword_density=0.012,
-                sources_used=[source.url for source in sample_research_findings.academic_sources],
+                sources_used=[
+                    source.url for source in sample_research_findings.academic_sources
+                ],
             )
             return mock_result
-        
+
         mock_agent.run = mock_run
-        
+
         result = await run_writer_agent(
             mock_agent, "test keyword", sample_research_findings
         )
-        
+
         assert isinstance(result, ArticleOutput)
-        assert len(result.sources_used) == len(sample_research_findings.academic_sources)
+        assert len(result.sources_used) == len(
+            sample_research_findings.academic_sources
+        )

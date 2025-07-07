@@ -78,11 +78,11 @@ class TestWorkflowCoverage:
     @pytest.mark.asyncio
     async def test_workflow_context_manager(self, mock_config):
         """Test workflow orchestrator as async context manager."""
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 async with WorkflowOrchestrator(mock_config) as orchestrator:
                     assert orchestrator is not None
                     assert orchestrator.current_state == WorkflowState.INITIALIZED
@@ -91,25 +91,25 @@ class TestWorkflowCoverage:
     async def test_workflow_cleanup_on_exit(self, mock_config, tmp_path):
         """Test cleanup functionality on context manager exit."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
-                
+
                 # Create temp directory and state file
                 orchestrator.temp_output_dir = tmp_path / "temp_dir"
                 orchestrator.temp_output_dir.mkdir()
                 orchestrator.state_file = tmp_path / "state.json"
                 orchestrator.state_file.write_text("{}")
-                
+
                 # Exit without completing
                 orchestrator.current_state = WorkflowState.RESEARCHING
-                
+
                 await orchestrator.__aexit__(None, None, None)
-                
+
                 # Verify cleanup
                 assert not orchestrator.temp_output_dir.exists()
                 assert not orchestrator.state_file.exists()
@@ -118,41 +118,41 @@ class TestWorkflowCoverage:
     async def test_workflow_no_cleanup_on_complete(self, mock_config, tmp_path):
         """Test that cleanup doesn't happen for completed workflows."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
-                
+
                 # Create state file
                 orchestrator.state_file = tmp_path / "state.json"
                 orchestrator.state_file.write_text("{}")
-                
+
                 # Mark as complete
                 orchestrator.current_state = WorkflowState.COMPLETE
-                
+
                 await orchestrator.__aexit__(None, None, None)
-                
+
                 # State file should still exist
                 assert orchestrator.state_file.exists()
 
     @pytest.mark.asyncio
     async def test_workflow_cleanup_error_handling(self, mock_config):
         """Test error handling during cleanup."""
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
-                
+
                 # Mock cleanup to raise error
                 orchestrator.temp_output_dir = Mock()
                 orchestrator.temp_output_dir.exists.return_value = True
-                
-                with patch('shutil.rmtree', side_effect=Exception("Cleanup failed")):
+
+                with patch("shutil.rmtree", side_effect=Exception("Cleanup failed")):
                     # Should not raise exception
                     await orchestrator.__aexit__(None, None, None)
 
@@ -160,19 +160,19 @@ class TestWorkflowCoverage:
     async def test_save_workflow_state(self, mock_config, tmp_path):
         """Test saving workflow state."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
                 orchestrator.workflow_data = {"test": "data"}
                 orchestrator.state_file = tmp_path / "test_state.json"
-                
+
                 # Save state using internal method
                 orchestrator._save_state()
-                
+
                 assert orchestrator.state_file.exists()
                 saved_data = json.loads(orchestrator.state_file.read_text())
                 assert saved_data["state"] == orchestrator.current_state.value
@@ -182,52 +182,54 @@ class TestWorkflowCoverage:
     async def test_load_workflow_state(self, mock_config, tmp_path):
         """Test loading workflow state."""
         mock_config.output_dir = tmp_path
-        
+
         # Create state file
         state_data = {
             "state": WorkflowState.RESEARCH_COMPLETE.value,
             "data": {"keyword": "test", "research": "findings"},
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
         state_file = tmp_path / ".workflow_state_test_20240101_120000.json"
         state_file.write_text(json.dumps(state_data))
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
                 loaded = orchestrator._load_state(state_file)
-                
+
                 assert loaded == True
                 assert orchestrator.current_state == WorkflowState.RESEARCH_COMPLETE
                 assert orchestrator.workflow_data["keyword"] == "test"
 
-
     @pytest.mark.asyncio
     async def test_update_state(self, mock_config):
         """Test state update functionality."""
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
-                
+
                 # Test state update
-                orchestrator._update_state(WorkflowState.RESEARCHING, {"message": "Starting research"})
+                orchestrator._update_state(
+                    WorkflowState.RESEARCHING, {"message": "Starting research"}
+                )
                 assert orchestrator.current_state == WorkflowState.RESEARCHING
                 assert orchestrator.workflow_data["message"] == "Starting research"
-                
+
                 # Test progress reporting separately
                 callback_called = False
+
                 def progress_callback(phase, message):
                     nonlocal callback_called
                     callback_called = True
                     assert phase == "researching"
                     assert message == "Starting research"
-                
+
                 orchestrator.set_progress_callback(progress_callback)
                 orchestrator._report_progress("researching", "Starting research")
                 assert callback_called
@@ -236,23 +238,22 @@ class TestWorkflowCoverage:
     async def test_rollback_on_error(self, mock_config, tmp_path):
         """Test rollback functionality on error."""
         mock_config.output_dir = tmp_path
-        
-        with patch('workflow.create_research_agent') as mock_create_research:
-            with patch('workflow.create_writer_agent') as mock_create_writer:
+
+        with patch("workflow.create_research_agent") as mock_create_research:
+            with patch("workflow.create_writer_agent") as mock_create_writer:
                 mock_create_research.return_value = Mock()
                 mock_create_writer.return_value = Mock()
-                
+
                 orchestrator = WorkflowOrchestrator(mock_config)
-                
+
                 # Create temp directory
                 orchestrator.temp_output_dir = tmp_path / "temp"
                 orchestrator.temp_output_dir.mkdir()
                 test_file = orchestrator.temp_output_dir / "test.txt"
                 test_file.write_text("test")
-                
+
                 # Perform rollback
                 await orchestrator._rollback()
-                
+
                 assert orchestrator.current_state == WorkflowState.ROLLED_BACK
                 assert not orchestrator.temp_output_dir.exists()
-

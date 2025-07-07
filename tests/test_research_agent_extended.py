@@ -62,11 +62,11 @@ class TestResearchAgentExtended:
         """Test research agent creation."""
         with patch("research_agent.agent.Agent") as mock_agent_class:
             agent = create_research_agent(mock_config)
-            
+
             # Verify agent was created with correct parameters
             mock_agent_class.assert_called_once()
             call_args = mock_agent_class.call_args
-            
+
             assert call_args[1]["model"] == "openai:gpt-4"
             assert "result_type" in call_args[1]
 
@@ -85,11 +85,11 @@ class TestResearchAgentExtended:
             total_sources_analyzed=0,
             search_query_used="healthcare AI",
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         result = await run_research_agent(mock_agent, "healthcare AI")
-        
+
         assert isinstance(result, ResearchFindings)
         assert result.main_findings == ["AI in healthcare"]
         mock_agent.run.assert_called_once_with("healthcare AI")
@@ -109,13 +109,13 @@ class TestResearchAgentExtended:
             total_sources_analyzed=0,
             search_query_used="test keyword",
         )
-        
+
         # First call fails, second succeeds
         mock_agent.run = AsyncMock(side_effect=[Exception("API Error"), mock_result])
-        
+
         # Should still succeed due to retry
         result = await run_research_agent(mock_agent, "test keyword")
-        
+
         assert isinstance(result, ResearchFindings)
         assert mock_agent.run.call_count == 2
 
@@ -124,10 +124,10 @@ class TestResearchAgentExtended:
         """Test research agent fails after max retries."""
         mock_agent = Mock()
         mock_agent.run = AsyncMock(side_effect=Exception("Persistent API Error"))
-        
+
         with pytest.raises(Exception) as exc_info:
             await run_research_agent(mock_agent, "test keyword")
-        
+
         assert "Persistent API Error" in str(exc_info.value)
         # Should attempt max_retries + 1 times
         assert mock_agent.run.call_count > 1
@@ -143,26 +143,28 @@ class TestResearchAgentExtended:
             for source in sample_sources
         ]
         gaps = identify_research_gaps(source_dicts)
-        
+
         assert isinstance(gaps, list)
         # May or may not find gaps depending on content
-        
+
     def test_identify_research_gaps_empty_sources(self):
         """Test research gap identification with no sources."""
         gaps = identify_research_gaps([])
-        
+
         assert isinstance(gaps, list)
         assert len(gaps) == 0  # Empty sources return empty gaps
 
     def test_identify_research_gaps_old_sources(self):
         """Test research gap identification with old sources."""
-        old_sources = [{
-            "content": "Outdated findings. More studies needed on recent developments. Further research required.",
-            "title": "Old Research",
-        }]
-        
+        old_sources = [
+            {
+                "content": "Outdated findings. More studies needed on recent developments. Further research required.",
+                "title": "Old Research",
+            }
+        ]
+
         gaps = identify_research_gaps(old_sources)
-        
+
         assert isinstance(gaps, list)
         assert len(gaps) > 0  # Should find gaps from "more studies needed"
 
@@ -175,9 +177,9 @@ class TestResearchAgentExtended:
             }
             for i in range(3)
         ]
-        
+
         gaps = identify_research_gaps(single_domain_sources)
-        
+
         assert isinstance(gaps, list)
         assert len(gaps) > 0  # Should find gaps from "requires investigation"
 
@@ -187,14 +189,14 @@ class TestResearchAgentExtended:
         with patch("research_agent.agent.Agent") as mock_agent_class:
             mock_agent_instance = Mock()
             mock_agent_class.return_value = mock_agent_instance
-            
+
             # Simulate tool error during execution
             mock_agent_instance.run = AsyncMock(
                 side_effect=UnexpectedModelBehavior("Tool execution failed")
             )
-            
+
             agent = create_research_agent(mock_config)
-            
+
             with pytest.raises(UnexpectedModelBehavior):
                 await run_research_agent(agent, "test keyword")
 
@@ -213,11 +215,11 @@ class TestResearchAgentExtended:
             total_sources_analyzed=0,
             search_query_used="",
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         result = await run_research_agent(mock_agent, "")
-        
+
         assert isinstance(result, ResearchFindings)
         assert len(result.academic_sources) == 0
         assert "No specific topic" in result.research_gaps[0]
@@ -237,12 +239,12 @@ class TestResearchAgentExtended:
             total_sources_analyzed=0,
             search_query_used="AI & ML: Future @2025!",
         )
-        
+
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         # Keyword with special characters
         result = await run_research_agent(mock_agent, "AI & ML: Future @2025!")
-        
+
         assert isinstance(result, ResearchFindings)
         mock_agent.run.assert_called_once()
 
@@ -254,9 +256,9 @@ class TestResearchAgentExtended:
                 "title": "Questionable Research",
             }
         ]
-        
+
         gaps = identify_research_gaps(low_cred_sources)
-        
+
         assert isinstance(gaps, list)
         assert len(gaps) > 0  # Should find gaps from "unclear" and "limited data"
 
@@ -269,9 +271,9 @@ class TestResearchAgentExtended:
             }
             for i in range(1, 6)
         ]
-        
+
         gaps = identify_research_gaps(comprehensive_sources)
-        
+
         # With no gap indicators, should return empty list
         assert isinstance(gaps, list)
         assert len(gaps) == 0

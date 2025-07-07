@@ -65,7 +65,9 @@ class TestCLICommands:
         findings = Mock()
         findings.keyword = "test keyword"
         findings.total_sources_analyzed = 5
-        findings.to_markdown_summary.return_value = "# Research Summary\nTest findings..."
+        findings.to_markdown_summary.return_value = (
+            "# Research Summary\nTest findings..."
+        )
         return findings
 
     @pytest.fixture
@@ -102,44 +104,56 @@ class TestCLICommands:
 
     @patch("main.get_config")
     @patch("main.asyncio.run")
-    def test_generate_command_basic(self, mock_async_run, mock_get_config, runner, mock_config):
+    def test_generate_command_basic(
+        self, mock_async_run, mock_get_config, runner, mock_config
+    ):
         """Test basic generate command."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(generate, ["test keyword"])
         assert result.exit_code == 0
         mock_async_run.assert_called_once()
 
     @patch("main.get_config")
     @patch("main.asyncio.run")
-    def test_generate_command_with_options(self, mock_async_run, mock_get_config, runner, mock_config):
+    def test_generate_command_with_options(
+        self, mock_async_run, mock_get_config, runner, mock_config
+    ):
         """Test generate command with options."""
         mock_get_config.return_value = mock_config
-        
-        result = runner.invoke(generate, [
-            "test keyword",
-            "--output-dir", "/custom/output",
-            "--verbose",
-            "--dry-run"
-        ])
+
+        result = runner.invoke(
+            generate,
+            [
+                "test keyword",
+                "--output-dir",
+                "/custom/output",
+                "--verbose",
+                "--dry-run",
+            ],
+        )
         assert result.exit_code == 0
         mock_async_run.assert_called_once()
 
     @patch("main.get_config")
     @patch("main.asyncio.run")
-    def test_generate_command_quiet_mode(self, mock_async_run, mock_get_config, runner, mock_config):
+    def test_generate_command_quiet_mode(
+        self, mock_async_run, mock_get_config, runner, mock_config
+    ):
         """Test generate command in quiet mode."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(generate, ["test keyword", "--quiet"])
         assert result.exit_code == 0
         mock_async_run.assert_called_once()
 
     @patch("main.get_config")
-    def test_generate_command_keyboard_interrupt(self, mock_get_config, runner, mock_config):
+    def test_generate_command_keyboard_interrupt(
+        self, mock_get_config, runner, mock_config
+    ):
         """Test generate command with keyboard interrupt."""
         mock_get_config.return_value = mock_config
-        
+
         with patch("main.asyncio.run", side_effect=KeyboardInterrupt):
             result = runner.invoke(generate, ["test keyword"])
             assert result.exit_code == 1
@@ -148,7 +162,7 @@ class TestCLICommands:
     def test_config_check(self, mock_get_config, runner, mock_config):
         """Test config check command."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(config, ["--check"])
         assert result.exit_code == 0
         assert "Configuration is valid" in result.output
@@ -157,7 +171,7 @@ class TestCLICommands:
     def test_config_show(self, mock_get_config, runner, mock_config):
         """Test config show command."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(config, ["--show"])
         assert result.exit_code == 0
         assert "Current Configuration" in result.output
@@ -167,7 +181,7 @@ class TestCLICommands:
     def test_config_error(self, mock_get_config, runner):
         """Test config command with error."""
         mock_get_config.side_effect = Exception("Invalid config")
-        
+
         result = runner.invoke(config, ["--check"])
         assert result.exit_code == 1
         assert "Configuration error" in result.output
@@ -177,23 +191,27 @@ class TestCLICommands:
     def test_test_command(self, mock_generate, mock_get_config, runner, mock_config):
         """Test the test command."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(test)
         assert result.exit_code == 0
         assert "Running test generation" in result.output
 
     @patch("main.get_config")
     @patch("main.asyncio.run")
-    def test_cleanup_command(self, mock_async_run, mock_get_config, runner, mock_config):
+    def test_cleanup_command(
+        self, mock_async_run, mock_get_config, runner, mock_config
+    ):
         """Test cleanup command."""
         mock_get_config.return_value = mock_config
-        mock_config.output_dir.glob = Mock(side_effect=[
-            [Path(".workflow_state_test.json")],  # state files
-            [Path(".temp_test")]  # temp dirs
-        ])
-        
+        mock_config.output_dir.glob = Mock(
+            side_effect=[
+                [Path(".workflow_state_test.json")],  # state files
+                [Path(".temp_test")],  # temp dirs
+            ]
+        )
+
         mock_async_run.return_value = (1, 1)  # cleaned counts
-        
+
         result = runner.invoke(cleanup)
         assert result.exit_code == 0
         assert "Cleanup complete" in result.output
@@ -202,17 +220,18 @@ class TestCLICommands:
     def test_cleanup_command_dry_run(self, mock_get_config, runner, mock_config):
         """Test cleanup command in dry run mode."""
         mock_get_config.return_value = mock_config
-        
+
         # Create mock files
         mock_state_file = Mock()
-        mock_state_file.stat.return_value.st_mtime = (datetime.now() - timedelta(hours=48)).timestamp()
+        mock_state_file.stat.return_value.st_mtime = (
+            datetime.now() - timedelta(hours=48)
+        ).timestamp()
         mock_state_file.name = "old_state.json"
-        
-        mock_config.output_dir.glob = Mock(side_effect=[
-            [mock_state_file],  # state files
-            []  # temp dirs
-        ])
-        
+
+        mock_config.output_dir.glob = Mock(
+            side_effect=[[mock_state_file], []]  # state files  # temp dirs
+        )
+
         result = runner.invoke(cleanup, ["--dry-run"])
         assert result.exit_code == 0
         assert "DRY RUN MODE" in result.output
@@ -222,23 +241,30 @@ class TestCLICommands:
     def test_batch_command(self, mock_async_run, mock_get_config, runner, mock_config):
         """Test batch command."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(batch, ["keyword1", "keyword2", "keyword3"])
         assert result.exit_code == 0
         mock_async_run.assert_called_once()
 
     @patch("main.get_config")
     @patch("main.asyncio.run")
-    def test_batch_command_with_options(self, mock_async_run, mock_get_config, runner, mock_config):
+    def test_batch_command_with_options(
+        self, mock_async_run, mock_get_config, runner, mock_config
+    ):
         """Test batch command with options."""
         mock_get_config.return_value = mock_config
-        
-        result = runner.invoke(batch, [
-            "keyword1", "keyword2",
-            "--parallel", "2",
-            "--dry-run",
-            "--continue-on-error"
-        ])
+
+        result = runner.invoke(
+            batch,
+            [
+                "keyword1",
+                "keyword2",
+                "--parallel",
+                "2",
+                "--dry-run",
+                "--continue-on-error",
+            ],
+        )
         assert result.exit_code == 0
         assert "Parallel execution: 2" in result.output
 
@@ -252,7 +278,7 @@ class TestCLICommands:
     def test_batch_command_invalid_parallel(self, mock_get_config, runner, mock_config):
         """Test batch command with invalid parallel count."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(batch, ["keyword1", "--parallel", "0"])
         assert result.exit_code == 1
         assert "Parallel count must be at least 1" in result.output
@@ -306,26 +332,42 @@ class TestCLICommands:
         mock_async_run.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_run_generation_basic(self, mock_config, mock_workflow_orchestrator, mock_research_findings):
+    async def test_run_generation_basic(
+        self, mock_config, mock_workflow_orchestrator, mock_research_findings
+    ):
         """Test _run_generation function."""
         with patch("main.get_config", return_value=mock_config):
-            with patch("main.WorkflowOrchestrator", return_value=mock_workflow_orchestrator):
-                mock_workflow_orchestrator.run_full_workflow.return_value = Path("/output/article.html")
-                
+            with patch(
+                "main.WorkflowOrchestrator", return_value=mock_workflow_orchestrator
+            ):
+                mock_workflow_orchestrator.run_full_workflow.return_value = Path(
+                    "/output/article.html"
+                )
+
                 await _run_generation("test keyword", None, False, False)
-                
-                mock_workflow_orchestrator.run_full_workflow.assert_called_once_with("test keyword")
+
+                mock_workflow_orchestrator.run_full_workflow.assert_called_once_with(
+                    "test keyword"
+                )
 
     @pytest.mark.asyncio
-    async def test_run_generation_dry_run(self, mock_config, mock_workflow_orchestrator, mock_research_findings):
+    async def test_run_generation_dry_run(
+        self, mock_config, mock_workflow_orchestrator, mock_research_findings
+    ):
         """Test _run_generation in dry run mode."""
         with patch("main.get_config", return_value=mock_config):
-            with patch("main.WorkflowOrchestrator", return_value=mock_workflow_orchestrator):
-                mock_workflow_orchestrator.run_research.return_value = mock_research_findings
-                
+            with patch(
+                "main.WorkflowOrchestrator", return_value=mock_workflow_orchestrator
+            ):
+                mock_workflow_orchestrator.run_research.return_value = (
+                    mock_research_findings
+                )
+
                 await _run_generation("test keyword", None, True, False)
-                
-                mock_workflow_orchestrator.run_research.assert_called_once_with("test keyword")
+
+                mock_workflow_orchestrator.run_research.assert_called_once_with(
+                    "test keyword"
+                )
                 mock_workflow_orchestrator.run_full_workflow.assert_not_called()
 
     @pytest.mark.asyncio
@@ -334,12 +376,14 @@ class TestCLICommands:
         with patch("main.get_config", return_value=mock_config):
             with patch("main.WorkflowOrchestrator") as mock_orchestrator_class:
                 mock_orchestrator = Mock()
-                mock_orchestrator.run_full_workflow = AsyncMock(return_value=Path("/output/article.html"))
+                mock_orchestrator.run_full_workflow = AsyncMock(
+                    return_value=Path("/output/article.html")
+                )
                 mock_orchestrator_class.return_value = mock_orchestrator
-                
+
                 keywords = ("keyword1", "keyword2")
                 await _run_batch_generation(keywords, None, 1, False, False, False)
-                
+
                 assert mock_orchestrator.run_full_workflow.call_count == 2
 
     @pytest.mark.asyncio
@@ -347,25 +391,31 @@ class TestCLICommands:
         """Test _cache_search function."""
         with patch("main.get_rag_config") as mock_get_config:
             with patch("main.VectorStorage") as mock_storage_class:
-                with patch("rag.embeddings.EmbeddingGenerator") as mock_embeddings_class:
+                with patch(
+                    "rag.embeddings.EmbeddingGenerator"
+                ) as mock_embeddings_class:
                     mock_storage = AsyncMock()
-                    mock_storage.search_similar = AsyncMock(return_value=[
-                        {
-                            "similarity": 0.95,
-                            "keyword": "test",
-                            "content": "Test content",
-                            "created_at": "2024-01-01",
-                            "metadata": {}
-                        }
-                    ])
+                    mock_storage.search_similar = AsyncMock(
+                        return_value=[
+                            {
+                                "similarity": 0.95,
+                                "keyword": "test",
+                                "content": "Test content",
+                                "created_at": "2024-01-01",
+                                "metadata": {},
+                            }
+                        ]
+                    )
                     mock_storage.__aenter__ = AsyncMock(return_value=mock_storage)
                     mock_storage.__aexit__ = AsyncMock()
                     mock_storage_class.return_value = mock_storage
-                    
+
                     mock_embeddings = Mock()
-                    mock_embeddings.generate_embedding = AsyncMock(return_value=[0.1] * 1536)
+                    mock_embeddings.generate_embedding = AsyncMock(
+                        return_value=[0.1] * 1536
+                    )
                     mock_embeddings_class.return_value = mock_embeddings
-                    
+
                     await _cache_search("test query", 10, 0.7)
 
     @pytest.mark.asyncio
@@ -374,30 +424,34 @@ class TestCLICommands:
         with patch("main.get_rag_config"):
             with patch("main.VectorStorage") as mock_storage_class:
                 mock_storage = AsyncMock()
-                mock_storage.get_cache_stats = AsyncMock(return_value={
-                    "total_entries": 100,
-                    "unique_keywords": 50,
-                    "storage_bytes": 1024000,
-                    "avg_chunk_size": 500,
-                    "oldest_entry": "2024-01-01",
-                    "newest_entry": "2024-01-10"
-                })
+                mock_storage.get_cache_stats = AsyncMock(
+                    return_value={
+                        "total_entries": 100,
+                        "unique_keywords": 50,
+                        "storage_bytes": 1024000,
+                        "avg_chunk_size": 500,
+                        "oldest_entry": "2024-01-01",
+                        "newest_entry": "2024-01-10",
+                    }
+                )
                 mock_storage.__aenter__ = AsyncMock(return_value=mock_storage)
                 mock_storage.__aexit__ = AsyncMock()
                 mock_storage_class.return_value = mock_storage
-                
+
                 # Mock ResearchRetriever.get_statistics as a class method
                 with patch("main.ResearchRetriever") as mock_retriever:
-                    mock_retriever.get_statistics = Mock(return_value={
-                        "cache_requests": 100,
-                        "cache_hits": 80,
-                        "exact_hits": 60,
-                        "semantic_hits": 20,
-                        "cache_misses": 20,
-                        "hit_rate": 0.8,
-                        "avg_retrieval_time": 0.05
-                    })
-                    
+                    mock_retriever.get_statistics = Mock(
+                        return_value={
+                            "cache_requests": 100,
+                            "cache_hits": 80,
+                            "exact_hits": 60,
+                            "semantic_hits": 20,
+                            "cache_misses": 20,
+                            "hit_rate": 0.8,
+                            "avg_retrieval_time": 0.05,
+                        }
+                    )
+
                     await _cache_stats(False)
 
     @pytest.mark.asyncio
@@ -407,11 +461,13 @@ class TestCLICommands:
             with patch("main.VectorStorage") as mock_storage_class:
                 mock_storage = AsyncMock()
                 mock_storage.cleanup_cache = AsyncMock(return_value=10)
-                mock_storage.get_cache_stats = AsyncMock(return_value={"total_entries": 100})
+                mock_storage.get_cache_stats = AsyncMock(
+                    return_value={"total_entries": 100}
+                )
                 mock_storage.__aenter__ = AsyncMock(return_value=mock_storage)
                 mock_storage.__aexit__ = AsyncMock()
                 mock_storage_class.return_value = mock_storage
-                
+
                 await _cache_clear(7, None, True, False)
 
     @pytest.mark.asyncio
@@ -423,9 +479,9 @@ class TestCLICommands:
                     mock_agent = Mock()
                     mock_create_agent.return_value = mock_agent
                     mock_run_agent.return_value = Mock()
-                    
+
                     await _cache_warm("test topic", 3, True)
-                    
+
                     assert mock_run_agent.call_count >= 3
 
     @pytest.mark.asyncio
@@ -434,22 +490,26 @@ class TestCLICommands:
         with patch("main.get_rag_config"):
             with patch("main.VectorStorage") as mock_storage_class:
                 mock_storage = AsyncMock()
-                mock_storage.get_cache_stats = AsyncMock(return_value={
-                    "total_entries": 100,
-                    "unique_keywords": 50,
-                    "storage_bytes": 1024000
-                })
+                mock_storage.get_cache_stats = AsyncMock(
+                    return_value={
+                        "total_entries": 100,
+                        "unique_keywords": 50,
+                        "storage_bytes": 1024000,
+                    }
+                )
                 mock_storage.__aenter__ = AsyncMock(return_value=mock_storage)
                 mock_storage.__aexit__ = AsyncMock()
                 mock_storage_class.return_value = mock_storage
-                
+
                 with patch("main.ResearchRetriever") as mock_retriever:
-                    mock_retriever.get_statistics = Mock(return_value={
-                        "cache_requests": 100,
-                        "cache_hits": 80,
-                        "hit_rate": 0.8
-                    })
-                    
+                    mock_retriever.get_statistics = Mock(
+                        return_value={
+                            "cache_requests": 100,
+                            "cache_hits": 80,
+                            "hit_rate": 0.8,
+                        }
+                    )
+
                     await _export_cache_metrics("json", None)
 
     @pytest.mark.asyncio
@@ -458,20 +518,19 @@ class TestCLICommands:
         with patch("main.get_rag_config"):
             with patch("main.VectorStorage") as mock_storage_class:
                 mock_storage = AsyncMock()
-                mock_storage.get_cache_stats = AsyncMock(return_value={
-                    "total_entries": 100,
-                    "unique_keywords": 50
-                })
+                mock_storage.get_cache_stats = AsyncMock(
+                    return_value={"total_entries": 100, "unique_keywords": 50}
+                )
                 mock_storage.__aenter__ = AsyncMock(return_value=mock_storage)
                 mock_storage.__aexit__ = AsyncMock()
                 mock_storage_class.return_value = mock_storage
-                
+
                 with patch("main.ResearchRetriever") as mock_retriever:
                     mock_retriever.get_statistics = Mock(return_value=None)
-                    
+
                     output_file = tmp_path / "metrics.csv"
                     await _export_cache_metrics("csv", output_file)
-                    
+
                     assert output_file.exists()
 
     @pytest.mark.asyncio
@@ -480,21 +539,22 @@ class TestCLICommands:
         with patch("main.get_rag_config"):
             with patch("main.VectorStorage") as mock_storage_class:
                 mock_storage = AsyncMock()
-                mock_storage.get_cache_stats = AsyncMock(return_value={
-                    "total_entries": 100,
-                    "storage_bytes": 1024000
-                })
+                mock_storage.get_cache_stats = AsyncMock(
+                    return_value={"total_entries": 100, "storage_bytes": 1024000}
+                )
                 mock_storage.__aenter__ = AsyncMock(return_value=mock_storage)
                 mock_storage.__aexit__ = AsyncMock()
                 mock_storage_class.return_value = mock_storage
-                
+
                 with patch("main.ResearchRetriever") as mock_retriever:
-                    mock_retriever.get_statistics = Mock(return_value={
-                        "cache_requests": 100,  # Changed from total_requests
-                        "exact_hits": 60,
-                        "semantic_hits": 20,
-                        "hit_rate": 0.8,
-                        "avg_retrieval_time": 0.05  # Changed from avg_response_time_seconds
-                    })
-                    
+                    mock_retriever.get_statistics = Mock(
+                        return_value={
+                            "cache_requests": 100,  # Changed from total_requests
+                            "exact_hits": 60,
+                            "semantic_hits": 20,
+                            "hit_rate": 0.8,
+                            "avg_retrieval_time": 0.05,  # Changed from avg_response_time_seconds
+                        }
+                    )
+
                     await _export_cache_metrics("prometheus", None)

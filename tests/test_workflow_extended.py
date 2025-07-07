@@ -61,7 +61,7 @@ class TestWorkflowOrchestratorExtended:
                         orchestrator.temp_output_dir = Path("/tmp/test_temp")
                         orchestrator.temp_output_dir.mkdir(exist_ok=True)
                         orchestrator._cleanup_required = True
-                        
+
                         # Simulate error
                         raise ValueError("Test error")
                 except ValueError:
@@ -79,7 +79,7 @@ class TestWorkflowOrchestratorExtended:
         """Test progress update with callback."""
         callback = Mock()
         orchestrator.set_progress_callback(callback)
-        
+
         orchestrator._update_progress("research", "Searching sources...")
         callback.assert_called_once_with("research", "Searching sources...")
 
@@ -95,7 +95,7 @@ class TestWorkflowOrchestratorExtended:
         # Initialize to researching
         await orchestrator._transition_state(WorkflowState.RESEARCHING)
         assert orchestrator.current_state == WorkflowState.RESEARCHING
-        
+
         # Research to complete
         await orchestrator._transition_state(WorkflowState.RESEARCH_COMPLETE)
         assert orchestrator.current_state == WorkflowState.RESEARCH_COMPLETE
@@ -105,7 +105,7 @@ class TestWorkflowOrchestratorExtended:
         """Test state transition with data update."""
         test_data = {"research_result": "test"}
         await orchestrator._transition_state(WorkflowState.RESEARCH_COMPLETE, test_data)
-        
+
         assert orchestrator.current_state == WorkflowState.RESEARCH_COMPLETE
         assert orchestrator.workflow_data["research_result"] == "test"
 
@@ -115,16 +115,16 @@ class TestWorkflowOrchestratorExtended:
         orchestrator.output_dir = tmp_path
         orchestrator.current_state = WorkflowState.RESEARCH_COMPLETE
         orchestrator.workflow_data = {"keyword": "test", "timestamp": "2024-01-01"}
-        
+
         state_file = await orchestrator._save_state()
-        
+
         assert state_file.exists()
         assert state_file.name.startswith(".workflow_state_")
-        
+
         # Verify content
         with open(state_file) as f:
             saved_state = json.load(f)
-        
+
         assert saved_state["state"] == "research_complete"
         assert saved_state["data"]["keyword"] == "test"
 
@@ -132,9 +132,9 @@ class TestWorkflowOrchestratorExtended:
     async def test_create_temp_directory(self, orchestrator, tmp_path):
         """Test temporary directory creation."""
         orchestrator.output_dir = tmp_path
-        
+
         temp_dir = await orchestrator._create_temp_directory()
-        
+
         assert temp_dir.exists()
         assert temp_dir.is_dir()
         assert temp_dir.name.startswith(".temp_")
@@ -146,13 +146,13 @@ class TestWorkflowOrchestratorExtended:
         mock_findings = Mock(spec=ResearchFindings)
         callback = Mock()
         orchestrator.set_progress_callback(callback)
-        
+
         with patch("workflow.run_research_agent", return_value=mock_findings):
             result = await orchestrator.run_research("test keyword")
-        
+
         assert result == mock_findings
         assert orchestrator.current_state == WorkflowState.RESEARCH_COMPLETE
-        
+
         # Check progress updates
         callback.assert_any_call("research", "Starting academic research...")
         callback.assert_any_call("research_complete", "Research phase completed")
@@ -163,7 +163,7 @@ class TestWorkflowOrchestratorExtended:
         with patch("workflow.run_research_agent", side_effect=Exception("API Error")):
             with pytest.raises(Exception) as exc_info:
                 await orchestrator.run_research("test keyword")
-            
+
             assert "API Error" in str(exc_info.value)
             assert orchestrator.current_state == WorkflowState.FAILED
 
@@ -174,13 +174,13 @@ class TestWorkflowOrchestratorExtended:
         mock_article = Mock(spec=ArticleOutput)
         callback = Mock()
         orchestrator.set_progress_callback(callback)
-        
+
         with patch("writer_agent.agent.run_writer_agent", return_value=mock_article):
             result = await orchestrator.run_writing("test keyword", mock_findings)
-        
+
         assert result == mock_article
         assert orchestrator.current_state == WorkflowState.WRITING_COMPLETE
-        
+
         # Check progress updates
         callback.assert_any_call("writing", "Generating SEO-optimized article...")
         callback.assert_any_call("writing_complete", "Article generation completed")
@@ -191,23 +191,23 @@ class TestWorkflowOrchestratorExtended:
         orchestrator.output_dir = tmp_path
         orchestrator.temp_output_dir = tmp_path / "temp"
         orchestrator.temp_output_dir.mkdir()
-        
+
         mock_findings = Mock(spec=ResearchFindings)
         mock_findings.to_json.return_value = {"findings": "test"}
         mock_findings.to_markdown_summary.return_value = "# Research Summary"
-        
+
         mock_article = Mock(spec=ArticleOutput)
         mock_article.to_html.return_value = "<html>Test Article</html>"
         mock_article.to_json.return_value = {"article": "test"}
         mock_article.to_markdown.return_value = "# Test Article"
-        
+
         output_path = await orchestrator.save_outputs(
             "test_keyword", mock_findings, mock_article
         )
-        
+
         assert output_path.exists()
         assert output_path.name == "index.html"
-        
+
         # Check all files were created
         keyword_dir = tmp_path / "test_keyword_2024"
         assert (keyword_dir / "research_data.json").exists()
@@ -220,13 +220,13 @@ class TestWorkflowOrchestratorExtended:
         orchestrator.output_dir = tmp_path
         orchestrator.temp_output_dir = tmp_path / "temp"
         orchestrator.temp_output_dir.mkdir()
-        
+
         # Create a state file
         orchestrator.state_file = tmp_path / ".workflow_state_test.json"
         orchestrator.state_file.write_text('{"state": "writing"}')
-        
+
         await orchestrator._rollback_workflow()
-        
+
         assert orchestrator.current_state == WorkflowState.ROLLED_BACK
         assert not orchestrator.temp_output_dir.exists()
         assert not orchestrator.state_file.exists()
@@ -238,26 +238,28 @@ class TestWorkflowOrchestratorExtended:
         old_state = tmp_path / ".workflow_state_old.json"
         old_state.write_text('{"state": "complete"}')
         old_state.touch()
-        
+
         old_temp = tmp_path / ".temp_old"
         old_temp.mkdir()
-        
+
         # Create recent files (should not be deleted)
         new_state = tmp_path / ".workflow_state_new.json"
         new_state.write_text('{"state": "complete"}')
-        
+
         # Make old files actually old
         import time
+
         old_time = time.time() - (25 * 3600)  # 25 hours ago
         import os
+
         os.utime(old_state, (old_time, old_time))
         os.utime(old_temp, (old_time, old_time))
-        
+
         # Run cleanup
         cleaned_state, cleaned_dirs = await WorkflowOrchestrator.cleanup_orphaned_files(
             tmp_path, max_age_hours=24
         )
-        
+
         assert cleaned_state == 1
         assert cleaned_dirs == 1
         assert not old_state.exists()
@@ -274,7 +276,7 @@ class TestWorkflowOrchestratorExtended:
             ("UPPERCASE", "uppercase"),
             ("special!@#$%chars", "special_chars"),
         ]
-        
+
         for input_name, expected in test_cases:
             result = orchestrator._sanitize_filename(input_name)
             assert result == expected
@@ -284,16 +286,20 @@ class TestWorkflowOrchestratorExtended:
         """Test full workflow with retry logic."""
         mock_findings = Mock(spec=ResearchFindings)
         mock_article = Mock(spec=ArticleOutput)
-        
+
         # First call fails, second succeeds
         with patch("workflow.run_research_agent") as mock_research:
             mock_research.side_effect = [Exception("Temporary error"), mock_findings]
-            
-            with patch("writer_agent.agent.run_writer_agent", return_value=mock_article):
-                with patch.object(orchestrator, "save_outputs", return_value=Path("/tmp/out.html")):
+
+            with patch(
+                "writer_agent.agent.run_writer_agent", return_value=mock_article
+            ):
+                with patch.object(
+                    orchestrator, "save_outputs", return_value=Path("/tmp/out.html")
+                ):
                     # Should succeed on retry
                     result = await orchestrator.run_full_workflow("test keyword")
-                    
+
                     assert result == Path("/tmp/out.html")
                     assert mock_research.call_count == 2
 
@@ -301,21 +307,23 @@ class TestWorkflowOrchestratorExtended:
     async def test_workflow_state_persistence(self, orchestrator, tmp_path):
         """Test workflow state is persisted between operations."""
         orchestrator.output_dir = tmp_path
-        
+
         # Transition through states
         await orchestrator._transition_state(WorkflowState.RESEARCHING)
         state_file_1 = await orchestrator._save_state()
-        
-        await orchestrator._transition_state(WorkflowState.RESEARCH_COMPLETE, {"result": "data"})
+
+        await orchestrator._transition_state(
+            WorkflowState.RESEARCH_COMPLETE, {"result": "data"}
+        )
         state_file_2 = await orchestrator._save_state()
-        
+
         # Old state file should be deleted
         assert not state_file_1.exists()
         assert state_file_2.exists()
-        
+
         # Verify latest state
         with open(state_file_2) as f:
             state_data = json.load(f)
-        
+
         assert state_data["state"] == "research_complete"
         assert state_data["data"]["result"] == "data"

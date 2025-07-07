@@ -520,27 +520,27 @@ def batch(
 ):
     """
     Generate articles for multiple keywords in batch.
-    
+
     Process multiple keywords efficiently with optional parallel execution.
     Failed keywords are reported at the end.
-    
+
     \b
     Examples:
         # Process multiple keywords sequentially
         $ seo-content batch "keto diet" "intermittent fasting" "low carb"
-        
+
         # Process 3 keywords in parallel
         $ seo-content batch "diabetes" "insulin" "blood sugar" --parallel 3
-        
+
         # Continue even if some keywords fail
         $ seo-content batch "topic1" "topic2" "topic3" --continue-on-error
-        
+
         # Research only (no articles)
         $ seo-content batch "keyword1" "keyword2" --dry-run
-        
+
         # Custom output directory
         $ seo-content batch "seo1" "seo2" -o ./batch-output
-    
+
     \b
     Performance Tips:
         - Use --parallel 2-3 for optimal performance
@@ -550,7 +550,7 @@ def batch(
     if not keywords:
         console.print("[red]❌ No keywords provided[/red]")
         raise click.exceptions.Exit(1)
-    
+
     # Validate parallel count
     if parallel < 1:
         console.print("[red]❌ Parallel count must be at least 1[/red]")
@@ -559,30 +559,29 @@ def batch(
         console.print(
             "[yellow]⚠️  Warning: High parallel count may cause rate limiting[/yellow]"
         )
-    
+
     # Show batch summary
     console.print(f"\n[bold]📦 Batch Processing {len(keywords)} Keywords[/bold]")
     console.print(f"Parallel execution: [cyan]{parallel}[/cyan]")
     console.print(f"Continue on error: [cyan]{continue_on_error}[/cyan]")
-    console.print(f"Mode: [cyan]{'Research only' if dry_run else 'Full generation'}[/cyan]")
-    
+    console.print(
+        f"Mode: [cyan]{'Research only' if dry_run else 'Full generation'}[/cyan]"
+    )
+
     if output_dir:
         console.print(f"Output directory: [cyan]{output_dir}[/cyan]")
-    
+
     console.print("\nKeywords to process:")
     for i, keyword in enumerate(keywords, 1):
         console.print(f"  {i}. {keyword}")
-    
+
     # Run the batch processing
     try:
-        asyncio.run(_run_batch_generation(
-            keywords,
-            output_dir,
-            parallel,
-            dry_run,
-            continue_on_error,
-            progress
-        ))
+        asyncio.run(
+            _run_batch_generation(
+                keywords, output_dir, parallel, dry_run, continue_on_error, progress
+            )
+        )
     except KeyboardInterrupt:
         console.print("\n[yellow]⚠️  Batch processing cancelled by user[/yellow]")
         raise click.Abort()
@@ -603,70 +602,60 @@ async def _run_batch_generation(
     """Run batch generation with parallel processing."""
     # Get configuration
     config = get_config()
-    
+
     # Override output directory if specified
     if output_dir:
         config.output_dir = output_dir
-    
+
     # Track results
-    results = {
-        "success": [],
-        "failed": [],
-        "skipped": []
-    }
-    
+    results = {"success": [], "failed": [], "skipped": []}
+
     # Create semaphore for parallel execution
     semaphore = asyncio.Semaphore(parallel)
-    
+
     async def process_keyword(keyword: str, index: int):
         """Process a single keyword with rate limiting."""
         async with semaphore:
             try:
                 # Create workflow orchestrator
                 orchestrator = WorkflowOrchestrator(config)
-                
+
                 # Update progress if showing
                 if show_progress and progress_bar:
                     progress_bar.update(
-                        batch_task,
-                        description=f"[cyan]Processing: {keyword}"
+                        batch_task, description=f"[cyan]Processing: {keyword}"
                     )
-                
+
                 # Run the workflow
                 if dry_run:
                     findings = await orchestrator.run_research(keyword)
-                    results["success"].append({
-                        "keyword": keyword,
-                        "sources": findings.total_sources_analyzed
-                    })
+                    results["success"].append(
+                        {"keyword": keyword, "sources": findings.total_sources_analyzed}
+                    )
                 else:
                     article_path = await orchestrator.run_full_workflow(keyword)
-                    results["success"].append({
-                        "keyword": keyword,
-                        "path": str(article_path)
-                    })
-                
+                    results["success"].append(
+                        {"keyword": keyword, "path": str(article_path)}
+                    )
+
                 # Update progress
                 if show_progress and progress_bar:
                     progress_bar.advance(batch_task)
-                
+
             except Exception as e:
                 logger.error(f"Failed to process '{keyword}': {e}")
-                results["failed"].append({
-                    "keyword": keyword,
-                    "error": str(e)
-                })
-                
+                results["failed"].append({"keyword": keyword, "error": str(e)})
+
                 if show_progress and progress_bar:
                     progress_bar.advance(batch_task)
-                
+
                 if not continue_on_error:
                     raise
-    
+
     # Set up progress tracking
     progress_bar = None
     batch_task = None
-    
+
     if show_progress:
         progress_bar = Progress(
             SpinnerColumn(),
@@ -677,48 +666,43 @@ async def _run_batch_generation(
             TimeRemainingColumn(),
             console=console,
         )
-        
+
         with progress_bar:
             batch_task = progress_bar.add_task(
-                "[bold blue]Processing keywords",
-                total=len(keywords)
+                "[bold blue]Processing keywords", total=len(keywords)
             )
-            
+
             # Create tasks for all keywords
-            tasks = [
-                process_keyword(keyword, i)
-                for i, keyword in enumerate(keywords)
-            ]
-            
+            tasks = [process_keyword(keyword, i) for i, keyword in enumerate(keywords)]
+
             # Run all tasks
             await asyncio.gather(*tasks, return_exceptions=True)
     else:
         # No progress bar
-        tasks = [
-            process_keyword(keyword, i)
-            for i, keyword in enumerate(keywords)
-        ]
-        
+        tasks = [process_keyword(keyword, i) for i, keyword in enumerate(keywords)]
+
         await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     # Show results summary
     console.print("\n[bold]📊 Batch Processing Summary[/bold]")
     console.print(f"✅ Successful: [green]{len(results['success'])}[/green]")
     console.print(f"❌ Failed: [red]{len(results['failed'])}[/red]")
-    
+
     if results["success"]:
         console.print("\n[bold green]Successful generations:[/bold green]")
         for item in results["success"]:
             if "path" in item:
                 console.print(f"  • {item['keyword']} → {item['path']}")
             else:
-                console.print(f"  • {item['keyword']} → {item['sources']} sources found")
-    
+                console.print(
+                    f"  • {item['keyword']} → {item['sources']} sources found"
+                )
+
     if results["failed"]:
         console.print("\n[bold red]Failed generations:[/bold red]")
         for item in results["failed"]:
             console.print(f"  • {item['keyword']}: {item['error']}")
-    
+
     # Exit with error if any failed and not continuing on error
     if results["failed"] and not continue_on_error:
         raise click.exceptions.Exit(1)
@@ -880,11 +864,13 @@ async def _cache_stats(detailed: bool):
             try:
                 # Import here to avoid circular dependency
                 from rag.retriever import ResearchRetriever
-                
+
                 # Try to get hit rate from recent usage
                 retriever_stats = ResearchRetriever.get_statistics()
                 if retriever_stats:
-                    console.print(f"\n[bold]🎯 Cache Performance (Current Session):[/bold]")
+                    console.print(
+                        f"\n[bold]🎯 Cache Performance (Current Session):[/bold]"
+                    )
                     console.print(
                         f"Total requests: [cyan]{retriever_stats['cache_requests']:,}[/cyan]"
                     )
@@ -902,11 +888,11 @@ async def _cache_stats(detailed: bool):
                     console.print(
                         f"Avg response time: [cyan]{retriever_stats['avg_retrieval_time']:.3f}s[/cyan]"
                     )
-                    
+
                     # Cost savings estimate
-                    if retriever_stats['cache_hits'] > 0:
+                    if retriever_stats["cache_hits"] > 0:
                         # Estimate $0.04 per API call saved
-                        savings = retriever_stats['cache_hits'] * 0.04
+                        savings = retriever_stats["cache_hits"] * 0.04
                         console.print(
                             f"Estimated savings: [green]${savings:.2f}[/green]"
                         )
@@ -1146,21 +1132,21 @@ async def _cache_warm(topic: str, variations: int, verbose: bool):
 def cache_metrics(format: str, output: Optional[Path]):
     """
     Export cache metrics for monitoring and analysis.
-    
+
     Exports detailed cache performance metrics in various formats
     suitable for monitoring systems and dashboards.
-    
+
     \b
     Examples:
         # Export as JSON to stdout
         $ seo-content cache metrics
-        
+
         # Export as CSV to file
         $ seo-content cache metrics --format csv -o metrics.csv
-        
+
         # Export in Prometheus format
         $ seo-content cache metrics --format prometheus
-    
+
     \b
     Formats:
         - json: Standard JSON format
@@ -1174,10 +1160,10 @@ async def _export_cache_metrics(format: str, output_path: Optional[Path]):
     """Export cache metrics in specified format."""
     try:
         rag_config = get_rag_config()
-        
+
         # Collect all metrics
         metrics = {}
-        
+
         # Get storage statistics
         async with VectorStorage(rag_config) as storage:
             stats = await storage.get_cache_stats()
@@ -1189,9 +1175,10 @@ async def _export_cache_metrics(format: str, output_path: Optional[Path]):
                 "oldest_entry": str(stats.get("oldest_entry", "")),
                 "newest_entry": str(stats.get("newest_entry", "")),
             }
-        
+
         # Get retriever statistics
         from rag.retriever import ResearchRetriever
+
         retriever_stats = ResearchRetriever.get_statistics()
         if retriever_stats:
             metrics["performance"] = {
@@ -1204,7 +1191,7 @@ async def _export_cache_metrics(format: str, output_path: Optional[Path]):
                 "avg_response_time_seconds": retriever_stats["avg_retrieval_time"],
                 "errors": retriever_stats["errors"],
             }
-            
+
             # Calculate cost metrics
             metrics["cost"] = {
                 "api_calls_saved": retriever_stats["cache_hits"],
@@ -1214,79 +1201,88 @@ async def _export_cache_metrics(format: str, output_path: Optional[Path]):
             metrics["performance"] = {
                 "message": "No performance data available in current session"
             }
-        
+
         # Add timestamp
         metrics["timestamp"] = datetime.now(timezone.utc).isoformat()
-        
+
         # Format output based on type
         if format == "json":
             output = json.dumps(metrics, indent=2)
-        
+
         elif format == "csv":
             # Flatten metrics for CSV
             rows = []
             rows.append(["metric", "value", "timestamp"])
             timestamp = metrics["timestamp"]
-            
+
             # Add storage metrics
             for key, value in metrics.get("storage", {}).items():
                 rows.append([f"storage.{key}", str(value), timestamp])
-            
+
             # Add performance metrics
             for key, value in metrics.get("performance", {}).items():
                 if key != "message":
                     rows.append([f"performance.{key}", str(value), timestamp])
-            
+
             # Add cost metrics
             for key, value in metrics.get("cost", {}).items():
                 rows.append([f"cost.{key}", str(value), timestamp])
-            
+
             # Convert to CSV
             import csv
             import io
+
             string_io = io.StringIO()
             writer = csv.writer(string_io)
             writer.writerows(rows)
             output = string_io.getvalue()
-        
+
         elif format == "prometheus":
             # Prometheus exposition format
             lines = []
             lines.append("# HELP cache_storage_entries Total number of cache entries")
             lines.append("# TYPE cache_storage_entries gauge")
             lines.append(f"cache_storage_entries {metrics['storage']['total_entries']}")
-            
+
             lines.append("# HELP cache_storage_bytes Storage used in bytes")
             lines.append("# TYPE cache_storage_bytes gauge")
             lines.append(f"cache_storage_bytes {metrics['storage']['storage_bytes']}")
-            
+
             if "performance" in metrics and "total_requests" in metrics["performance"]:
                 lines.append("# HELP cache_requests_total Total cache requests")
                 lines.append("# TYPE cache_requests_total counter")
-                lines.append(f"cache_requests_total {metrics['performance']['total_requests']}")
-                
+                lines.append(
+                    f"cache_requests_total {metrics['performance']['total_requests']}"
+                )
+
                 lines.append("# HELP cache_hits_total Total cache hits")
                 lines.append("# TYPE cache_hits_total counter")
-                lines.append(f"cache_hits_total{{type=\"exact\"}} {metrics['performance']['exact_hits']}")
-                lines.append(f"cache_hits_total{{type=\"semantic\"}} {metrics['performance']['semantic_hits']}")
-                
+                lines.append(
+                    f"cache_hits_total{{type=\"exact\"}} {metrics['performance']['exact_hits']}"
+                )
+                lines.append(
+                    f"cache_hits_total{{type=\"semantic\"}} {metrics['performance']['semantic_hits']}"
+                )
+
                 lines.append("# HELP cache_hit_rate Cache hit rate ratio")
                 lines.append("# TYPE cache_hit_rate gauge")
                 lines.append(f"cache_hit_rate {metrics['performance']['hit_rate']}")
-                
+
                 lines.append("# HELP cache_response_time_seconds Average response time")
                 lines.append("# TYPE cache_response_time_seconds gauge")
-                lines.append(f"cache_response_time_seconds {metrics['performance']['avg_response_time_seconds']}")
-            
+                lines.append(
+                    f"cache_response_time_seconds {metrics['performance']['avg_response_time_seconds']}"
+                )
+
             output = "\n".join(lines)
-        
+
         # Write output
         if output_path:
             output_path.write_text(output)
             console.print(f"[green]✅ Metrics exported to {output_path}[/green]")
         else:
             console.print(output)
-    
+
     except Exception as e:
         console.print(f"[red]❌ Failed to export metrics: {e}[/red]")
         raise click.exceptions.Exit(1)

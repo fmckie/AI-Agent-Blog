@@ -68,19 +68,19 @@ class TestVectorStorage:
                 text="This is the first chunk of content about AI and machine learning.",
                 embedding=[0.1] * 1536,
                 model="text-embedding-ada-002",
-                token_count=10
+                token_count=10,
             ),
             EmbeddingResult(
                 text="The second chunk discusses deep learning architectures and neural networks.",
                 embedding=[0.2] * 1536,
                 model="text-embedding-ada-002",
-                token_count=12
+                token_count=12,
             ),
             EmbeddingResult(
                 text="Final chunk covers practical applications and future research directions.",
                 embedding=[0.3] * 1536,
                 model="text-embedding-ada-002",
-                token_count=15
+                token_count=15,
             ),
         ]
 
@@ -114,12 +114,14 @@ class TestVectorStorage:
         with patch("rag.storage.create_client"):
             # Need to properly create async context manager
             mock_pool = MagicMock()
-            
+
             # Create the coroutine properly
             async def mock_create_pool(*args, **kwargs):
                 return mock_pool
-            
-            with patch("rag.storage.asyncpg.create_pool", side_effect=mock_create_pool) as mock_create:
+
+            with patch(
+                "rag.storage.asyncpg.create_pool", side_effect=mock_create_pool
+            ) as mock_create:
                 storage = VectorStorage(mock_rag_config)
                 pool = await storage._get_pool()
 
@@ -212,14 +214,16 @@ class TestVectorStorage:
             # Create a proper mock pool with async context manager
             mock_pool = MagicMock()
             mock_conn = MagicMock()
-            
+
             # Create async context manager for pool.acquire()
             async def async_context_manager():
                 return mock_conn
-            
+
             mock_acquire = MagicMock()
             mock_acquire.__aenter__ = MagicMock(return_value=async_context_manager())
-            mock_acquire.__aexit__ = MagicMock(return_value=asyncio.coroutine(lambda *args: None)())
+            mock_acquire.__aexit__ = MagicMock(
+                return_value=asyncio.coroutine(lambda *args: None)()
+            )
             mock_pool.acquire.return_value = mock_acquire
 
             # Mock query results
@@ -236,13 +240,13 @@ class TestVectorStorage:
                         "similarity": 0.95,
                     }
                 ]
-            
+
             mock_conn.fetch = mock_fetch
-            
+
             # Create the coroutine for create_pool
             async def mock_create_pool(*args, **kwargs):
                 return mock_pool
-            
+
             with patch("rag.storage.asyncpg.create_pool", side_effect=mock_create_pool):
                 storage = VectorStorage(mock_rag_config)
                 results = await storage.search_similar_chunks([0.1] * 1536, limit=5)
@@ -339,7 +343,9 @@ class TestVectorStorage:
             mock_execute = Mock()
 
             # Mock chunks count
-            mock_execute.return_value = Mock(data=[{"id": f"chunk{i}"} for i in range(10)])
+            mock_execute.return_value = Mock(
+                data=[{"id": f"chunk{i}"} for i in range(10)]
+            )
             mock_select.return_value = mock_execute
             mock_table.return_value.select = mock_select
 
@@ -373,7 +379,9 @@ class TestVectorStorage:
             mock_execute = Mock()
 
             # Setup mock chain
-            mock_execute.return_value = Mock(data=[{"id": f"expired{i}"} for i in range(5)])
+            mock_execute.return_value = Mock(
+                data=[{"id": f"expired{i}"} for i in range(5)]
+            )
             mock_lt.return_value = mock_execute
             mock_delete.return_value.lt = mock_lt
             mock_table.return_value.delete = mock_delete
@@ -395,9 +403,7 @@ class TestVectorStorage:
 
             # Mock search_similar_chunks
             with patch.object(storage, "search_similar_chunks") as mock_search:
-                mock_search.return_value = [
-                    ({"id": "chunk1", "content": "Test"}, 0.9)
-                ]
+                mock_search.return_value = [({"id": "chunk1", "content": "Test"}, 0.9)]
 
                 embeddings = [[0.1] * 1536, [0.2] * 1536]
                 results = await storage.bulk_search(embeddings, limit_per_query=3)
@@ -423,12 +429,36 @@ class TestVectorStorage:
 
             # Different return values for each table
             mock_table.side_effect = [
-                Mock(delete=Mock(return_value=Mock(lt=Mock(return_value=Mock(
-                    execute=Mock(return_value=Mock(data=[{"id": f"cache{i}"} for i in range(3)]))
-                ))))),
-                Mock(delete=Mock(return_value=Mock(lt=Mock(return_value=Mock(
-                    execute=Mock(return_value=Mock(data=[{"id": f"chunk{i}"} for i in range(5)]))
-                )))))
+                Mock(
+                    delete=Mock(
+                        return_value=Mock(
+                            lt=Mock(
+                                return_value=Mock(
+                                    execute=Mock(
+                                        return_value=Mock(
+                                            data=[{"id": f"cache{i}"} for i in range(3)]
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+                Mock(
+                    delete=Mock(
+                        return_value=Mock(
+                            lt=Mock(
+                                return_value=Mock(
+                                    execute=Mock(
+                                        return_value=Mock(
+                                            data=[{"id": f"chunk{i}"} for i in range(5)]
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
             ]
 
             mock_client.table = mock_table
@@ -445,27 +475,33 @@ class TestVectorStorage:
         with patch("rag.storage.create_client") as mock_create_client:
             mock_client = Mock()
             mock_table = Mock()
-            
+
             # Setup different mocks for different tables
             cache_table_mock = Mock()
             chunks_table_mock = Mock()
-            
+
             # Cache entries deletion
             cache_delete = Mock()
-            cache_eq = Mock(return_value=Mock(
-                execute=Mock(return_value=Mock(data=[{"id": "cache1"}]))
-            ))
+            cache_eq = Mock(
+                return_value=Mock(
+                    execute=Mock(return_value=Mock(data=[{"id": "cache1"}]))
+                )
+            )
             cache_delete.return_value.eq = cache_eq
             cache_table_mock.delete = Mock(return_value=cache_delete)
-            
+
             # Chunks deletion
             chunks_delete = Mock()
-            chunks_ilike = Mock(return_value=Mock(
-                execute=Mock(return_value=Mock(data=[{"id": f"chunk{i}"} for i in range(3)]))
-            ))
+            chunks_ilike = Mock(
+                return_value=Mock(
+                    execute=Mock(
+                        return_value=Mock(data=[{"id": f"chunk{i}"} for i in range(3)])
+                    )
+                )
+            )
             chunks_delete.return_value.ilike = chunks_ilike
             chunks_table_mock.delete = Mock(return_value=chunks_delete)
-            
+
             # Return different table mocks based on call
             mock_table.side_effect = [cache_table_mock, chunks_table_mock]
             mock_client.table = mock_table
@@ -542,7 +578,7 @@ class TestVectorStorage:
         with patch("rag.storage.create_client") as mock_create_client:
             mock_client = Mock()
             mock_table = Mock()
-            
+
             # Mock responses for different queries
             chunks_data = [
                 {"content": "x" * 100, "keyword": "test1"},
@@ -554,11 +590,11 @@ class TestVectorStorage:
                     "created_at": "2024-01-01T00:00:00Z",
                 }
             ]
-            
+
             mock_select = Mock()
             mock_select.return_value.execute.side_effect = [
                 Mock(data=chunks_data),  # chunks query
-                Mock(data=cache_data),   # cache query
+                Mock(data=cache_data),  # cache query
             ]
             mock_table.return_value.select = mock_select
             mock_client.table = mock_table
@@ -626,7 +662,7 @@ class TestVectorStorage:
                 mock_create_pool.return_value = mock_pool
 
                 storage = VectorStorage(mock_rag_config)
-                
+
                 # Get pool to create it
                 await storage._get_pool()
                 assert storage._pool is not None

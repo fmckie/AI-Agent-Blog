@@ -36,9 +36,9 @@ class TestAcademicSourceExtended:
             domain=".edu",
             credibility_score=0.95,
         )
-        
+
         citation = source.to_citation()
-        
+
         assert "Smith, J., Doe, A., Johnson, K." in citation
         assert '"Advances in AI Healthcare Applications"' in citation
         assert "Journal of AI Research" in citation
@@ -55,9 +55,9 @@ class TestAcademicSourceExtended:
             domain=".edu",
             credibility_score=0.8,
         )
-        
+
         citation = source.to_citation()
-        
+
         assert "Author1, Author2, Author3 et al." in citation
         assert "Author4" not in citation
         assert "Author5" not in citation
@@ -71,9 +71,9 @@ class TestAcademicSourceExtended:
             domain=".com",
             credibility_score=0.5,
         )
-        
+
         citation = source.to_citation()
-        
+
         assert '"Basic Study"' in citation
         assert "Available at: https://example.com/study" in citation
         # Should not have authors, journal, or date sections
@@ -89,7 +89,7 @@ class TestAcademicSourceExtended:
             credibility_score=0.5,
         )
         assert valid_source.url == "https://example.com/page"
-        
+
         # Invalid URLs
         with pytest.raises(ValidationError):
             AcademicSource(
@@ -99,7 +99,7 @@ class TestAcademicSourceExtended:
                 domain=".com",
                 credibility_score=0.5,
             )
-        
+
         with pytest.raises(ValidationError):
             AcademicSource(
                 title="Test",
@@ -120,7 +120,7 @@ class TestAcademicSourceExtended:
             credibility_score=0.5,
         )
         assert source.domain == ".edu"
-        
+
         # Without dot (should add it)
         source = AcademicSource(
             title="Test",
@@ -130,7 +130,7 @@ class TestAcademicSourceExtended:
             credibility_score=0.5,
         )
         assert source.domain == ".gov"
-        
+
         # Non-academic domain
         source = AcademicSource(
             title="Test",
@@ -153,7 +153,7 @@ class TestAcademicSourceExtended:
             credibility_score=0.5,
         )
         assert len(source.excerpt) == 500
-        
+
         # Over limit
         with pytest.raises(ValidationError):
             AcademicSource(
@@ -180,7 +180,7 @@ class TestResearchFindingsExtended:
             )
             for i in range(7)
         ]
-        
+
         findings = ResearchFindings(
             keyword="test",
             research_summary="Summary of test research findings with sufficient length",
@@ -191,17 +191,17 @@ class TestResearchFindingsExtended:
             total_sources_analyzed=7,
             search_query_used="test",
         )
-        
+
         # Default (5 sources)
         top_5 = findings.get_top_sources()
         assert len(top_5) == 5
         assert top_5[0].credibility_score == 0.9
         assert top_5[4].credibility_score == 0.5
-        
+
         # Custom count
         top_3 = findings.get_top_sources(3)
         assert len(top_3) == 3
-        
+
         # More than available
         top_10 = findings.get_top_sources(10)
         assert len(top_10) == 7
@@ -224,7 +224,7 @@ class TestResearchFindingsExtended:
                 credibility_score=0.90,
             ),
         ]
-        
+
         findings = ResearchFindings(
             keyword="AI healthcare",
             research_summary="Comprehensive AI healthcare research summary.",
@@ -235,9 +235,9 @@ class TestResearchFindingsExtended:
             total_sources_analyzed=10,
             search_query_used="AI healthcare applications",
         )
-        
+
         markdown = findings.to_markdown_summary()
-        
+
         # Check structure
         assert "# Research Findings: AI healthcare" in markdown
         assert "## Summary" in markdown
@@ -265,9 +265,9 @@ class TestResearchFindingsExtended:
             total_sources_analyzed=0,
             search_query_used="test",
         )
-        
+
         markdown = findings.to_markdown_summary()
-        
+
         assert "# Research Findings: test topic" in markdown
         assert "## Summary" in markdown
         assert "Basic summary" in markdown
@@ -301,7 +301,7 @@ class TestResearchFindingsExtended:
                 credibility_score=0.6,
             ),
         ]
-        
+
         findings = ResearchFindings(
             keyword="test",
             research_summary="Summary of research about credibility testing and validation",
@@ -312,7 +312,7 @@ class TestResearchFindingsExtended:
             total_sources_analyzed=3,
             search_query_used="test",
         )
-        
+
         # Sources should be sorted by credibility
         assert findings.academic_sources[0].credibility_score == 0.9
         assert findings.academic_sources[1].credibility_score == 0.6
@@ -332,7 +332,7 @@ class TestResearchFindingsExtended:
                 total_sources_analyzed=0,
                 search_query_used="test",
             )
-        
+
         # At minimum
         findings = ResearchFindings(
             keyword="test",
@@ -345,7 +345,7 @@ class TestResearchFindingsExtended:
             search_query_used="test",
         )
         assert len(findings.research_summary) == 20
-        
+
         # At maximum
         findings = ResearchFindings(
             keyword="test",
@@ -358,7 +358,7 @@ class TestResearchFindingsExtended:
             search_query_used="test",
         )
         assert len(findings.research_summary) == 2000
-        
+
         # Too long
         with pytest.raises(ValidationError):
             ResearchFindings(
@@ -402,7 +402,7 @@ class TestArticleOutputExtended:
                 content="The future of AI holds immense potential. Emerging technologies like quantum computing and neuromorphic chips will enable even more sophisticated AI systems.",
             ),
         ]
-        
+
         article = ArticleOutput(
             title="The Future of Artificial Intelligence",
             meta_description="Explore the future of AI technology, its applications, and impact on society. Learn about the latest developments and trends.",
@@ -415,9 +415,9 @@ class TestArticleOutputExtended:
             keyword_density=0.02,
             sources_used=["https://example.edu/ai"],
         )
-        
+
         html = article.to_html()
-        
+
         # Check HTML structure
         assert "<!DOCTYPE html>" in html
         assert "<html lang='en'>" in html
@@ -425,8 +425,11 @@ class TestArticleOutputExtended:
         assert f"<meta name='description' content='{article.meta_description}'>" in html
         assert f"<meta name='keywords' content='{article.focus_keyword}'>" in html
         assert "<meta charset='UTF-8'>" in html
-        assert "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" in html
-        
+        assert (
+            "<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
+            in html
+        )
+
         # Check content
         assert f"<h1>{article.title}</h1>" in html
         assert "⏱️ 6 min read" in html
@@ -455,7 +458,7 @@ class TestArticleOutputExtended:
                 content="Content for section 3 providing comprehensive information for readers. This section contains detailed explanations and examples to help readers understand the topic.",
             ),
         ]
-        
+
         article = ArticleOutput(
             title="Simple Article",
             meta_description="A simple article without subsections to test basic HTML generation and ensure proper formatting of content.",
@@ -468,9 +471,9 @@ class TestArticleOutputExtended:
             keyword_density=0.01,
             sources_used=["https://example.com"],
         )
-        
+
         html = article.to_html()
-        
+
         # Should have sections but no subsections
         assert "<h2>Section 1</h2>" in html
         assert "<h2>Section 2</h2>" in html
@@ -482,11 +485,11 @@ class TestArticleOutputExtended:
             ArticleSection(
                 heading=f"Section {i}",
                 content=f"Content that is long enough to meet validation requirements. "
-                        f"This section provides detailed information about topic {i}.",
+                f"This section provides detailed information about topic {i}.",
             )
             for i in range(1, 4)
         ]
-        
+
         # Test title length
         with pytest.raises(ValidationError):
             ArticleOutput(
@@ -501,7 +504,7 @@ class TestArticleOutputExtended:
                 keyword_density=0.01,
                 sources_used=["url"],
             )
-        
+
         # Test meta description length
         with pytest.raises(ValidationError):
             ArticleOutput(
@@ -516,7 +519,7 @@ class TestArticleOutputExtended:
                 keyword_density=0.01,
                 sources_used=["url"],
             )
-        
+
         # Test word count minimum
         with pytest.raises(ValidationError):
             ArticleOutput(
@@ -531,7 +534,7 @@ class TestArticleOutputExtended:
                 keyword_density=0.01,
                 sources_used=["url"],
             )
-        
+
         # Test keyword density range
         with pytest.raises(ValidationError):
             ArticleOutput(
@@ -579,14 +582,14 @@ class TestArticleSectionExtended:
             content="x" * 100,
         )
         assert section.heading == "This Is A Heading"
-        
+
         # Test capitalization
         section = ArticleSection(
             heading="all lowercase heading",
             content="x" * 100,
         )
         assert section.heading == "All Lowercase Heading"
-        
+
         # Test mixed case preservation
         section = ArticleSection(
             heading="AI and ML Applications",
@@ -602,14 +605,14 @@ class TestArticleSectionExtended:
                 heading="Hi",  # Less than 5 chars
                 content="x" * 100,
             )
-        
+
         # At limit
         section = ArticleSection(
             heading="x" * 100,  # Exactly 100 chars
             content="x" * 100,
         )
         assert len(section.heading) == 100
-        
+
         # Too long
         with pytest.raises(ValidationError):
             ArticleSection(
@@ -625,7 +628,7 @@ class TestArticleSectionExtended:
                 heading="Valid Heading",
                 content="x" * 99,  # Less than 100
             )
-        
+
         # At minimum
         section = ArticleSection(
             heading="Valid Heading",
@@ -645,13 +648,13 @@ class TestArticleSectionExtended:
                 content="Content for subsection 2 with sufficient length to meet the minimum requirement of 50 characters.",
             ),
         ]
-        
+
         section = ArticleSection(
             heading="Main Section",
             content="Main section content that meets length requirements.",
             subsections=subsections,
         )
-        
+
         assert len(section.subsections) == 2
         assert section.subsections[0].heading == "Subsection 1"
 
@@ -671,11 +674,11 @@ class TestTavilyModelsExtended:
             domain=".com",
             processed_at=datetime.now(),
         )
-        
+
         assert result.title == "Search Result"
         assert result.score == 0.95
         assert result.credibility_score == 0.8
-        
+
         # Invalid URL
         with pytest.raises(ValidationError):
             TavilySearchResult(
@@ -683,7 +686,7 @@ class TestTavilyModelsExtended:
                 url="invalid-url",
                 content="Content",
             )
-        
+
         # Invalid credibility score
         with pytest.raises(ValidationError):
             TavilySearchResult(
@@ -725,30 +728,30 @@ class TestTavilyModelsExtended:
                 domain=".com",
             ),
         ]
-        
+
         response = TavilySearchResponse(
             query="academic research",
             results=results,
             answer="Summary of findings",
             processing_metadata={"timestamp": "2024-01-01"},
         )
-        
+
         # Test get_academic_results
         academic = response.get_academic_results(min_credibility=0.7)
         assert len(academic) == 3  # All except the .com result
-        
+
         academic_high = response.get_academic_results(min_credibility=0.87)
         assert len(academic_high) == 2  # Only .edu and .gov with high scores
-        
+
         # Test get_results_by_domain
         edu_results = response.get_results_by_domain(".edu")
         assert len(edu_results) == 2
         assert all(r.domain == ".edu" for r in edu_results)
-        
+
         gov_results = response.get_results_by_domain(".gov")
         assert len(gov_results) == 1
         assert gov_results[0].domain == ".gov"
-        
+
         org_results = response.get_results_by_domain(".org")
         assert len(org_results) == 0
 
@@ -780,6 +783,6 @@ class TestTavilyModelsExtended:
             keyword_density=0.01,
             sources_used=["url"],
         )
-        
+
         # Access nested models
         assert article.main_sections[0].subsections[0].heading == "Subsection"

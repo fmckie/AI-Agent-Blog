@@ -136,7 +136,7 @@ class ResearchRetriever:
 
         # Track this instance for statistics access
         ResearchRetriever._instances.append(self)
-        
+
         # Flag to track if we've warmed the pool
         self._pool_warmed = False
 
@@ -172,7 +172,7 @@ class ResearchRetriever:
         """
         # Ensure pool is warmed on first use
         await self._ensure_pool_warmed()
-        
+
         # Track start time for performance metrics
         start_time = datetime.now(timezone.utc)
 
@@ -342,7 +342,7 @@ class ResearchRetriever:
             if chunk_metadata.get("source_type") == "academic_source":
                 # Truncate excerpt to max 500 chars to comply with model validation
                 excerpt = chunk.get("content", "")[:500]
-                
+
                 source = AcademicSource(
                     title=chunk_metadata.get("source_title", ""),
                     url=chunk_metadata.get("source_url", ""),
@@ -405,7 +405,7 @@ class ResearchRetriever:
                 # Reconstruct academic source
                 # Truncate excerpt to max 500 chars to comply with model validation
                 excerpt = chunk_data.get("content", "")[:500]
-                
+
                 source = AcademicSource(
                     title=metadata.get("source_title", ""),
                     url=metadata.get("source_url", ""),
