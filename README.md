@@ -329,6 +329,130 @@ SELECT * FROM analyze_source_diversity('your-keyword');
 SELECT * FROM cache_performance_metrics();
 ```
 
+## 📁 Google Drive Integration
+
+The system includes automatic Google Drive integration for backing up generated articles and organizing your content library.
+
+### Drive Features
+
+- **Automatic Upload**: Articles are automatically uploaded to Google Drive after generation
+- **Document Conversion**: HTML articles are converted to Google Docs format
+- **Folder Organization**: Articles are organized by date (Year/Month/Day)
+- **Metadata Tracking**: Keywords, sources, and SEO metrics are attached to documents
+- **OAuth Authentication**: Secure authentication using Google OAuth 2.0
+
+### Setting Up Google Drive
+
+1. **Create Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Create a new project or select existing one
+   - Note the project ID
+
+2. **Enable Google Drive API**
+   - Navigate to "APIs & Services" > "Library"
+   - Search for "Google Drive API"
+   - Click "Enable"
+
+3. **Create OAuth 2.0 Credentials**
+   - Go to "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "OAuth client ID"
+   - Choose "Desktop app" as application type
+   - Download the credentials as `credentials.json`
+   - Place it in your project root directory
+
+4. **Configure OAuth Consent Screen**
+   - Go to "APIs & Services" > "OAuth consent screen"
+   - Choose "External" user type (for personal use)
+   - Fill in required fields (app name, email)
+   - Add your email as a test user
+   - Add scopes: 
+     - `https://www.googleapis.com/auth/drive.file`
+     - `https://www.googleapis.com/auth/drive.metadata.readonly`
+
+5. **Add Environment Variables**
+   ```env
+   # Google Drive Configuration
+   GOOGLE_DRIVE_CREDENTIALS_PATH=credentials.json
+   GOOGLE_DRIVE_TOKEN_PATH=token.json
+   GOOGLE_DRIVE_UPLOAD_FOLDER_ID=your_folder_id  # Optional: specific folder for uploads
+   
+   # RAG Drive Settings
+   GOOGLE_DRIVE_ENABLED=true
+   GOOGLE_DRIVE_AUTO_UPLOAD=true
+   ```
+
+6. **Authenticate with Drive**
+   ```bash
+   # First-time authentication
+   python main.py drive auth
+   
+   # This will open a browser for OAuth authorization
+   # The token will be saved for future use
+   ```
+
+### Drive CLI Commands
+
+#### Authentication
+```bash
+# Authenticate with Google Drive
+python main.py drive auth
+
+# Check authentication status
+python main.py drive status
+```
+
+#### Manual Upload
+```bash
+# Upload a specific article
+python main.py drive upload ./drafts/keyword_20250107/article.html
+
+# Upload with custom title
+python main.py drive upload article.html --title "My SEO Article"
+
+# Upload to specific folder
+python main.py drive upload article.html --folder "2025/01/Articles"
+```
+
+#### List and Manage
+```bash
+# List uploaded articles
+python main.py drive list
+
+# Show more results
+python main.py drive list --limit 50
+
+# Export as JSON
+python main.py drive list --json > uploads.json
+
+# Check sync status with details
+python main.py drive status --detailed
+```
+
+### Automatic Upload Workflow
+
+When enabled, the system automatically:
+1. Generates the article locally
+2. Uploads to Google Drive as a Google Doc
+3. Organizes in date-based folders
+4. Attaches metadata (keyword, sources, metrics)
+5. Tracks upload status in the database
+
+### Troubleshooting Drive Issues
+
+**Authentication Errors**
+- Ensure `credentials.json` exists in project root
+- Check that OAuth consent screen is configured
+- Verify you're using the correct Google account
+
+**Upload Failures**
+- Check Drive storage quota
+- Verify folder permissions
+- Review API rate limits (usually not an issue)
+
+**Token Expiration**
+- Run `python main.py drive auth` again
+- Token auto-refreshes in most cases
+
 ## 💻 Usage
 
 ### Command Overview

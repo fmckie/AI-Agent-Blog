@@ -901,6 +901,289 @@ def cache_metrics(format: str, output: Optional[Path]):
     asyncio.run(handle_export_cache_metrics(format, output))
 
 
+@cli.group()
+def drive():
+    """
+    Manage Google Drive integration.
+
+    These commands help you authenticate, upload articles, and manage
+    your Google Drive integration for the SEO content system.
+
+    \b
+    Examples:
+        # Authenticate with Google Drive
+        $ seo-content drive auth
+
+        # Upload a specific article
+        $ seo-content drive upload ./drafts/keyword_20250107_120000/article.html
+
+        # List uploaded articles
+        $ seo-content drive list
+
+        # Check sync status
+        $ seo-content drive status
+    """
+    pass
+
+
+@drive.command("auth")
+def drive_auth():
+    """
+    Authenticate with Google Drive.
+
+    This will open a browser window for OAuth authentication.
+    The authentication token will be saved for future use.
+
+    \b
+    Examples:
+        # First-time authentication
+        $ seo-content drive auth
+
+        # Re-authenticate (if token expired)
+        $ seo-content drive auth
+    """
+    console.print("[bold]🔐 Google Drive Authentication[/bold]\n")
+    
+    try:
+        from rag.drive.auth import GoogleDriveAuth
+        
+        # Initialize auth
+        auth = GoogleDriveAuth()
+        
+        console.print("Opening browser for authentication...")
+        console.print("[dim]If browser doesn't open, check the console for the URL[/dim]\n")
+        
+        # Perform authentication
+        auth.authenticate()
+        
+        # Test the connection
+        if auth.test_connection():
+            console.print("[green]✅ Successfully authenticated with Google Drive![/green]")
+            console.print("\nYou can now use Drive features like automatic upload.")
+        else:
+            console.print("[red]❌ Authentication succeeded but connection test failed[/red]")
+            console.print("Please check your credentials and try again.")
+            
+    except FileNotFoundError as e:
+        console.print(f"[red]❌ Credentials file not found: {e}[/red]")
+        console.print("\n[yellow]Please ensure you have:[/yellow]")
+        console.print("1. Created OAuth credentials in Google Cloud Console")
+        console.print("2. Downloaded the credentials.json file")
+        console.print("3. Placed it in your project root or specified path")
+    except Exception as e:
+        console.print(f"[red]❌ Authentication failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+
+@drive.command("upload")
+@click.argument("file_path", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--title", "-t",
+    help="Custom title for the document (defaults to filename)"
+)
+@click.option(
+    "--folder", "-f",
+    help="Target folder path in Drive (e.g., '2025/01/07')"
+)
+def drive_upload(file_path: Path, title: Optional[str], folder: Optional[str]):
+    """
+    Upload a file to Google Drive.
+
+    FILE_PATH is the path to the HTML file to upload.
+
+    \b
+    Examples:
+        # Upload an article
+        $ seo-content drive upload ./drafts/keyword_20250107/article.html
+
+        # Upload with custom title
+        $ seo-content drive upload article.html --title "My SEO Article"
+
+        # Upload to specific folder
+        $ seo-content drive upload article.html --folder "2025/01/Articles"
+    """
+    console.print(f"[bold]📤 Uploading to Google Drive[/bold]\n")
+    console.print(f"File: [cyan]{file_path}[/cyan]")
+    
+    try:
+        from rag.drive.auth import GoogleDriveAuth
+        from rag.drive.uploader import ArticleUploader
+        
+        # Initialize components
+        auth = GoogleDriveAuth()
+        uploader = ArticleUploader(auth=auth)
+        
+        # Read file content
+        if file_path.suffix == ".html":
+            content = file_path.read_text(encoding="utf-8")
+        else:
+            console.print("[red]❌ Only HTML files are supported[/red]")
+            raise click.exceptions.Exit(1)
+        
+        # Determine title
+        doc_title = title or file_path.stem.replace("_", " ").title()
+        
+        # Upload with progress
+        with console.status(f"Uploading '{doc_title}'...") as status:
+            result = uploader.upload_html_as_doc(
+                html_content=content,
+                title=doc_title,
+                folder_path=folder
+            )
+        
+        if result:
+            console.print(f"\n[green]✅ Upload successful![/green]")
+            console.print(f"📄 Document: [cyan]{result['name']}[/cyan]")
+            console.print(f"🔗 View at: [link]{result['web_link']}[/link]")
+            console.print(f"🗂️  Folder: [dim]{result['folder_path']}[/dim]")
+        else:
+            console.print("[red]❌ Upload failed[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Upload error: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+
+@drive.command("list")
+@click.option(
+    "--limit", "-l",
+    default=20,
+    help="Maximum number of articles to show (default: 20)"
+)
+@click.option(
+    "--json", "as_json",
+    is_flag=True,
+    help="Output as JSON"
+)
+def drive_list(limit: int, as_json: bool):
+    """
+    List articles uploaded to Google Drive.
+
+    Shows recently uploaded articles with their Drive links and metadata.
+
+    \b
+    Examples:
+        # List recent uploads
+        $ seo-content drive list
+
+        # Show more results
+        $ seo-content drive list --limit 50
+
+        # Export as JSON
+        $ seo-content drive list --json > uploads.json
+    """
+    try:
+        from rag.drive.storage import DriveStorageHandler
+        
+        # Get uploaded articles
+        storage = DriveStorageHandler()
+        articles = storage.get_uploaded_articles(limit=limit)
+        
+        if as_json:
+            # Output as JSON
+            import json
+            print(json.dumps(articles, indent=2, default=str))
+        else:
+            # Pretty print
+            console.print(f"[bold]📋 Uploaded Articles (Latest {limit})[/bold]\n")
+            
+            if not articles:
+                console.print("[dim]No uploaded articles found[/dim]")
+                return
+            
+            for article in articles:
+                console.print(f"[bold]{article['title']}[/bold]")
+                console.print(f"  Keyword: [cyan]{article['keyword']}[/cyan]")
+                console.print(f"  Uploaded: {article['uploaded_at']}")
+                console.print(f"  Drive: [link]{article['drive_url']}[/link]")
+                console.print()
+                
+    except Exception as e:
+        console.print(f"[red]❌ Error listing articles: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+
+@drive.command("status")
+@click.option(
+    "--detailed", "-d",
+    is_flag=True,
+    help="Show detailed sync information"
+)
+def drive_status(detailed: bool):
+    """
+    Check Google Drive sync status.
+
+    Shows authentication status, configuration, and sync statistics.
+
+    \b
+    Examples:
+        # Basic status check
+        $ seo-content drive status
+
+        # Detailed information
+        $ seo-content drive status --detailed
+    """
+    console.print("[bold]📊 Google Drive Status[/bold]\n")
+    
+    try:
+        from rag.drive.auth import GoogleDriveAuth
+        from rag.drive.storage import DriveStorageHandler
+        from rag.config import get_rag_config
+        
+        # Check configuration
+        config = get_config()
+        rag_config = get_rag_config()
+        
+        console.print("[bold]Configuration:[/bold]")
+        console.print(f"  Drive Enabled: {'✅' if rag_config.google_drive_enabled else '❌'}")
+        console.print(f"  Auto Upload: {'✅' if rag_config.google_drive_auto_upload else '❌'}")
+        console.print(f"  Upload Folder ID: {'✅ Set' if config.google_drive_upload_folder_id else '❌ Not set'}")
+        console.print()
+        
+        # Check authentication
+        console.print("[bold]Authentication:[/bold]")
+        try:
+            auth = GoogleDriveAuth()
+            if auth.is_authenticated:
+                console.print("  Status: [green]✅ Authenticated[/green]")
+                if auth.test_connection():
+                    console.print("  Connection: [green]✅ Active[/green]")
+                else:
+                    console.print("  Connection: [red]❌ Failed[/red]")
+            else:
+                console.print("  Status: [yellow]⚠️  Not authenticated[/yellow]")
+                console.print("  Run 'seo-content drive auth' to authenticate")
+        except Exception as e:
+            console.print(f"  Status: [red]❌ Error: {e}[/red]")
+        
+        console.print()
+        
+        # Show statistics
+        console.print("[bold]Statistics:[/bold]")
+        try:
+            storage = DriveStorageHandler()
+            
+            # Count uploaded articles
+            uploaded = storage.get_uploaded_articles(limit=1000)
+            console.print(f"  Total Uploaded: [cyan]{len(uploaded)}[/cyan] articles")
+            
+            # Count pending uploads
+            pending = storage.get_pending_uploads(limit=1000)
+            console.print(f"  Pending Upload: [yellow]{len(pending)}[/yellow] articles")
+            
+            if detailed and uploaded:
+                console.print("\n[bold]Recent Uploads:[/bold]")
+                for article in uploaded[:5]:
+                    console.print(f"  - {article['title']} ({article['uploaded_at']})")
+                    
+        except Exception as e:
+            console.print(f"  [red]Error getting statistics: {e}[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Status check failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+
 
 
 # Main entry point

@@ -45,11 +45,15 @@ async def handle_cache_search(query: str, limit: int, threshold: float):
             console.print(f"\n[bold blue]🔍 Searching cache for: '{query}'[/bold blue]")
 
             # Generate embedding for query
-            query_embedding = await embeddings.generate_embedding(query)
+            query_embeddings = await embeddings.generate_embeddings([query])
+            
+            if not query_embeddings:
+                console.print("[red]Failed to generate embedding for query[/red]")
+                return
 
             # Search for similar content
             results = await storage.search_similar(
-                query_embedding=query_embedding.embedding,
+                query_embedding=query_embeddings[0].embedding,
                 limit=limit,
                 similarity_threshold=threshold,
             )

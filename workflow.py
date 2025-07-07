@@ -23,6 +23,10 @@ from config import Config
 from models import ArticleOutput, ResearchFindings
 from research_agent import create_research_agent, run_research_agent
 from writer_agent import create_writer_agent
+from rag.config import get_rag_config
+from rag.drive.auth import GoogleDriveAuth
+from rag.drive.uploader import ArticleUploader
+from rag.drive.storage import DriveStorageHandler
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -389,6 +393,25 @@ class WorkflowOrchestrator:
                 keyword, research_findings, article
             )
 
+            # Upload to Google Drive (optional)
+            drive_result = None
+            try:
+                output_dir = output_path.parent
+                article_html_path = output_dir / "article.html"
+                drive_result = await self._upload_to_drive(
+                    article_html_path,
+                    article,
+                    keyword
+                )
+                if drive_result:
+                    self.workflow_data["drive_upload"] = {
+                        "file_id": drive_result["file_id"],
+                        "web_link": drive_result["web_link"],
+                        "uploaded_at": datetime.now().isoformat()
+                    }
+            except Exception as e:
+                logger.warning(f"Drive upload failed during resume: {e}")
+
             # Mark as complete
             self._update_state(
                 WorkflowState.COMPLETE,
@@ -396,6 +419,8 @@ class WorkflowOrchestrator:
                     "end_time": datetime.now().isoformat(),
                     "output_path": str(output_path),
                     "resumed": True,
+                    "drive_uploaded": drive_result is not None,
+                    "drive_web_link": drive_result.get("web_link") if drive_result else None,
                 },
             )
 
@@ -502,12 +527,38 @@ class WorkflowOrchestrator:
                 keyword, research_findings, article
             )
 
+            # Step 4: Upload to Google Drive (optional)
+            drive_result = None
+            try:
+                # Get the article.html path from the output directory
+                output_dir = output_path.parent
+                article_html_path = output_dir / "article.html"
+                
+                # Attempt Drive upload
+                drive_result = await self._upload_to_drive(
+                    article_html_path,
+                    article,
+                    keyword
+                )
+                
+                # Store Drive info in workflow data if successful
+                if drive_result:
+                    self.workflow_data["drive_upload"] = {
+                        "file_id": drive_result["file_id"],
+                        "web_link": drive_result["web_link"],
+                        "uploaded_at": datetime.now().isoformat()
+                    }
+            except Exception as e:
+                logger.warning(f"Drive upload failed but workflow continues: {e}")
+
             # Mark workflow as complete
             self._update_state(
                 WorkflowState.COMPLETE,
                 {
                     "end_time": datetime.now().isoformat(),
                     "output_path": str(output_path),
+                    "drive_uploaded": drive_result is not None,
+                    "drive_web_link": drive_result.get("web_link") if drive_result else None,
                 },
             )
             self._report_progress("complete", "All outputs saved successfully")
@@ -963,3 +1014,90 @@ class WorkflowOrchestrator:
         </body>
         </html>
         """
+
+    async def _upload_to_drive(
+        self,
+        article_path: Path,
+        article: ArticleOutput,
+        keyword: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Upload the generated article to Google Drive if enabled.
+        
+        Args:
+            article_path: Path to the saved article HTML file
+            article: ArticleOutput object with metadata
+            keyword: The keyword used for generation
+            
+        Returns:
+            Upload result dict with file_id and web_link, or None if disabled/failed
+        """
+        try:
+            # Check if Drive upload is enabled
+            rag_config = get_rag_config()
+            if not rag_config.google_drive_enabled or not rag_config.google_drive_auto_upload:
+                logger.info("Google Drive upload is disabled in configuration")
+                return None
+            
+            # Check if Drive credentials are configured
+            if not self.config.google_drive_upload_folder_id:
+                logger.warning("Google Drive upload folder ID not configured, skipping upload")
+                return None
+            
+            logger.info("Uploading article to Google Drive...")
+            self._report_progress("drive_upload", "Uploading to Google Drive...")
+            
+            # Initialize Drive components
+            try:
+                drive_auth = GoogleDriveAuth()
+                uploader = ArticleUploader(auth=drive_auth)
+                storage_handler = DriveStorageHandler()
+            except Exception as e:
+                logger.error(f"Failed to initialize Drive components: {e}")
+                return None
+            
+            # Read the HTML content
+            html_content = article_path.read_text(encoding="utf-8")
+            
+            # Create folder path based on date
+            now = datetime.now()
+            folder_path = f"{now.year}/{now.month:02d}/{now.day:02d}"
+            
+            # Prepare metadata
+            metadata = {
+                "keyword": keyword,
+                "generation_timestamp": now.isoformat(),
+                "word_count": article.word_count,
+                "sources_count": len(article.sources_used),
+                "keyword_density": article.keyword_density,
+                "reading_time_minutes": article.reading_time_minutes
+            }
+            
+            # Upload to Drive
+            upload_result = uploader.upload_html_as_doc(
+                html_content=html_content,
+                title=article.title,
+                metadata=metadata,
+                folder_path=folder_path
+            )
+            
+            if upload_result:
+                logger.info(f"Successfully uploaded to Drive: {upload_result['web_link']}")
+                self._report_progress(
+                    "drive_upload_complete",
+                    f"Uploaded to Drive: {upload_result['name']}"
+                )
+                
+                # Track in database if we have an article ID
+                # Note: We'll need to get the article ID from the database in a future update
+                
+                return upload_result
+            else:
+                logger.error("Drive upload returned no result")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to upload to Google Drive: {e}")
+            # Don't fail the workflow if Drive upload fails
+            self._report_progress("drive_upload_failed", "Drive upload failed (workflow continues)")
+            return None

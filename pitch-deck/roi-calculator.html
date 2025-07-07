@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Content Automation ROI Calculator</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        /* Container styles */
+        .calculator-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* Header styles */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* Main content styles */
+        .content {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        /* Input section styles */
+        .input-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .input-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group small {
+            display: block;
+            margin-top: 5px;
+            color: #6c757d;
+        }
+
+        /* Results section styles */
+        .results-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .results-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .result-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #28a745;
+        }
+
+        .result-value.highlight {
+            color: #667eea;
+        }
+
+        .result-value.warning {
+            color: #dc3545;
+        }
+
+        /* Comparison section styles */
+        .comparison-section {
+            grid-column: 1 / -1;
+            background: #fff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
+        .comparison-section h2 {
+            text-align: center;
+            color: #495057;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        .comparison-card {
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            transition: transform 0.3s;
+        }
+
+        .comparison-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .comparison-card.traditional {
+            background: #fff5f5;
+            border: 2px solid #ffc1c1;
+        }
+
+        .comparison-card.automated {
+            background: #f0f9ff;
+            border: 2px solid #90cdf4;
+        }
+
+        .comparison-card.difference {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+        }
+
+        .comparison-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .comparison-metric {
+            margin: 15px 0;
+        }
+
+        .comparison-metric .label {
+            font-weight: 600;
+            color: #6c757d;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .comparison-metric .value {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        /* Chart section styles */
+        .chart-section {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .chart-section h2 {
+            text-align: center;
+            color: #495057;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Calculate button styles */
+        .calculate-button {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.2em;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin: 20px 0;
+        }
+
+        .calculate-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <!-- Header section -->
+        <div class="header">
+            <h1>SEO Content Automation ROI Calculator</h1>
+            <p>Discover your potential savings and revenue with AI-powered content generation</p>
+        </div>
+
+        <!-- Main content section -->
+        <div class="content">
+            <!-- Input section -->
+            <div class="input-section">
+                <h2>Your Current Strategy</h2>
+                
+                <div class="input-group">
+                    <label for="articles-per-month">Target Articles Per Month</label>
+                    <input type="number" id="articles-per-month" value="100" min="1">
+                    <small>How many articles do you want to publish monthly?</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="current-cost">Current Cost Per Article ($)</label>
+                    <input type="number" id="current-cost" value="250" min="1">
+                    <small>Include writer fees, editing, and management time</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="current-time">Time Per Article (hours)</label>
+                    <input type="number" id="current-time" value="6" min="1">
+                    <small>Total time from research to publication</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="revenue-per-article">Revenue Per Article ($/month)</label>
+                    <input type="number" id="revenue-per-article" value="50" min="0">
+                    <small>Average monthly revenue from ads, affiliate, etc.</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="team-size">Content Team Size</label>
+                    <input type="number" id="team-size" value="3" min="1">
+                    <small>Number of writers/editors on your team</small>
+                </div>
+            </div>
+
+            <!-- Results section -->
+            <div class="results-section">
+                <h2>Your AI-Powered Results</h2>
+                
+                <div class="result-item">
+                    <div class="result-label">Monthly Cost Savings</div>
+                    <div class="result-value" id="monthly-savings">$24,970</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Annual Cost Savings</div>
+                    <div class="result-value highlight" id="annual-savings">$299,640</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Time Saved Per Month</div>
+                    <div class="result-value" id="time-saved">575 hours</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">ROI Percentage</div>
+                    <div class="result-value highlight" id="roi-percentage">9,990%</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Payback Period</div>
+                    <div class="result-value" id="payback-period">3 days</div>
+                </div>
+            </div>
+
+            <!-- Calculate button -->
+            <button class="calculate-button" onclick="calculateROI()">
+                Recalculate ROI
+            </button>
+
+            <!-- Comparison section -->
+            <div class="comparison-section">
+                <h2>Traditional vs. Automated: The Numbers Don't Lie</h2>
+                
+                <div class="comparison-grid">
+                    <div class="comparison-card traditional">
+                        <h3>Traditional Method</h3>
+                        <div class="comparison-metric">
+                            <span class="label">Cost per month</span>
+                            <span class="value warning" id="trad-cost">$25,000</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Articles per month</span>
+                            <span class="value" id="trad-articles">100</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Hours required</span>
+                            <span class="value warning" id="trad-hours">600</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Break-even time</span>
+                            <span class="value warning">10 months</span>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card automated">
+                        <h3>AI Automation</h3>
+                        <div class="comparison-metric">
+                            <span class="label">Cost per month</span>
+                            <span class="value" style="color: #28a745;" id="ai-cost">$30</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Articles per month</span>
+                            <span class="value" style="color: #667eea;" id="ai-articles">100</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Hours required</span>
+                            <span class="value" style="color: #28a745;" id="ai-hours">25</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Break-even time</span>
+                            <span class="value" style="color: #28a745;">3 days</span>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card difference">
+                        <h3>Your Advantage</h3>
+                        <div class="comparison-metric">
+                            <span class="label">Cost reduction</span>
+                            <span class="value" style="color: #28a745;" id="cost-reduction">99.88%</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Time reduction</span>
+                            <span class="value" style="color: #28a745;" id="time-reduction">95.8%</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Efficiency gain</span>
+                            <span class="value" style="color: #667eea;" id="efficiency-gain">24x</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Competitive edge</span>
+                            <span class="value" style="color: #667eea;">Massive</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart section -->
+            <div class="chart-section">
+                <h2>12-Month Revenue Projection</h2>
+                <div class="chart-container">
+                    <canvas id="revenue-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Scale potential section -->
+            <div class="comparison-section">
+                <h2>What This Means at Scale</h2>
+                
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>After 6 Months</h3>
+                        <div class="comparison-metric">
+                            <span class="label">Total articles</span>
+                            <span class="value" style="color: #667eea;" id="articles-6m">600</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Monthly revenue</span>
+                            <span class="value" style="color: #28a745;" id="revenue-6m">$30,000</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Total savings</span>
+                            <span class="value" style="color: #28a745;" id="savings-6m">$149,820</span>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h3>After 12 Months</h3>
+                        <div class="comparison-metric">
+                            <span class="label">Total articles</span>
+                            <span class="value" style="color: #667eea;" id="articles-12m">1,200</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Monthly revenue</span>
+                            <span class="value" style="color: #28a745;" id="revenue-12m">$60,000</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Total savings</span>
+                            <span class="value" style="color: #28a745;" id="savings-12m">$299,640</span>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h3>After 24 Months</h3>
+                        <div class="comparison-metric">
+                            <span class="label">Total articles</span>
+                            <span class="value" style="color: #667eea;" id="articles-24m">2,400</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Monthly revenue</span>
+                            <span class="value" style="color: #28a745;" id="revenue-24m">$120,000</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="label">Total savings</span>
+                            <span class="value" style="color: #28a745;" id="savings-24m">$599,280</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Calculate ROI function
+        function calculateROI() {
+            // Get input values
+            const articlesPerMonth = parseInt(document.getElementById('articles-per-month').value);
+            const currentCost = parseFloat(document.getElementById('current-cost').value);
+            const currentTime = parseFloat(document.getElementById('current-time').value);
+            const revenuePerArticle = parseFloat(document.getElementById('revenue-per-article').value);
+            const teamSize = parseInt(document.getElementById('team-size').value);
+
+            // Calculate traditional costs
+            const traditionalMonthlyCost = articlesPerMonth * currentCost;
+            const traditionalMonthlyHours = articlesPerMonth * currentTime;
+
+            // Calculate AI automation costs (based on system specs)
+            const aiCostPerArticle = 0.30;
+            const aiTimePerArticle = 0.25; // 15 minutes
+            const aiMonthlyCost = articlesPerMonth * aiCostPerArticle;
+            const aiMonthlyHours = articlesPerMonth * aiTimePerArticle;
+
+            // Calculate savings
+            const monthlySavings = traditionalMonthlyCost - aiMonthlyCost;
+            const annualSavings = monthlySavings * 12;
+            const timeSaved = traditionalMonthlyHours - aiMonthlyHours;
+            const roiPercentage = ((monthlySavings / aiMonthlyCost) * 100).toFixed(0);
+            
+            // Calculate payback period
+            const setupCost = 5000; // One-time setup cost
+            const paybackDays = Math.ceil(setupCost / (monthlySavings / 30));
+
+            // Update results
+            document.getElementById('monthly-savings').textContent = '$' + monthlySavings.toLocaleString();
+            document.getElementById('annual-savings').textContent = '$' + annualSavings.toLocaleString();
+            document.getElementById('time-saved').textContent = Math.round(timeSaved).toLocaleString() + ' hours';
+            document.getElementById('roi-percentage').textContent = roiPercentage.toLocaleString() + '%';
+            document.getElementById('payback-period').textContent = paybackDays + ' days';
+
+            // Update comparison section
+            document.getElementById('trad-cost').textContent = '$' + traditionalMonthlyCost.toLocaleString();
+            document.getElementById('trad-articles').textContent = articlesPerMonth.toLocaleString();
+            document.getElementById('trad-hours').textContent = Math.round(traditionalMonthlyHours).toLocaleString();
+            
+            document.getElementById('ai-cost').textContent = '$' + Math.round(aiMonthlyCost).toLocaleString();
+            document.getElementById('ai-articles').textContent = articlesPerMonth.toLocaleString();
+            document.getElementById('ai-hours').textContent = Math.round(aiMonthlyHours).toLocaleString();
+
+            // Calculate differences
+            const costReduction = ((1 - (aiMonthlyCost / traditionalMonthlyCost)) * 100).toFixed(1);
+            const timeReduction = ((1 - (aiMonthlyHours / traditionalMonthlyHours)) * 100).toFixed(1);
+            const efficiencyGain = Math.round(traditionalMonthlyHours / aiMonthlyHours);
+
+            document.getElementById('cost-reduction').textContent = costReduction + '%';
+            document.getElementById('time-reduction').textContent = timeReduction + '%';
+            document.getElementById('efficiency-gain').textContent = efficiencyGain + 'x';
+
+            // Update scale projections
+            document.getElementById('articles-6m').textContent = (articlesPerMonth * 6).toLocaleString();
+            document.getElementById('revenue-6m').textContent = '$' + (articlesPerMonth * 6 * revenuePerArticle).toLocaleString();
+            document.getElementById('savings-6m').textContent = '$' + (monthlySavings * 6).toLocaleString();
+
+            document.getElementById('articles-12m').textContent = (articlesPerMonth * 12).toLocaleString();
+            document.getElementById('revenue-12m').textContent = '$' + (articlesPerMonth * 12 * revenuePerArticle).toLocaleString();
+            document.getElementById('savings-12m').textContent = '$' + (monthlySavings * 12).toLocaleString();
+
+            document.getElementById('articles-24m').textContent = (articlesPerMonth * 24).toLocaleString();
+            document.getElementById('revenue-24m').textContent = '$' + (articlesPerMonth * 24 * revenuePerArticle).toLocaleString();
+            document.getElementById('savings-24m').textContent = '$' + (monthlySavings * 24).toLocaleString();
+
+            // Update chart
+            updateRevenueChart(articlesPerMonth, revenuePerArticle);
+        }
+
+        // Chart update function
+        function updateRevenueChart(articlesPerMonth, revenuePerArticle) {
+            const canvas = document.getElementById('revenue-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear previous chart
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Simple chart visualization (you can replace with Chart.js for more features)
+            const months = 12;
+            const chartWidth = canvas.width - 80;
+            const chartHeight = canvas.height - 80;
+            const barWidth = chartWidth / months;
+            
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#495057';
+            
+            for (let i = 0; i < months; i++) {
+                const totalArticles = articlesPerMonth * (i + 1);
+                const revenue = totalArticles * revenuePerArticle;
+                const barHeight = (revenue / (articlesPerMonth * months * revenuePerArticle)) * chartHeight;
+                
+                // Draw bar
+                const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                ctx.fillStyle = gradient;
+                
+                ctx.fillRect(
+                    40 + i * barWidth + 10, 
+                    canvas.height - 40 - barHeight, 
+                    barWidth - 20, 
+                    barHeight
+                );
+                
+                // Draw month label
+                ctx.fillStyle = '#495057';
+                ctx.fillText(
+                    'M' + (i + 1), 
+                    40 + i * barWidth + barWidth/2 - 10, 
+                    canvas.height - 20
+                );
+                
+                // Draw revenue value
+                if (i % 3 === 0 || i === months - 1) {
+                    ctx.fillText(
+                        '$' + Math.round(revenue/1000) + 'k', 
+                        40 + i * barWidth + barWidth/2 - 15, 
+                        canvas.height - 50 - barHeight
+                    );
+                }
+            }
+        }
+
+        // Initial calculation on page load
+        calculateROI();
+
+        // Add event listeners for real-time updates
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculateROI);
+        });
+    </script>
+</body>
+</html>

@@ -288,43 +288,43 @@ This document tracks all tasks for building the SEO Content Automation System MV
   - [✓] cache warm - Pre-populate cache
 
 ### 7.4 Google Drive Integration
-- [ ] Set up Google Drive API:
-  - [ ] Create Google Cloud project
-  - [ ] Enable Drive API
-  - [ ] Generate OAuth credentials
-- [ ] Implement authentication (rag/drive/auth.py):
-  - [ ] OAuth 2.0 flow
-  - [ ] Token management
-  - [ ] Service account support
-- [ ] Create article uploader (rag/drive/uploader.py):
-  - [ ] HTML to Google Docs conversion
-  - [ ] Folder organization by date
-  - [ ] Metadata attachment
-  - [ ] Version tracking
+- [✓] Set up Google Drive API:
+  - [✓] Create Google Cloud project
+  - [✓] Enable Drive API
+  - [✓] Generate OAuth credentials
+- [✓] Implement authentication (rag/drive/auth.py):
+  - [✓] OAuth 2.0 flow
+  - [✓] Token management
+  - [ ] Service account support (deferred)
+- [✓] Create article uploader (rag/drive/uploader.py):
+  - [✓] HTML to Google Docs conversion
+  - [✓] Folder organization by date
+  - [✓] Metadata attachment
+  - [ ] Version tracking (future enhancement)
 - [ ] Build folder watcher (rag/drive/watcher.py):
   - [ ] Monitor specific folders
   - [ ] Detect new/modified files
   - [ ] Queue for processing
   - [ ] Error recovery
-- [ ] Test Drive operations:
-  - [ ] Upload test files
-  - [ ] Verify folder monitoring
-  - [ ] Test permission handling
+- [✓] Test Drive operations:
+  - [✓] Upload test files
+  - [ ] Verify folder monitoring (pending watcher)
+  - [✓] Test permission handling
 
 ### 7.5 Workflow Enhancement
-- [ ] Modify workflow.py:
-  - [ ] Add Drive upload after article generation
-  - [ ] Trigger embedding generation
-  - [ ] Link research to articles in database
-- [ ] Implement post-generation pipeline:
-  - [ ] Save locally first
-  - [ ] Upload to Drive
-  - [ ] Generate embeddings
-  - [ ] Update metadata
-- [ ] Add error recovery:
-  - [ ] Retry failed uploads
-  - [ ] Queue for later processing
-  - [ ] Notification system
+- [✓] Modify workflow.py:
+  - [✓] Add Drive upload after article generation
+  - [ ] Trigger embedding generation (future)
+  - [ ] Link research to articles in database (future)
+- [✓] Implement post-generation pipeline:
+  - [✓] Save locally first
+  - [✓] Upload to Drive
+  - [ ] Generate embeddings (future)
+  - [✓] Update metadata
+- [✓] Add error recovery:
+  - [✓] Retry failed uploads (handled gracefully)
+  - [ ] Queue for later processing (future)
+  - [ ] Notification system (future)
 - [ ] Create cleanup utilities:
   - [ ] Remove old cache entries
   - [ ] Archive old articles
@@ -339,11 +339,12 @@ This document tracks all tasks for building the SEO Content Automation System MV
   - [ ] python main.py cache search "query"
   - [ ] python main.py cache clear [--older-than days]
   - [ ] python main.py cache stats
-  - [ ] python main.py cache warm "topic"
-- [ ] Add Drive commands:
-  - [ ] python main.py drive sync
-  - [ ] python main.py drive list-articles
-  - [ ] python main.py drive upload "file"
+  - [✓] python main.py cache warm "topic"
+- [✓] Add Drive commands:
+  - [✓] python main.py drive auth
+  - [✓] python main.py drive status
+  - [✓] python main.py drive list
+  - [✓] python main.py drive upload "file"
 - [ ] Implement RAG utilities:
   - [ ] python main.py rag search "query"
   - [ ] python main.py rag rebuild

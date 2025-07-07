@@ -90,6 +90,23 @@ class RAGConfig(BaseSettings):
         default=60, ge=10, description="Database connection timeout in seconds"
     )
 
+    # Google Drive Configuration
+    google_drive_enabled: bool = Field(
+        default=True, description="Enable Google Drive integration features"
+    )
+    google_drive_auto_upload: bool = Field(
+        default=True, description="Automatically upload articles to Drive after generation"
+    )
+    google_drive_watch_enabled: bool = Field(
+        default=False, description="Enable Drive folder watching for new documents"
+    )
+    google_drive_process_batch_size: int = Field(
+        default=10, ge=1, le=50, description="Number of Drive files to process in batch"
+    )
+    google_drive_sync_on_startup: bool = Field(
+        default=False, description="Sync Drive documents on system startup"
+    )
+
     model_config = SettingsConfigDict(
         env_prefix="",
         case_sensitive=False,
@@ -185,6 +202,16 @@ class RAGConfig(BaseSettings):
             "chunk_size": self.chunk_size,
             "chunk_overlap": self.chunk_overlap,
             "min_chunk_size": self.min_chunk_size,
+        }
+
+    def get_drive_config(self) -> dict:
+        """Get Google Drive integration configuration."""
+        return {
+            "enabled": self.google_drive_enabled,
+            "auto_upload": self.google_drive_auto_upload,
+            "watch_enabled": self.google_drive_watch_enabled,
+            "batch_size": self.google_drive_process_batch_size,
+            "sync_on_startup": self.google_drive_sync_on_startup,
         }
 
 

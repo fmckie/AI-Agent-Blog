@@ -16,24 +16,28 @@ import pytest
 from click.testing import CliRunner
 
 from main import (
-    _cache_clear,
-    _cache_search,
-    _cache_stats,
-    _cache_warm,
-    _export_cache_metrics,
-    _run_batch_generation,
-    _run_generation,
+    cli,
+    generate,
+    config,
+    test,
+    cleanup,
     batch,
-    cache_clear,
-    cache_metrics,
+    cache,
     cache_search,
     cache_stats,
+    cache_clear,
     cache_warm,
-    cleanup,
-    cli,
-    config,
-    generate,
-    test,
+    cache_metrics,
+    drive,
+    _run_generation,
+    _run_batch_generation,
+)
+from cli.cache_handlers import (
+    handle_cache_clear as _cache_clear,
+    handle_cache_search as _cache_search,
+    handle_cache_stats as _cache_stats,
+    handle_cache_warm as _cache_warm,
+    handle_export_cache_metrics as _export_cache_metrics,
 )
 
 
