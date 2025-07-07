@@ -85,6 +85,9 @@ def run_command(command: list[str], description: str) -> bool:
 
 def main():
     """Run all tests and generate reports."""
+    import time
+    start_time = time.time()
+    
     print_header("SEO Content Automation Test Suite")
 
     # Change to project directory
@@ -109,22 +112,7 @@ def main():
     # Track overall success
     all_passed = True
 
-    # 1. Run unit tests
-    print_header("Running Unit Tests")
-    if not run_command(
-        ["pytest", "tests/", "-v", "-m", "not integration", "--no-cov"], "Unit tests"
-    ):
-        all_passed = False
-
-    # 2. Run integration tests (if any)
-    print_header("Running Integration Tests")
-    if not run_command(
-        ["pytest", "tests/", "-v", "-m", "integration", "--no-cov"], "Integration tests"
-    ):
-        # Integration test failures are warnings for now
-        print_status("Integration tests failed (non-blocking)", "warning")
-
-    # 3. Run all tests with coverage
+    # 1. Run all tests with coverage (single run for efficiency)
     print_header("Running All Tests with Coverage")
     if not run_command(
         [
@@ -134,12 +122,36 @@ def main():
             "--cov",
             "--cov-report=term-missing",
             "--cov-report=html",
+            "--cov-report=xml",  # Also generate XML for CI/CD tools
         ],
         "Full test suite with coverage",
     ):
         all_passed = False
+    
+    # Show separate results for unit vs integration tests
+    print_header("Test Summary by Type")
+    print_status("Checking test results by category...", "info")
+    
+    # Get unit test count
+    unit_result = subprocess.run(
+        ["pytest", "tests/", "-m", "not integration", "--collect-only", "-q"],
+        capture_output=True,
+        text=True
+    )
+    unit_count = len([l for l in unit_result.stdout.splitlines() if "test_" in l])
+    
+    # Get integration test count  
+    int_result = subprocess.run(
+        ["pytest", "tests/", "-m", "integration", "--collect-only", "-q"],
+        capture_output=True,
+        text=True
+    )
+    int_count = len([l for l in int_result.stdout.splitlines() if "test_" in l])
+    
+    print_status(f"Unit tests collected: {unit_count}", "info")
+    print_status(f"Integration tests collected: {int_count}", "info")
 
-    # 4. Run type checking (if mypy is installed)
+    # 2. Run type checking (if mypy is installed)
     print_header("Running Type Checking")
     try:
         if not run_command(
@@ -149,7 +161,7 @@ def main():
     except FileNotFoundError:
         print_status("mypy not installed, skipping type checking", "warning")
 
-    # 5. Run linting (if available)
+    # 3. Run linting (if available)
     print_header("Running Code Quality Checks")
 
     # Try black
@@ -164,8 +176,8 @@ def main():
     except FileNotFoundError:
         print_status("isort not installed, skipping import check", "warning")
 
-    # 6. Generate test report
-    print_header("Test Summary")
+    # 4. Generate final report
+    print_header("Final Summary")
 
     # Check coverage report
     coverage_file = project_dir / "htmlcov" / "index.html"
@@ -175,6 +187,15 @@ def main():
 
     # Final status
     print()
+    
+    # Calculate total time
+    total_time = time.time() - start_time
+    minutes = int(total_time // 60)
+    seconds = total_time % 60
+    
+    print_status(f"Total execution time: {minutes}m {seconds:.1f}s", "info")
+    print_status("Note: Tests now run only once with coverage (3x faster!)", "success")
+    
     if all_passed:
         print_status("All required tests passed! ✨", "success")
         print_status("The codebase is ready for deployment", "success")

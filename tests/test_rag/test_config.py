@@ -48,9 +48,6 @@ class TestRAGConfig:
             assert config.chunk_overlap == 200
             assert config.cache_ttl_hours == 168
 
-    @pytest.mark.skip(
-        reason="Pydantic Settings loads .env file automatically, hard to test in isolation"
-    )
     def test_missing_required_fields(self):
         """Test that missing required fields raise errors."""
         # Clear any existing singleton

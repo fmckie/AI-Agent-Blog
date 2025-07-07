@@ -191,6 +191,16 @@ class TestCLICommands:
         assert "Configuration error" in result.output
 
     @patch("main.get_config")
+    @patch("main.asyncio.run")
+    def test_generate_verbose_quiet_conflict(self, mock_async_run, mock_get_config, runner, mock_config):
+        """Test handling of conflicting verbose and quiet flags."""
+        mock_get_config.return_value = mock_config
+        
+        result = runner.invoke(generate, ["test keyword", "--verbose", "--quiet"])
+        assert result.exit_code == 2  # Click should error on conflicting flags
+        assert "Error" in result.output
+
+    @patch("main.get_config")
     @patch("main.generate")
     def test_test_command(self, mock_generate, mock_get_config, runner, mock_config):
         """Test the test command."""
@@ -202,17 +212,16 @@ class TestCLICommands:
 
     @patch("main.get_config")
     @patch("main.asyncio.run")
+    @patch("pathlib.Path.glob")
     def test_cleanup_command(
-        self, mock_async_run, mock_get_config, runner, mock_config
+        self, mock_glob, mock_async_run, mock_get_config, runner, mock_config
     ):
         """Test cleanup command."""
         mock_get_config.return_value = mock_config
-        mock_config.output_dir.glob = Mock(
-            side_effect=[
-                [Path(".workflow_state_test.json")],  # state files
-                [Path(".temp_test")],  # temp dirs
-            ]
-        )
+        mock_glob.side_effect = [
+            [Path(".workflow_state_test.json")],  # state files
+            [Path(".temp_test")],  # temp dirs
+        ]
 
         mock_async_run.return_value = (1, 1)  # cleaned counts
 
@@ -221,7 +230,8 @@ class TestCLICommands:
         assert "Cleanup complete" in result.output
 
     @patch("main.get_config")
-    def test_cleanup_command_dry_run(self, mock_get_config, runner, mock_config):
+    @patch("pathlib.Path.glob")
+    def test_cleanup_command_dry_run(self, mock_glob, mock_get_config, runner, mock_config):
         """Test cleanup command in dry run mode."""
         mock_get_config.return_value = mock_config
 
@@ -232,9 +242,7 @@ class TestCLICommands:
         ).timestamp()
         mock_state_file.name = "old_state.json"
 
-        mock_config.output_dir.glob = Mock(
-            side_effect=[[mock_state_file], []]  # state files  # temp dirs
-        )
+        mock_glob.side_effect = [[mock_state_file], []]  # state files  # temp dirs
 
         result = runner.invoke(cleanup, ["--dry-run"])
         assert result.exit_code == 0

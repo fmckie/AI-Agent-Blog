@@ -6,6 +6,7 @@ including tool functions, agent execution, and SEO validation.
 """
 
 import asyncio
+import os
 from datetime import datetime
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
@@ -411,13 +412,15 @@ class TestWriterAgentIntegration:
 
     @pytest.mark.asyncio
     @pytest.mark.integration
+    @pytest.mark.skipif(
+        os.getenv("OPENAI_API_KEY", "").startswith("sk-test") or not os.getenv("OPENAI_API_KEY"),
+        reason="Real API keys required for integration test"
+    )
     async def test_writer_agent_with_real_api(
         self, test_config, mock_research_findings
     ):
         """Test writer agent with real API calls."""
-        # Skip if API keys are not real
-        if test_config.openai_api_key.startswith("sk-test"):
-            pytest.skip("Skipping integration test - no real API keys")
+        # This test requires real API keys - handled by the skipif decorator
 
         agent = create_writer_agent(test_config)
 
