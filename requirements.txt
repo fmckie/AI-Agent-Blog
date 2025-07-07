@@ -36,3 +36,8 @@ asyncpg>=0.29.0  # Async PostgreSQL adapter
 pgvector>=0.2.0  # PostgreSQL vector extension support
 tenacity>=8.2.0  # Retry logic for API calls
 numpy>=1.24.0  # For vector operations
+
+# Google Drive Integration
+google-api-python-client>=2.100.0  # Google API client library
+google-auth-httplib2>=0.1.0  # HTTP transport for Google Auth
+google-auth-oauthlib>=1.0.0  # OAuth 2.0 integration for Google APIs

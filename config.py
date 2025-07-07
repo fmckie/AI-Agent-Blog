@@ -47,6 +47,30 @@ class Config(BaseSettings):
         default=Path("./drafts"), description="Directory for saving article drafts"
     )
 
+    # Google Drive Configuration
+    # These settings are for Google Drive integration
+    google_drive_credentials_path: Path = Field(
+        default=Path("credentials.json"),
+        description="Path to Google OAuth credentials JSON file"
+    )
+    google_drive_token_path: Path = Field(
+        default=Path("token.json"),
+        description="Path to store OAuth token"
+    )
+    google_drive_folder_id: Optional[str] = Field(
+        default=None,
+        description="Google Drive folder ID to watch for documents"
+    )
+    google_drive_upload_folder_id: Optional[str] = Field(
+        default=None,
+        description="Google Drive folder ID for uploading generated articles"
+    )
+    google_drive_sync_interval: int = Field(
+        default=300,
+        ge=60,
+        description="Sync interval in seconds (minimum 60)"
+    )
+
     # Optional Settings with Defaults
     # These enhance functionality but aren't required
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(

@@ -90,3 +90,7 @@ celerybeat.pid
 
 # Example projects
 Example RAG Pipeline/
+# Google Drive credentials
+credentials.json
+token.json
+drive_folder_ids.txt
