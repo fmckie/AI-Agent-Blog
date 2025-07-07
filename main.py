@@ -32,6 +32,15 @@ from rag.retriever import ResearchRetriever
 from rag.storage import VectorStorage
 from workflow import WorkflowOrchestrator
 
+# Import CLI handlers
+from cli.cache_handlers import (
+    handle_cache_search,
+    handle_cache_stats,
+    handle_cache_clear,
+    handle_cache_warm,
+    handle_export_cache_metrics,
+)
+
 # Set up rich console for beautiful output
 console = Console()
 
@@ -739,9 +748,9 @@ def cache():
 @click.option(
     "--threshold",
     "-t",
-    default=0.7,
+    default=0.5,
     type=float,
-    help="Similarity threshold (0-1, default: 0.7)",
+    help="Similarity threshold (0-1, default: 0.5)",
 )
 def cache_search(query: str, limit: int, threshold: float):
     """
@@ -761,55 +770,9 @@ def cache_search(query: str, limit: int, threshold: float):
         # Adjust similarity threshold (stricter)
         $ seo-content cache search "fasting" --threshold 0.8
     """
-    asyncio.run(_cache_search(query, limit, threshold))
+    asyncio.run(handle_cache_search(query, limit, threshold))
 
 
-async def _cache_search(query: str, limit: int, threshold: float):
-    """Execute cache search asynchronously."""
-    try:
-        rag_config = get_rag_config()
-
-        # Create storage instance
-        async with VectorStorage(rag_config) as storage:
-            # Create embeddings generator
-            from rag.embeddings import EmbeddingGenerator
-
-            embeddings = EmbeddingGenerator()
-
-            console.print(f"\n[bold blue]🔍 Searching cache for: '{query}'[/bold blue]")
-
-            # Generate embedding for query
-            query_embedding = await embeddings.generate_embedding(query)
-
-            # Search for similar content
-            results = await storage.search_similar(
-                query_embedding=query_embedding,
-                limit=limit,
-                similarity_threshold=threshold,
-            )
-
-            if not results:
-                console.print("[yellow]No matching results found in cache.[/yellow]")
-                console.print(
-                    f"[dim]Try lowering the threshold (current: {threshold})[/dim]"
-                )
-                return
-
-            # Display results
-            console.print(f"\n[green]Found {len(results)} matching results:[/green]\n")
-
-            for i, result in enumerate(results, 1):
-                console.print(
-                    f"[bold cyan]{i}. Similarity: {result['similarity']:.2%}[/bold cyan]"
-                )
-                console.print(f"   Keyword: [yellow]{result['keyword']}[/yellow]")
-                console.print(f"   Content: {result['content'][:200]}...")
-                console.print(f"   Cached: {result['created_at']}")
-                console.print()
-
-    except Exception as e:
-        console.print(f"[red]❌ Search failed: {e}[/red]")
-        raise click.exceptions.Exit(1)
 
 
 @cache.command("stats")
@@ -829,104 +792,9 @@ def cache_stats(detailed: bool):
         # Detailed breakdown
         $ seo-content cache stats --detailed
     """
-    asyncio.run(_cache_stats(detailed))
+    asyncio.run(handle_cache_stats(detailed))
 
 
-async def _cache_stats(detailed: bool):
-    """Get and display cache statistics."""
-    try:
-        rag_config = get_rag_config()
-
-        async with VectorStorage(rag_config) as storage:
-            # Get cache statistics
-            stats = await storage.get_cache_stats()
-
-            console.print("\n[bold]📊 Cache Statistics[/bold]\n")
-
-            # Basic stats
-            console.print(
-                f"Total cached entries: [cyan]{stats['total_entries']:,}[/cyan]"
-            )
-            console.print(f"Unique keywords: [cyan]{stats['unique_keywords']:,}[/cyan]")
-            console.print(
-                f"Storage used: [cyan]{stats['storage_bytes'] / 1024 / 1024:.2f} MB[/cyan]"
-            )
-            console.print(
-                f"Average chunk size: [cyan]{stats['avg_chunk_size']:.0f} chars[/cyan]"
-            )
-
-            if stats["oldest_entry"]:
-                console.print(f"Oldest entry: [dim]{stats['oldest_entry']}[/dim]")
-            if stats["newest_entry"]:
-                console.print(f"Newest entry: [dim]{stats['newest_entry']}[/dim]")
-
-            # Hit rate statistics from retriever if available
-            try:
-                # Import here to avoid circular dependency
-                from rag.retriever import ResearchRetriever
-
-                # Try to get hit rate from recent usage
-                retriever_stats = ResearchRetriever.get_statistics()
-                if retriever_stats:
-                    console.print(
-                        f"\n[bold]🎯 Cache Performance (Current Session):[/bold]"
-                    )
-                    console.print(
-                        f"Total requests: [cyan]{retriever_stats['cache_requests']:,}[/cyan]"
-                    )
-                    console.print(
-                        f"Cache hits: [green]{retriever_stats['cache_hits']:,}[/green] "
-                        f"(Exact: {retriever_stats['exact_hits']}, Semantic: {retriever_stats['semantic_hits']})"
-                    )
-                    console.print(
-                        f"Cache misses: [yellow]{retriever_stats['cache_misses']:,}[/yellow]"
-                    )
-                    console.print(
-                        f"Hit rate: [{'green' if retriever_stats['hit_rate'] > 0.5 else 'yellow'}]"
-                        f"{retriever_stats['hit_rate']:.1%}[/{'green' if retriever_stats['hit_rate'] > 0.5 else 'yellow'}]"
-                    )
-                    console.print(
-                        f"Avg response time: [cyan]{retriever_stats['avg_retrieval_time']:.3f}s[/cyan]"
-                    )
-
-                    # Cost savings estimate
-                    if retriever_stats["cache_hits"] > 0:
-                        # Estimate $0.04 per API call saved
-                        savings = retriever_stats["cache_hits"] * 0.04
-                        console.print(
-                            f"Estimated savings: [green]${savings:.2f}[/green]"
-                        )
-            except Exception as e:
-                # Statistics not available in this session
-                logger.debug(f"Could not get retriever statistics: {e}")
-                pass
-
-            if detailed:
-                console.print(f"\n[bold]Detailed Breakdown:[/bold]")
-
-                # Get keyword distribution
-                keyword_stats = await storage.get_keyword_distribution(limit=10)
-
-                if keyword_stats:
-                    console.print("\n[yellow]Top 10 Cached Keywords:[/yellow]")
-                    for keyword, count in keyword_stats:
-                        console.print(f"  • {keyword}: [cyan]{count}[/cyan] chunks")
-
-                # Storage breakdown
-                console.print(f"\n[yellow]Storage Details:[/yellow]")
-                console.print(
-                    f"  • Research chunks: [cyan]{stats.get('research_chunks', 0):,}[/cyan]"
-                )
-                console.print(
-                    f"  • Cache entries: [cyan]{stats.get('cache_entries', 0):,}[/cyan]"
-                )
-                console.print(
-                    f"  • Total embeddings: [cyan]{stats.get('total_embeddings', 0):,}[/cyan]"
-                )
-
-    except Exception as e:
-        console.print(f"[red]❌ Failed to get statistics: {e}[/red]")
-        raise click.exceptions.Exit(1)
 
 
 @cache.command("clear")
@@ -959,57 +827,9 @@ def cache_clear(
         # Preview what would be cleared
         $ seo-content cache clear --older-than 7 --dry-run
     """
-    asyncio.run(_cache_clear(older_than, keyword, force, dry_run))
+    asyncio.run(handle_cache_clear(older_than, keyword, force, dry_run))
 
 
-async def _cache_clear(
-    older_than: Optional[int], keyword: Optional[str], force: bool, dry_run: bool
-):
-    """Clear cache entries based on criteria."""
-    try:
-        rag_config = get_rag_config()
-
-        async with VectorStorage(rag_config) as storage:
-            # First, show what will be cleared
-            if older_than:
-                console.print(
-                    f"\n[yellow]Will clear entries older than {older_than} days[/yellow]"
-                )
-            elif keyword:
-                console.print(
-                    f"\n[yellow]Will clear entries for keyword: '{keyword}'[/yellow]"
-                )
-            else:
-                console.print("\n[red]Will clear ALL cache entries![/red]")
-
-            if dry_run:
-                console.print("[dim]DRY RUN - No entries will be deleted[/dim]")
-
-                # Get stats about what would be cleared
-                stats = await storage.get_cache_stats()
-                console.print(
-                    f"\nWould clear approximately [cyan]{stats['total_entries']:,}[/cyan] entries"
-                )
-                return
-
-            # Confirm unless forced
-            if not force:
-                if not click.confirm("\nAre you sure you want to proceed?"):
-                    console.print("[yellow]Cancelled.[/yellow]")
-                    return
-
-            # Perform cleanup
-            deleted_count = await storage.cleanup_cache(
-                older_than_days=older_than, keyword=keyword
-            )
-
-            console.print(
-                f"\n[green]✅ Cleared {deleted_count:,} cache entries[/green]"
-            )
-
-    except Exception as e:
-        console.print(f"[red]❌ Clear operation failed: {e}[/red]")
-        raise click.exceptions.Exit(1)
 
 
 @cache.command("warm")
@@ -1036,84 +856,9 @@ def cache_warm(topic: str, variations: int, verbose: bool):
         # Show detailed progress
         $ seo-content cache warm "nutrition" --verbose
     """
-    asyncio.run(_cache_warm(topic, variations, verbose))
+    asyncio.run(handle_cache_warm(topic, variations, verbose))
 
 
-async def _cache_warm(topic: str, variations: int, verbose: bool):
-    """Warm the cache by researching topic variations."""
-    try:
-        from research_agent import create_research_agent, run_research_agent
-
-        config = get_config()
-
-        console.print(f"\n[bold blue]🔥 Warming cache for topic: '{topic}'[/bold blue]")
-        console.print(f"[dim]Generating {variations} keyword variations...[/dim]\n")
-
-        # Generate keyword variations
-        keywords = [topic]  # Start with original
-
-        # Simple variations (in production, could use LLM for better variations)
-        base_variations = [
-            f"{topic} benefits",
-            f"{topic} research",
-            f"{topic} studies",
-            f"latest {topic}",
-            f"{topic} science",
-            f"{topic} evidence",
-        ]
-
-        # Take requested number of variations
-        keywords.extend(base_variations[: variations - 1])
-
-        # Create research agent
-        research_agent = create_research_agent(config)
-        success_count = 0
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            console=console,
-        ) as progress:
-
-            main_task = progress.add_task(
-                f"[cyan]Researching {len(keywords)} keywords", total=len(keywords)
-            )
-
-            for i, keyword in enumerate(keywords):
-                progress.update(main_task, description=f"[cyan]Researching: {keyword}")
-
-                try:
-                    if verbose:
-                        console.print(f"\n[dim]Researching '{keyword}'...[/dim]")
-
-                    # Run research (will automatically cache)
-                    result = await run_research_agent(research_agent, keyword)
-
-                    if result:
-                        success_count += 1
-                        if verbose:
-                            console.print(
-                                f"[green]✓ Cached research for '{keyword}'[/green]"
-                            )
-
-                except Exception as e:
-                    if verbose:
-                        console.print(
-                            f"[red]✗ Failed to research '{keyword}': {e}[/red]"
-                        )
-
-                progress.advance(main_task)
-
-        console.print(f"\n[bold green]✅ Cache warming complete![/bold green]")
-        console.print(
-            f"Successfully cached: [cyan]{success_count}/{len(keywords)}[/cyan] keywords"
-        )
-
-    except Exception as e:
-        console.print(f"[red]❌ Cache warming failed: {e}[/red]")
-        raise click.exceptions.Exit(1)
 
 
 @cache.command("metrics")
@@ -1153,139 +898,9 @@ def cache_metrics(format: str, output: Optional[Path]):
         - csv: Comma-separated values for spreadsheets
         - prometheus: Prometheus exposition format
     """
-    asyncio.run(_export_cache_metrics(format, output))
+    asyncio.run(handle_export_cache_metrics(format, output))
 
 
-async def _export_cache_metrics(format: str, output_path: Optional[Path]):
-    """Export cache metrics in specified format."""
-    try:
-        rag_config = get_rag_config()
-
-        # Collect all metrics
-        metrics = {}
-
-        # Get storage statistics
-        async with VectorStorage(rag_config) as storage:
-            stats = await storage.get_cache_stats()
-            metrics["storage"] = {
-                "total_entries": stats["total_entries"],
-                "unique_keywords": stats["unique_keywords"],
-                "storage_bytes": stats["storage_bytes"],
-                "avg_chunk_size": stats["avg_chunk_size"],
-                "oldest_entry": str(stats.get("oldest_entry", "")),
-                "newest_entry": str(stats.get("newest_entry", "")),
-            }
-
-        # Get retriever statistics
-        from rag.retriever import ResearchRetriever
-
-        retriever_stats = ResearchRetriever.get_statistics()
-        if retriever_stats:
-            metrics["performance"] = {
-                "total_requests": retriever_stats["cache_requests"],
-                "cache_hits": retriever_stats["cache_hits"],
-                "exact_hits": retriever_stats["exact_hits"],
-                "semantic_hits": retriever_stats["semantic_hits"],
-                "cache_misses": retriever_stats["cache_misses"],
-                "hit_rate": retriever_stats["hit_rate"],
-                "avg_response_time_seconds": retriever_stats["avg_retrieval_time"],
-                "errors": retriever_stats["errors"],
-            }
-
-            # Calculate cost metrics
-            metrics["cost"] = {
-                "api_calls_saved": retriever_stats["cache_hits"],
-                "estimated_savings_usd": retriever_stats["cache_hits"] * 0.04,
-            }
-        else:
-            metrics["performance"] = {
-                "message": "No performance data available in current session"
-            }
-
-        # Add timestamp
-        metrics["timestamp"] = datetime.now(timezone.utc).isoformat()
-
-        # Format output based on type
-        if format == "json":
-            output = json.dumps(metrics, indent=2)
-
-        elif format == "csv":
-            # Flatten metrics for CSV
-            rows = []
-            rows.append(["metric", "value", "timestamp"])
-            timestamp = metrics["timestamp"]
-
-            # Add storage metrics
-            for key, value in metrics.get("storage", {}).items():
-                rows.append([f"storage.{key}", str(value), timestamp])
-
-            # Add performance metrics
-            for key, value in metrics.get("performance", {}).items():
-                if key != "message":
-                    rows.append([f"performance.{key}", str(value), timestamp])
-
-            # Add cost metrics
-            for key, value in metrics.get("cost", {}).items():
-                rows.append([f"cost.{key}", str(value), timestamp])
-
-            # Convert to CSV
-            import csv
-            import io
-
-            string_io = io.StringIO()
-            writer = csv.writer(string_io)
-            writer.writerows(rows)
-            output = string_io.getvalue()
-
-        elif format == "prometheus":
-            # Prometheus exposition format
-            lines = []
-            lines.append("# HELP cache_storage_entries Total number of cache entries")
-            lines.append("# TYPE cache_storage_entries gauge")
-            lines.append(f"cache_storage_entries {metrics['storage']['total_entries']}")
-
-            lines.append("# HELP cache_storage_bytes Storage used in bytes")
-            lines.append("# TYPE cache_storage_bytes gauge")
-            lines.append(f"cache_storage_bytes {metrics['storage']['storage_bytes']}")
-
-            if "performance" in metrics and "total_requests" in metrics["performance"]:
-                lines.append("# HELP cache_requests_total Total cache requests")
-                lines.append("# TYPE cache_requests_total counter")
-                lines.append(
-                    f"cache_requests_total {metrics['performance']['total_requests']}"
-                )
-
-                lines.append("# HELP cache_hits_total Total cache hits")
-                lines.append("# TYPE cache_hits_total counter")
-                lines.append(
-                    f"cache_hits_total{{type=\"exact\"}} {metrics['performance']['exact_hits']}"
-                )
-                lines.append(
-                    f"cache_hits_total{{type=\"semantic\"}} {metrics['performance']['semantic_hits']}"
-                )
-
-                lines.append("# HELP cache_hit_rate Cache hit rate ratio")
-                lines.append("# TYPE cache_hit_rate gauge")
-                lines.append(f"cache_hit_rate {metrics['performance']['hit_rate']}")
-
-                lines.append("# HELP cache_response_time_seconds Average response time")
-                lines.append("# TYPE cache_response_time_seconds gauge")
-                lines.append(
-                    f"cache_response_time_seconds {metrics['performance']['avg_response_time_seconds']}"
-                )
-
-            output = "\n".join(lines)
-
-        # Write output
-        if output_path:
-            output_path.write_text(output)
-            console.print(f"[green]✅ Metrics exported to {output_path}[/green]")
-        else:
-            console.print(output)
-
-    except Exception as e:
-        console.print(f"[red]❌ Failed to export metrics: {e}[/red]")
-        raise click.exceptions.Exit(1)
 
 
 # Main entry point
