@@ -6,7 +6,7 @@ will produce, ensuring type safety and validation throughout the system.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 # Import Pydantic for data modeling
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
@@ -513,6 +513,170 @@ class TavilySearchResponse(BaseModel):
             List of results from that domain
         """
         return [result for result in self.results if result.domain == domain]
+
+
+# Enhanced Tavily Models for Advanced Features
+class ExtractedContent(BaseModel):
+    """
+    Represents fully extracted content from a URL.
+    
+    This model stores complete article/page content extracted
+    using Tavily's extract API for deep analysis.
+    """
+    
+    url: str = Field(..., description="Source URL")
+    title: Optional[str] = Field(None, description="Page title")
+    raw_content: str = Field(..., description="Full extracted content")
+    content_length: int = Field(..., ge=0, description="Length of content in characters")
+    extraction_timestamp: datetime = Field(
+        default_factory=datetime.now, description="When content was extracted"
+    )
+    extraction_success: bool = Field(
+        default=True, description="Whether extraction was successful"
+    )
+    error_message: Optional[str] = Field(
+        None, description="Error message if extraction failed"
+    )
+    
+    def get_preview(self, length: int = 500) -> str:
+        """Get a preview of the content."""
+        return self.raw_content[:length] + "..." if len(self.raw_content) > length else self.raw_content
+
+
+class CrawledPage(BaseModel):
+    """
+    Represents a single page discovered during website crawling.
+    
+    This model captures pages found while crawling a domain
+    for comprehensive research coverage.
+    """
+    
+    url: str = Field(..., description="Page URL")
+    title: Optional[str] = Field(None, description="Page title")
+    content_preview: str = Field(
+        ..., description="Preview of page content", max_length=1000
+    )
+    relevance_score: float = Field(
+        ..., ge=0.0, description="Relevance score based on search criteria"
+    )
+    crawl_depth: int = Field(..., ge=0, description="Depth from initial URL")
+    parent_url: Optional[str] = Field(None, description="URL that linked to this page")
+    
+
+class DomainAnalysis(BaseModel):
+    """
+    Represents analysis of a website's structure.
+    
+    This model captures insights about a domain's organization
+    and identifies valuable sections for research.
+    """
+    
+    base_url: str = Field(..., description="Base domain URL analyzed")
+    total_links: int = Field(..., ge=0, description="Total links found")
+    categorized_links: Dict[str, List[str]] = Field(
+        default_factory=dict,
+        description="Links categorized by type (research, publications, etc.)"
+    )
+    insights: List[str] = Field(
+        default_factory=list, description="Key insights about the domain"
+    )
+    recommended_sections: List[str] = Field(
+        default_factory=list, description="Recommended sections to explore"
+    )
+    analysis_timestamp: datetime = Field(
+        default_factory=datetime.now, description="When analysis was performed"
+    )
+
+
+class EnhancedResearchFindings(ResearchFindings):
+    """
+    Extended research findings with full content and crawl data.
+    
+    This model extends the base ResearchFindings with additional
+    data from extract, crawl, and domain analysis operations.
+    """
+    
+    # Additional fields for enhanced research
+    extracted_content: Optional[List[ExtractedContent]] = Field(
+        default=None, description="Full content extracted from top sources"
+    )
+    crawled_pages: Optional[List[CrawledPage]] = Field(
+        default=None, description="Pages discovered through crawling"
+    )
+    domain_analyses: Optional[List[DomainAnalysis]] = Field(
+        default=None, description="Structural analyses of key domains"
+    )
+    
+    # Enhanced metadata
+    research_depth: Literal["basic", "standard", "comprehensive"] = Field(
+        default="standard", description="Depth of research conducted"
+    )
+    tools_used: List[str] = Field(
+        default_factory=list, description="List of tools used in research"
+    )
+    confidence_score: float = Field(
+        default=0.0, ge=0.0, le=1.0, 
+        description="Confidence in research completeness (0-1)"
+    )
+    
+    def get_comprehensive_summary(self) -> str:
+        """
+        Generate a comprehensive summary including all research methods.
+        
+        Returns:
+            Detailed markdown summary of all findings
+        """
+        md_lines = [
+            f"# Comprehensive Research: {self.keyword}",
+            f"\n## Research Depth: {self.research_depth.title()}",
+            f"**Confidence Score**: {self.confidence_score:.2f}",
+            f"\n## Executive Summary\n{self.research_summary}",
+        ]
+        
+        # Add search findings
+        md_lines.append("\n## Search Results")
+        md_lines.append(f"- Found {self.total_sources_analyzed} sources")
+        md_lines.append(f"- High-credibility sources: {len([s for s in self.academic_sources if s.credibility_score > 0.7])}")
+        
+        # Add extracted content summary
+        if self.extracted_content:
+            md_lines.append(f"\n## Extracted Full Content")
+            md_lines.append(f"- Extracted content from {len(self.extracted_content)} sources")
+            total_content = sum(ec.content_length for ec in self.extracted_content)
+            md_lines.append(f"- Total content analyzed: {total_content:,} characters")
+        
+        # Add crawl summary
+        if self.crawled_pages:
+            md_lines.append(f"\n## Domain Crawling")
+            md_lines.append(f"- Discovered {len(self.crawled_pages)} relevant pages")
+            avg_relevance = sum(p.relevance_score for p in self.crawled_pages) / len(self.crawled_pages)
+            md_lines.append(f"- Average relevance score: {avg_relevance:.2f}")
+        
+        # Add domain analysis
+        if self.domain_analyses:
+            md_lines.append(f"\n## Domain Structure Analysis")
+            for analysis in self.domain_analyses:
+                md_lines.append(f"\n### {analysis.base_url}")
+                for insight in analysis.insights:
+                    md_lines.append(f"- {insight}")
+        
+        # Add main findings and statistics
+        if self.main_findings:
+            md_lines.append("\n## Key Findings")
+            for finding in self.main_findings:
+                md_lines.append(f"- {finding}")
+        
+        if self.key_statistics:
+            md_lines.append("\n## Statistical Highlights")
+            for stat in self.key_statistics:
+                md_lines.append(f"- {stat}")
+        
+        # Add tools used
+        if self.tools_used:
+            md_lines.append(f"\n## Research Methods")
+            md_lines.append(f"Tools used: {', '.join(self.tools_used)}")
+        
+        return "\n".join(md_lines)
 
 
 # Update forward references for nested models

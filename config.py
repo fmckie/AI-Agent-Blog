@@ -105,6 +105,54 @@ class Config(BaseSettings):
         le=20,
         description="Maximum number of search results to return",
     )
+    
+    # Tavily Extract Configuration
+    tavily_extract_depth: Literal["basic", "advanced"] = Field(
+        default="advanced",
+        description="Extraction depth for full content - advanced includes tables and media",
+    )
+    tavily_extract_max_urls: int = Field(
+        default=20,
+        ge=1,
+        le=20,
+        description="Maximum URLs to extract in a single request",
+    )
+    
+    # Tavily Crawl Configuration
+    tavily_crawl_max_depth: int = Field(
+        default=2,
+        ge=1,
+        le=5,
+        description="Maximum crawl depth from starting URL",
+    )
+    tavily_crawl_max_breadth: int = Field(
+        default=10,
+        ge=5,
+        le=50,
+        description="Maximum pages to crawl per depth level",
+    )
+    tavily_crawl_timeout: int = Field(
+        default=60,
+        ge=30,
+        le=300,
+        description="Crawl timeout in seconds",
+    )
+    
+    # Research Strategy Configuration
+    research_strategy: Literal["basic", "standard", "comprehensive"] = Field(
+        default="standard",
+        description="Research depth strategy - affects tool usage",
+    )
+    enable_multi_step_research: bool = Field(
+        default=True,
+        description="Enable automated multi-step research workflows",
+    )
+    min_credibility_threshold: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Minimum credibility score for source inclusion",
+    )
 
     # Model configuration for Pydantic Settings
     model_config = SettingsConfigDict(

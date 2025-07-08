@@ -16,7 +16,13 @@ from models import AcademicSource, ResearchFindings, TavilySearchResponse
 from tools import extract_key_statistics
 
 from .prompts import RESEARCH_AGENT_SYSTEM_PROMPT
-from .tools import search_academic
+from .tools import (
+    search_academic,
+    extract_full_content,
+    crawl_domain,
+    analyze_domain_structure,
+    multi_step_research,
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -90,6 +96,72 @@ def create_research_agent(config: Config) -> Agent[None, ResearchFindings]:
         if sources is None:
             return []
         return _identify_research_gaps(sources)
+
+    # Register extract full content tool
+    @research_agent.tool
+    async def extract_content_tool(ctx: RunContext[None], urls: List[str]) -> Dict[str, Any]:
+        """
+        Extract full content from URLs for deep analysis.
+
+        Args:
+            urls: List of URLs to extract content from
+
+        Returns:
+            Extracted content for each URL
+        """
+        return await extract_full_content(ctx, urls, config)
+
+    # Register domain crawling tool
+    @research_agent.tool
+    async def crawl_website_tool(
+        ctx: RunContext[None], url: str, instructions: str
+    ) -> Dict[str, Any]:
+        """
+        Crawl a website domain for comprehensive research.
+
+        Args:
+            url: Base URL to crawl
+            instructions: Natural language instructions for focused crawling
+
+        Returns:
+            Crawled pages and content
+        """
+        return await crawl_domain(ctx, url, instructions, config)
+
+    # Register domain analysis tool
+    @research_agent.tool
+    async def analyze_website_tool(
+        ctx: RunContext[None], url: str, focus_area: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Analyze website structure to identify key research areas.
+
+        Args:
+            url: Base URL to analyze
+            focus_area: Optional area of focus
+
+        Returns:
+            Site structure analysis
+        """
+        return await analyze_domain_structure(ctx, url, focus_area, config)
+
+    # Register multi-step research tool
+    @research_agent.tool
+    async def comprehensive_research_tool(
+        ctx: RunContext[None], keyword: str
+    ) -> Dict[str, Any]:
+        """
+        Perform comprehensive multi-step research.
+
+        Combines search, extract, and crawl for thorough analysis.
+
+        Args:
+            keyword: Research topic
+
+        Returns:
+            Comprehensive research findings
+        """
+        return await multi_step_research(ctx, keyword, config)
 
     return research_agent
 

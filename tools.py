@@ -363,6 +363,246 @@ class TavilyClient:
         except Exception:
             return ".com"  # Default on error
 
+    @backoff.on_exception(
+        backoff.expo,
+        (TavilyAPIError, TavilyTimeoutError),
+        max_tries=3,
+        max_time=60,
+        giveup=lambda e: isinstance(e, (TavilyAuthError, TavilyRateLimitError)),
+    )
+    async def extract(
+        self, urls: List[str], extract_depth: str = "advanced"
+    ) -> Dict[str, Any]:
+        """
+        Extract full content from specific URLs.
+
+        Args:
+            urls: List of URLs to extract content from (max 20)
+            extract_depth: Extraction depth - "basic" or "advanced"
+
+        Returns:
+            Dictionary containing extracted content for each URL
+
+        Raises:
+            TavilyAPIError: On API errors
+        """
+        logger.info(f"Extracting content from {len(urls)} URLs")
+
+        # Validate inputs
+        if not urls:
+            raise ValueError("URLs list cannot be empty")
+        if len(urls) > 20:
+            logger.warning(f"Too many URLs ({len(urls)}), limiting to first 20")
+            urls = urls[:20]
+
+        # Check rate limit
+        await self._check_rate_limit()
+
+        # Prepare request payload
+        payload = {
+            "api_key": self.api_key,
+            "urls": urls,
+            "extract_depth": extract_depth,
+        }
+
+        try:
+            if not hasattr(self, "session"):
+                raise TavilyAPIError(
+                    "Client not initialized. Use as context manager"
+                )
+
+            response_cm = self.session.post(f"{self.base_url}/extract", json=payload)
+            
+            if asyncio.iscoroutine(response_cm):
+                response_cm = await response_cm
+
+            async with response_cm as response:
+                raise_result = response.raise_for_status()
+                if asyncio.iscoroutine(raise_result):
+                    await raise_result
+
+                data = await response.json()
+                
+                # Process extracted results
+                extracted_count = len(data.get("results", []))
+                logger.info(f"Successfully extracted content from {extracted_count} URLs")
+                
+                return data
+
+        except aiohttp.ClientResponseError as e:
+            logger.error(f"Tavily Extract API error: {e.status}")
+            if e.status == 401:
+                raise TavilyAuthError("Invalid API key") from e
+            elif e.status == 429:
+                raise TavilyRateLimitError("Rate limit exceeded") from e
+            else:
+                raise TavilyAPIError(f"Extract failed: {e.status}") from e
+
+        except Exception as e:
+            logger.error(f"Extract error: {e}")
+            raise TavilyAPIError(f"Extract failed: {str(e)}") from e
+
+    @backoff.on_exception(
+        backoff.expo,
+        (TavilyAPIError, TavilyTimeoutError),
+        max_tries=3,
+        max_time=60,
+        giveup=lambda e: isinstance(e, (TavilyAuthError, TavilyRateLimitError)),
+    )
+    async def crawl(
+        self,
+        url: str,
+        max_depth: int = 2,
+        max_breadth: int = 10,
+        instructions: Optional[str] = None,
+        extract_depth: str = "advanced",
+    ) -> Dict[str, Any]:
+        """
+        Crawl a website to gather comprehensive content.
+
+        Args:
+            url: Base URL to crawl
+            max_depth: Maximum crawl depth (default 2)
+            max_breadth: Maximum pages per level (default 10)
+            instructions: Natural language instructions for crawling
+            extract_depth: Content extraction depth
+
+        Returns:
+            Dictionary containing crawled pages and content
+
+        Raises:
+            TavilyAPIError: On API errors
+        """
+        logger.info(f"Crawling website: {url} (depth={max_depth})")
+
+        # Check rate limit
+        await self._check_rate_limit()
+
+        # Prepare request payload
+        payload = {
+            "api_key": self.api_key,
+            "url": url,
+            "max_depth": max_depth,
+            "max_breadth": max_breadth,
+            "extract_depth": extract_depth,
+        }
+
+        # Add optional instructions
+        if instructions:
+            payload["instructions"] = instructions
+
+        try:
+            if not hasattr(self, "session"):
+                raise TavilyAPIError(
+                    "Client not initialized. Use as context manager"
+                )
+
+            response_cm = self.session.post(f"{self.base_url}/crawl", json=payload)
+            
+            if asyncio.iscoroutine(response_cm):
+                response_cm = await response_cm
+
+            async with response_cm as response:
+                raise_result = response.raise_for_status()
+                if asyncio.iscoroutine(raise_result):
+                    await raise_result
+
+                data = await response.json()
+                
+                # Process crawl results
+                pages_crawled = len(data.get("results", []))
+                logger.info(f"Successfully crawled {pages_crawled} pages")
+                
+                return data
+
+        except aiohttp.ClientResponseError as e:
+            logger.error(f"Tavily Crawl API error: {e.status}")
+            if e.status == 401:
+                raise TavilyAuthError("Invalid API key") from e
+            elif e.status == 429:
+                raise TavilyRateLimitError("Rate limit exceeded") from e
+            else:
+                raise TavilyAPIError(f"Crawl failed: {e.status}") from e
+
+        except Exception as e:
+            logger.error(f"Crawl error: {e}")
+            raise TavilyAPIError(f"Crawl failed: {str(e)}") from e
+
+    @backoff.on_exception(
+        backoff.expo,
+        (TavilyAPIError, TavilyTimeoutError),
+        max_tries=3,
+        max_time=60,
+        giveup=lambda e: isinstance(e, (TavilyAuthError, TavilyRateLimitError)),
+    )
+    async def map(
+        self, url: str, instructions: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Map a website structure quickly without full content extraction.
+
+        Args:
+            url: Base URL to map
+            instructions: Natural language instructions for mapping
+
+        Returns:
+            Dictionary containing site structure and links
+
+        Raises:
+            TavilyAPIError: On API errors
+        """
+        logger.info(f"Mapping website structure: {url}")
+
+        # Check rate limit
+        await self._check_rate_limit()
+
+        # Prepare request payload
+        payload = {
+            "api_key": self.api_key,
+            "url": url,
+        }
+
+        # Add optional instructions
+        if instructions:
+            payload["instructions"] = instructions
+
+        try:
+            if not hasattr(self, "session"):
+                raise TavilyAPIError(
+                    "Client not initialized. Use as context manager"
+                )
+
+            response_cm = self.session.post(f"{self.base_url}/map", json=payload)
+            
+            if asyncio.iscoroutine(response_cm):
+                response_cm = await response_cm
+
+            async with response_cm as response:
+                raise_result = response.raise_for_status()
+                if asyncio.iscoroutine(raise_result):
+                    await raise_result
+
+                data = await response.json()
+                
+                # Process map results
+                links_found = len(data.get("links", []))
+                logger.info(f"Found {links_found} links in site map")
+                
+                return data
+
+        except aiohttp.ClientResponseError as e:
+            logger.error(f"Tavily Map API error: {e.status}")
+            if e.status == 401:
+                raise TavilyAuthError("Invalid API key") from e
+            elif e.status == 429:
+                raise TavilyRateLimitError("Rate limit exceeded") from e
+            else:
+                raise TavilyAPIError(f"Map failed: {e.status}") from e
+
+        except Exception as e:
+            logger.error(f"Map error: {e}")
+            raise TavilyAPIError(f"Map failed: {str(e)}") from e
+
 
 # Convenience function for use in agents
 async def search_academic_sources(query: str, config: Config) -> TavilySearchResponse:
@@ -381,6 +621,66 @@ async def search_academic_sources(query: str, config: Config) -> TavilySearchRes
     """
     async with TavilyClient(config) as client:
         return await client.search(query)
+
+
+async def extract_url_content(
+    urls: List[str], config: Config, extract_depth: str = "advanced"
+) -> Dict[str, Any]:
+    """
+    Extract full content from URLs using Tavily API.
+
+    Args:
+        urls: List of URLs to extract content from
+        config: System configuration
+        extract_depth: Extraction depth ("basic" or "advanced")
+
+    Returns:
+        Dictionary with extracted content for each URL
+    """
+    async with TavilyClient(config) as client:
+        return await client.extract(urls, extract_depth)
+
+
+async def crawl_website(
+    url: str,
+    config: Config,
+    max_depth: int = 2,
+    instructions: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Crawl a website using Tavily API.
+
+    Args:
+        url: Base URL to crawl
+        config: System configuration
+        max_depth: Maximum crawl depth
+        instructions: Natural language crawling instructions
+
+    Returns:
+        Dictionary with crawled pages and content
+    """
+    async with TavilyClient(config) as client:
+        return await client.crawl(
+            url, max_depth=max_depth, instructions=instructions
+        )
+
+
+async def map_website(
+    url: str, config: Config, instructions: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Map website structure using Tavily API.
+
+    Args:
+        url: Base URL to map
+        config: System configuration
+        instructions: Natural language mapping instructions
+
+    Returns:
+        Dictionary with site structure and links
+    """
+    async with TavilyClient(config) as client:
+        return await client.map(url, instructions=instructions)
 
 
 # Utility functions for content processing
@@ -533,6 +833,9 @@ __all__ = [
     "TavilySearchResponse",
     # Functions
     "search_academic_sources",
+    "extract_url_content",
+    "crawl_website",
+    "map_website",
     "extract_key_statistics",
     "calculate_reading_time",
     "clean_text_for_seo",
