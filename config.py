@@ -268,6 +268,21 @@ class Config(BaseSettings):
             "timeout": self.request_timeout,
             "max_retries": self.max_retries,
         }
+    
+    def get_drive_base_config(self) -> dict:
+        """
+        Get Google Drive base configuration.
+        
+        Returns:
+            Dictionary with Drive configuration needed by the DriveConfig class
+        """
+        return {
+            "credentials_path": self.google_drive_credentials_path,
+            "token_path": self.google_drive_token_path,
+            "folder_id": self.google_drive_folder_id,
+            "upload_folder_id": self.google_drive_upload_folder_id,
+            "sync_interval": self.google_drive_sync_interval,
+        }
 
 
 # Create a singleton instance of the configuration

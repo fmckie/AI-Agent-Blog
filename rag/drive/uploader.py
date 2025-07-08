@@ -10,7 +10,7 @@ import json
 import logging
 import mimetypes
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Callable
 from datetime import datetime
 from io import BytesIO
 
@@ -494,3 +494,271 @@ class ArticleUploader:
         except Exception as e:
             logger.error(f"Error getting folder tree: {e}")
             return {}
+
+
+class BatchUploader(ArticleUploader):
+    """
+    Batch uploader for processing multiple articles efficiently.
+    
+    Extends ArticleUploader with batch processing capabilities,
+    retry logic, and queue management.
+    """
+    
+    def __init__(
+        self,
+        auth: Optional[GoogleDriveAuth] = None,
+        upload_folder_id: Optional[str] = None,
+        drive_config: Optional['DriveConfig'] = None
+    ):
+        """
+        Initialize batch uploader with configuration.
+        
+        Args:
+            auth: GoogleDriveAuth instance (creates new one if not provided)
+            upload_folder_id: Google Drive folder ID for uploads
+            drive_config: Drive configuration (uses default if not provided)
+        """
+        super().__init__(auth, upload_folder_id)
+        
+        # Import here to avoid circular imports
+        from .config import get_drive_config
+        
+        # Get configuration
+        self.drive_config = drive_config or get_drive_config()
+        
+        # Upload statistics
+        self.stats = {
+            "total": 0,
+            "successful": 0,
+            "failed": 0,
+            "retried": 0,
+            "skipped": 0
+        }
+        
+        # Failed uploads for retry
+        self.failed_uploads: List[Dict[str, Any]] = []
+    
+    async def upload_pending_articles(
+        self,
+        articles: List[Dict[str, Any]],
+        progress_callback: Optional[Callable[[int, int, str], None]] = None
+    ) -> Dict[str, Any]:
+        """
+        Upload multiple pending articles with progress tracking.
+        
+        Args:
+            articles: List of article dictionaries with required fields
+            progress_callback: Optional callback(current, total, message)
+        
+        Returns:
+            Dictionary with upload statistics and results
+        """
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+        
+        self.stats = {
+            "total": len(articles),
+            "successful": 0,
+            "failed": 0,
+            "retried": 0,
+            "skipped": 0
+        }
+        
+        results = []
+        
+        # Process in batches
+        batch_size = self.drive_config.batch_size
+        concurrent_limit = self.drive_config.concurrent_uploads
+        
+        # Create thread pool for concurrent uploads
+        with ThreadPoolExecutor(max_workers=concurrent_limit) as executor:
+            for i in range(0, len(articles), batch_size):
+                batch = articles[i:i + batch_size]
+                
+                # Process batch concurrently
+                futures = []
+                for article in batch:
+                    future = executor.submit(self._upload_article_with_retry, article)
+                    futures.append((article, future))
+                
+                # Wait for batch to complete
+                for article, future in futures:
+                    try:
+                        result = future.result(timeout=self.drive_config.upload_timeout)
+                        results.append(result)
+                        
+                        if result["success"]:
+                            self.stats["successful"] += 1
+                        else:
+                            # Only count as failed if not skipped
+                            error_msg = result.get("error", "")
+                            if "Missing file_path" not in error_msg and "File not found" not in error_msg:
+                                self.stats["failed"] += 1
+                                self.failed_uploads.append(article)
+                        
+                        # Progress callback
+                        if progress_callback:
+                            current = i + len(results) % batch_size
+                            progress_callback(
+                                current,
+                                self.stats["total"],
+                                f"Uploaded: {article.get('title', 'Unknown')[:50]}..."
+                            )
+                    
+                    except Exception as e:
+                        logger.error(f"Upload failed for article {article.get('id')}: {e}")
+                        self.stats["failed"] += 1
+                        self.failed_uploads.append(article)
+                        results.append({
+                            "article_id": article.get("id"),
+                            "success": False,
+                            "error": str(e)
+                        })
+                
+                # Small delay between batches to avoid rate limiting
+                if i + batch_size < len(articles):
+                    await asyncio.sleep(1)
+        
+        return {
+            "stats": self.stats,
+            "results": results,
+            "failed_articles": self.failed_uploads
+        }
+    
+    def _upload_article_with_retry(self, article: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Upload a single article with retry logic.
+        
+        Args:
+            article: Article dictionary with required fields
+        
+        Returns:
+            Result dictionary with upload status
+        """
+        import time
+        
+        article_id = article.get("id")
+        max_retries = self.drive_config.max_retries
+        retry_delay = self.drive_config.retry_delay
+        
+        for attempt in range(max_retries + 1):
+            try:
+                # Check if article has required fields
+                if not article.get("file_path"):
+                    logger.warning(f"Article {article_id} missing file_path, skipping")
+                    self.stats["skipped"] += 1
+                    return {
+                        "article_id": article_id,
+                        "success": False,
+                        "error": "Missing file_path"
+                    }
+                
+                # Read HTML content
+                file_path = Path(article["file_path"])
+                if not file_path.exists():
+                    logger.warning(f"File not found: {file_path}")
+                    self.stats["skipped"] += 1
+                    return {
+                        "article_id": article_id,
+                        "success": False,
+                        "error": f"File not found: {file_path}"
+                    }
+                
+                html_content = file_path.read_text(encoding='utf-8')
+                
+                # Prepare metadata
+                metadata = {
+                    "article_id": str(article_id),
+                    "keyword": article.get("keyword", ""),
+                    "generation_timestamp": article.get("created_at", ""),
+                    "local_path": str(file_path)
+                }
+                
+                # Upload to Drive
+                result = self.upload_html_as_doc(
+                    html_content=html_content,
+                    title=article.get("title", file_path.stem),
+                    metadata=metadata
+                )
+                
+                # Update statistics
+                if attempt > 0:
+                    self.stats["retried"] += 1
+                
+                logger.info(f"Successfully uploaded article {article_id} to Drive")
+                
+                return {
+                    "article_id": article_id,
+                    "success": True,
+                    "drive_file_id": result["file_id"],
+                    "drive_url": result["web_link"],
+                    "folder_path": result["folder_path"],
+                    "attempts": attempt + 1
+                }
+            
+            except Exception as e:
+                logger.error(f"Upload attempt {attempt + 1} failed for {article_id}: {e}")
+                
+                # If not the last attempt, wait with exponential backoff
+                if attempt < max_retries:
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    # Final failure
+                    return {
+                        "article_id": article_id,
+                        "success": False,
+                        "error": str(e),
+                        "attempts": attempt + 1
+                    }
+    
+    def retry_failed_uploads(
+        self,
+        progress_callback: Optional[Callable[[int, int, str], None]] = None
+    ) -> Dict[str, Any]:
+        """
+        Retry previously failed uploads.
+        
+        Args:
+            progress_callback: Optional progress callback
+        
+        Returns:
+            Dictionary with retry results
+        """
+        if not self.failed_uploads:
+            logger.info("No failed uploads to retry")
+            return {
+                "stats": {"total": 0, "successful": 0, "failed": 0},
+                "results": []
+            }
+        
+        logger.info(f"Retrying {len(self.failed_uploads)} failed uploads")
+        
+        # Clear failed list and retry
+        articles_to_retry = self.failed_uploads.copy()
+        self.failed_uploads.clear()
+        
+        # Use asyncio.run() to handle the async method
+        import asyncio
+        return asyncio.run(self.upload_pending_articles(articles_to_retry, progress_callback))
+    
+    def get_upload_stats(self) -> Dict[str, int]:
+        """
+        Get current upload statistics.
+        
+        Returns:
+            Dictionary with upload statistics
+        """
+        return self.stats.copy()
+    
+    def clear_stats(self) -> None:
+        """Reset upload statistics."""
+        self.stats = {
+            "total": 0,
+            "successful": 0,
+            "failed": 0,
+            "retried": 0,
+            "skipped": 0
+        }
+        self.failed_uploads.clear()

@@ -54,6 +54,10 @@ graph TD
   - Three-tier caching: exact match → semantic similarity → fresh API call
   - Vector embeddings for semantic search using OpenAI's text-embedding-3-small
   - Supabase with pgvector for scalable vector storage
+- **Google Drive Integration**: Automatic upload and organization of articles
+  - Converts HTML to Google Docs format
+  - Organizes by date/keyword folders
+  - Batch upload with retry logic
 - **Workflow Orchestrator**: Manages the pipeline and handles errors gracefully
 - **Tavily Integration**: Provides access to academic and credible web sources
 - **Output Manager**: Generates organized HTML drafts with research metadata
@@ -121,6 +125,13 @@ LLM_MODEL=gpt-4                  # OpenAI model to use
 TAVILY_SEARCH_DEPTH=advanced     # basic or advanced
 TAVILY_MAX_RESULTS=10            # Maximum search results (1-20)
 TAVILY_INCLUDE_DOMAINS=.edu,.gov,.org  # Prioritized domains
+
+# Google Drive Configuration (Optional)
+GOOGLE_DRIVE_CREDENTIALS_PATH=credentials.json  # Path to OAuth credentials
+GOOGLE_DRIVE_TOKEN_PATH=token.json              # Path to store auth token
+GOOGLE_DRIVE_UPLOAD_FOLDER_ID=                  # Target folder ID (optional)
+GOOGLE_DRIVE_ENABLED=true                       # Enable Drive integration
+GOOGLE_DRIVE_AUTO_UPLOAD=true                   # Auto-upload after generation
 ```
 
 ### Configuration Details
@@ -294,6 +305,65 @@ graph TD
     style D fill:#c8e6c9
     style F fill:#c8e6c9
     style I fill:#e1f5fe
+```
+
+## 📤 Google Drive Integration
+
+The system includes seamless Google Drive integration for automatic article upload and organization.
+
+### Drive Features
+
+- **Automatic Upload**: Articles uploaded to Drive immediately after generation
+- **Format Conversion**: HTML articles converted to Google Docs
+- **Smart Organization**: Automatic folder structure (Year/Month/Day)
+- **Batch Processing**: Upload multiple articles with retry logic
+- **Metadata Preservation**: Keywords, sources, and timestamps attached
+
+### Drive Setup
+
+1. **Configure Google Cloud Project**
+   ```bash
+   # See detailed guide in docs/DRIVE_SETUP_GUIDE.md
+   # Quick steps:
+   # 1. Create Google Cloud project
+   # 2. Enable Drive API
+   # 3. Download credentials.json
+   ```
+
+2. **Authenticate**
+   ```bash
+   python main.py drive auth
+   ```
+
+3. **Check Status**
+   ```bash
+   python main.py drive status
+   ```
+
+### Drive Commands
+
+#### Upload Articles
+```bash
+# Upload single file
+python main.py drive upload article.html
+
+# Upload all pending articles
+python main.py drive upload-pending
+
+# Preview what would be uploaded
+python main.py drive upload-pending --dry-run
+```
+
+#### Manage Uploads
+```bash
+# List uploaded articles
+python main.py drive list
+
+# Retry failed uploads
+python main.py drive retry-failed
+
+# Logout from Drive
+python main.py drive logout
 ```
 
 ### Database Features

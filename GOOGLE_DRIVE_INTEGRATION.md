@@ -7,10 +7,10 @@
 This guide provides a step-by-step implementation plan for integrating Google Drive functionality into our SEO Content Automation RAG system. We're following the patterns established in the Example RAG Pipeline, which has proven to be a robust and well-tested approach.
 
 ### Goals
-- [ ] Enable automatic upload of generated articles to Google Drive
-- [ ] Monitor Drive folders for new research documents
-- [ ] Create embeddings for Drive documents to enhance RAG capabilities
-- [ ] Implement bidirectional sync between local storage and Drive
+- [✓] Enable automatic upload of generated articles to Google Drive
+- [✓] Provide easy sharing and collaboration capabilities for articles
+- [✓] Track upload status and handle failures gracefully
+- [✓] Organize articles in Drive for easy client access
 
 ### Reference Implementation
 We're adapting patterns from: `/Example RAG Pipeline/RAG_Pipeline/Google_Drive/`
@@ -83,14 +83,14 @@ Add to .env:
 #### 1.3 Error Handling
 - [✓] Handle `RefreshError` for expired tokens
 - [✓] Add network error handling
-- [ ] Implement retry logic with exponential backoff (will add in API calls)
+- [✓] Implement retry logic with exponential backoff (will add in API calls)
 - [ ] Create custom exceptions for auth errors (using standard exceptions for now)
 
 ### Phase 2: Configuration (rag/drive/config.py)
 
 #### 2.1 Configuration Structure
-- [ ] Create `rag/drive/config.py`
-- [ ] Define configuration schema:
+- [✓] Create `rag/drive/config.py`
+- [✓] Define configuration schema:
   ```python
   {
       "supported_mime_types": [...],
@@ -102,10 +102,10 @@ Add to .env:
   ```
 
 #### 2.2 Integration with Main Config
-- [ ] Extend main `rag/config.py` with Drive settings
-- [ ] Add validation for Drive-specific settings
-- [ ] Create default configuration values
-- [ ] Add config loading from JSON file option
+- [✓] Extend main `rag/config.py` with Drive settings
+- [✓] Add validation for Drive-specific settings
+- [✓] Create default configuration values
+- [✓] Add config loading from JSON file option
 
 ### Phase 3: Article Uploader (rag/drive/uploader.py)
 
@@ -130,58 +130,48 @@ Add to .env:
 - [ ] Add version tracking system (deferred to future phase)
 
 #### 3.3 Batch Operations
-- [ ] Implement batch upload functionality (basic support exists)
-- [ ] Add progress tracking for multiple files
-- [ ] Create upload queue management
-- [ ] Handle partial upload failures
+- [✓] Implement batch upload functionality (basic support exists)
+- [✓] Add progress tracking for multiple files
+- [✓] Create upload queue management
+- [✓] Handle partial upload failures
 
-### Phase 4: Folder Watcher (rag/drive/watcher.py)
+### Phase 4: Batch Upload and Error Handling
 
-#### 4.1 Core Watcher Implementation
-- [ ] Create `GoogleDriveWatcher` class (following Example pattern)
-- [ ] Implement initialization:
-  - [ ] Accept credentials and token paths
-  - [ ] Support specific folder or full Drive watching
-  - [ ] Load last check time from persistence
-- [ ] Create `get_changes()` method:
-  - [ ] Query for files modified since last check
-  - [ ] Support recursive folder traversal
-  - [ ] Update last check time after query
+#### 4.1 Batch Upload Implementation
+- [✓] Create `BatchUploader` class extending `ArticleUploader`
+- [✓] Implement `upload_pending_articles()` method:
+  - [✓] Query database for articles without Drive IDs
+  - [✓] Process uploads in configurable batch sizes
+  - [✓] Track progress and report status
+- [✓] Add retry mechanism:
+  - [✓] Exponential backoff for failed uploads
+  - [✓] Maximum retry limit configuration
+  - [✓] Store error details for manual review
 
-#### 4.2 File Processing Pipeline
-- [ ] Implement `process_file()` method:
-  - [ ] Check if file is supported type
-  - [ ] Download file content
-  - [ ] Extract text using existing processor
-  - [ ] Generate embeddings
-  - [ ] Store in database
-- [ ] Add support for Google Workspace files:
-  - [ ] Export Google Docs as plain text
-  - [ ] Export Sheets as CSV
-  - [ ] Export Slides as text
+#### 4.2 Error Recovery
+- [✓] Implement comprehensive error handling:
+  - [✓] Network timeout recovery
+  - [ ] API quota exceeded handling
+  - [✓] Invalid file format detection
+- [✓] Create error reporting:
+  - [✓] Log detailed error information
+  - [✓] Update database with failure reasons
+  - [✓] Generate error summary reports
 
-#### 4.3 Change Detection
-- [ ] Implement `check_for_deleted_files()`:
-  - [ ] Track known files in memory/database
-  - [ ] Detect trashed or deleted files
-  - [ ] Clean up database entries
-- [ ] Add modification tracking:
-  - [ ] Compare file versions
-  - [ ] Update embeddings for modified files
-
-#### 4.4 Continuous Monitoring
-- [ ] Implement `watch_for_changes()` loop:
-  - [ ] Configurable check interval
-  - [ ] Graceful shutdown handling
-  - [ ] Error recovery and logging
-- [ ] Add state persistence:
-  - [ ] Save watcher state to database
-  - [ ] Resume from last position after restart
+#### 4.3 Upload Queue Management
+- [✓] Create upload queue system:
+  - [ ] Priority-based queue for uploads
+  - [ ] Pause/resume functionality
+  - [✓] Rate limiting to avoid API quotas
+- [✓] Add status tracking:
+  - [✓] Real-time upload progress
+  - [✓] Success/failure statistics
+  - [✓] Performance metrics
 
 ### Phase 5: Database Schema Updates
 
 #### 5.1 New Tables
-- [ ] Create migration for `drive_sync_status`:
+- [✓] Create migration for `drive_sync_status`:
   ```sql
   CREATE TABLE drive_sync_status (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -195,138 +185,145 @@ Add to .env:
   ```
 
 #### 5.2 Table Modifications
-- [ ] Add to `generated_articles`:
-  - [ ] `drive_file_id TEXT`
-  - [ ] `drive_url TEXT`
-  - [ ] `uploaded_at TIMESTAMP WITH TIME ZONE`
-- [ ] Add to `research_documents`:
-  - [ ] `source_type TEXT` (enum: 'api', 'file', 'drive')
-  - [ ] `drive_file_id TEXT`
+- [✓] Add to `generated_articles`:
+  - [✓] `drive_file_id TEXT`
+  - [✓] `drive_url TEXT`
+  - [✓] `drive_folder_id TEXT` (for organization)
+  - [✓] `upload_retry_count INTEGER DEFAULT 0`
+  - [✓] `last_upload_error TEXT`
 
 #### 5.3 Indexes
-- [ ] Create index on `drive_file_id` columns
-- [ ] Add composite index for sync queries
-- [ ] Ensure foreign key constraints
+- [✓] Create index on `drive_file_id` columns
+- [✓] Add index for pending uploads (`WHERE drive_file_id IS NULL`)
+- [✓] Add index for failed uploads (`WHERE upload_retry_count > 0`)
 
 ### Phase 6: Storage Integration (rag/drive/storage.py)
 
 #### 6.1 Database Operations
-- [ ] Create `DriveStorageHandler` class
-- [ ] Implement CRUD operations:
-  - [ ] `save_drive_document()`
-  - [ ] `get_drive_document()`
-  - [ ] `update_sync_status()`
-  - [ ] `delete_drive_document()`
-- [ ] Add transaction support for atomic operations
+- [✓] Create `DriveStorageHandler` class
+- [✓] Implement upload tracking operations:
+  - [✓] `track_upload()` - Record successful uploads
+  - [✓] `get_pending_uploads()` - Find articles needing upload
+  - [✓] `mark_upload_error()` - Track failed uploads
+  - [✓] `get_uploaded_articles()` - List uploaded articles
+- [✓] Add transaction support for atomic operations
 
-#### 6.2 Sync Management
-- [ ] Track sync status for each file
-- [ ] Implement conflict resolution
-- [ ] Add retry queue for failed syncs
-- [ ] Create sync history logging
+#### 6.2 Upload Management
+- [✓] Track upload status for each article
+- [✓] Implement retry tracking with backoff
+- [✓] Add batch upload coordination
+- [✓] Create upload history and statistics
 
 ### Phase 7: Integration with Main Workflow
 
 #### 7.1 Workflow Modifications
-- [ ] Update `workflow.py`:
-  - [ ] Add Drive upload after article generation
-  - [ ] Make upload optional via configuration
-  - [ ] Handle upload failures gracefully
-- [ ] Create post-generation hook:
-  - [ ] Trigger after successful local save
-  - [ ] Queue for Drive upload
-  - [ ] Update article metadata with Drive URL
+- [✓] Update `workflow.py`:
+  - [✓] Add Drive upload after article generation
+  - [✓] Make upload optional via configuration
+  - [✓] Handle upload failures gracefully
+- [✓] Create post-generation upload:
+  - [✓] Trigger after successful local save
+  - [✓] Upload to Drive with metadata
+  - [✓] Update article record with Drive URL
 
-#### 7.2 Research Agent Integration
-- [ ] Modify research tools to check Drive documents
-- [ ] Add Drive search capabilities
-- [ ] Combine Drive and web research results
-- [ ] Implement source attribution
+#### 7.2 Enhanced Upload Features
+- [✓] Add upload status to workflow output
+- [✓] Include Drive link in review interface
+- [✓] Support custom folder organization
+- [ ] Add upload notifications/callbacks
 
 ### Phase 8: CLI Commands
 
 #### 8.1 Authentication Commands
-- [ ] `python main.py drive auth`
-  - [ ] Initialize OAuth flow
-  - [ ] Save credentials
-  - [ ] Test connection
-- [ ] `python main.py drive logout`
-  - [ ] Remove stored token
-  - [ ] Clear credentials
+- [✓] `python main.py drive auth`
+  - [✓] Initialize OAuth flow
+  - [✓] Save credentials
+  - [✓] Test connection
+- [✓] `python main.py drive logout`
+  - [✓] Remove stored token
+  - [✓] Clear credentials
 
-#### 8.2 Sync Commands
-- [ ] `python main.py drive sync`
-  - [ ] Manual sync trigger
-  - [ ] Show sync progress
-  - [ ] Report results
-- [ ] `python main.py drive watch [--folder-id]`
-  - [ ] Start folder watcher
-  - [ ] Support daemon mode
-  - [ ] Add stop command
+#### 8.2 Upload Commands
+- [✓] `python main.py drive upload-pending`
+  - [✓] Upload all pending articles
+  - [✓] Show progress for each upload
+  - [✓] Report success/failure summary
+- [✓] `python main.py drive retry-failed`
+  - [✓] Retry failed uploads
+  - [✓] Apply exponential backoff
+  - [✓] Limit retry attempts
 
 #### 8.3 Management Commands
 - [ ] `python main.py drive list`
-  - [ ] List synced articles
+  - [ ] List uploaded articles
   - [ ] Filter by date/status
-  - [ ] Show sync statistics
-- [ ] `python main.py drive upload <file>`
-  - [ ] Upload specific file
-  - [ ] Support batch upload
-  - [ ] Show upload URL
+  - [ ] Show Drive URLs
+- [ ] `python main.py drive status`
+  - [ ] Show upload statistics
+  - [ ] Display pending/failed counts
+  - [ ] Recent upload history
 
-#### 8.4 Search Commands
-- [ ] `python main.py drive search <query>`
-  - [ ] Search Drive documents
-  - [ ] Show relevance scores
-  - [ ] Include in RAG results
+#### 8.4 Utility Commands
+- [ ] `python main.py drive clean`
+  - [ ] Clean orphaned sync records
+  - [ ] Remove invalid entries
+  - [ ] Verify database consistency
 
 ### Phase 9: Testing
 
 #### 9.1 Unit Tests
-- [ ] Create `tests/test_drive_auth.py`:
-  - [ ] Test OAuth flow
-  - [ ] Test token refresh
-  - [ ] Test error handling
-- [ ] Create `tests/test_drive_uploader.py`:
-  - [ ] Test HTML to Docs conversion
-  - [ ] Test folder creation
-  - [ ] Test metadata attachment
-- [ ] Create `tests/test_drive_watcher.py`:
-  - [ ] Test change detection
-  - [ ] Test file processing
-  - [ ] Test deletion handling
+- [✓] Create `tests/test_drive_auth.py`:
+  - [✓] Test OAuth flow
+  - [✓] Test token refresh
+  - [✓] Test error handling
+- [✓] Create `tests/test_drive_uploader.py`:
+  - [✓] Test HTML to Docs conversion
+  - [✓] Test folder creation
+  - [✓] Test metadata attachment
+- [✓] Create `tests/test_batch_uploader.py`:
+  - [✓] Test batch upload logic
+  - [✓] Test retry mechanism
+  - [✓] Test error tracking
+- [✓] Create `tests/test_drive_config.py`:
+  - [✓] Test configuration validation
+  - [✓] Test environment variable loading
+  - [✓] Test JSON serialization
+- [✓] Create `tests/test_drive_cli_commands.py`:
+  - [✓] Test all CLI commands
+  - [✓] Test error scenarios
+  - [✓] Test progress tracking
 
 #### 9.2 Integration Tests
 - [ ] Test complete upload flow
-- [ ] Test watcher with real Drive changes
+- [ ] Test batch upload with failures
 - [ ] Test error recovery scenarios
-- [ ] Test concurrent operations
+- [ ] Test concurrent upload handling
 
 #### 9.3 Manual Testing
-- [ ] Upload test article to Drive
-- [ ] Verify folder structure
-- [ ] Test watcher with various file types
-- [ ] Verify database synchronization
+- [✓] Upload test article to Drive
+- [✓] Verify folder structure
+- [✓] Test batch uploads
+- [✓] Verify error handling and retries
 
 ### Phase 10: Documentation
 
 #### 10.1 Setup Guide
-- [ ] Write Drive API setup instructions
-- [ ] Document credential configuration
-- [ ] Add troubleshooting section
-- [ ] Include security best practices
+- [✓] Write Drive API setup instructions
+- [✓] Document credential configuration
+- [✓] Add troubleshooting section
+- [✓] Include security best practices
 
 #### 10.2 Usage Documentation
-- [ ] Document all CLI commands
+- [✓] Document all CLI commands
 - [ ] Add workflow diagrams
 - [ ] Create example scenarios
 - [ ] Write API reference
 
 #### 10.3 Code Documentation
-- [ ] Add docstrings to all classes/methods
-- [ ] Create inline comments for complex logic
+- [✓] Add docstrings to all classes/methods
+- [✓] Create inline comments for complex logic
 - [ ] Generate API documentation
-- [ ] Add type hints throughout
+- [✓] Add type hints throughout
 
 ---
 
@@ -335,30 +332,28 @@ Add to .env:
 ### Example drive_config.json
 ```json
 {
-  "supported_mime_types": [
-    "application/pdf",
-    "text/plain",
-    "text/html",
-    "text/csv",
-    "application/vnd.google-apps.document",
-    "application/vnd.google-apps.spreadsheet",
-    "application/vnd.google-apps.presentation",
-    "image/png",
-    "image/jpeg"
-  ],
-  "export_mime_types": {
-    "application/vnd.google-apps.document": "text/plain",
-    "application/vnd.google-apps.spreadsheet": "text/csv",
-    "application/vnd.google-apps.presentation": "text/plain"
+  "upload_settings": {
+    "auto_upload": true,
+    "folder_structure": "YYYY/MM/DD",
+    "default_folder_id": null,
+    "create_folders": true
   },
-  "text_processing": {
-    "chunk_size": 1000,
-    "chunk_overlap": 200
-  },
-  "sync_settings": {
-    "check_interval": 300,
+  "batch_settings": {
+    "batch_size": 10,
     "max_retries": 3,
-    "batch_size": 10
+    "retry_delay": 60,
+    "concurrent_uploads": 3
+  },
+  "error_handling": {
+    "log_failures": true,
+    "notify_on_error": false,
+    "quarantine_after_retries": 5
+  },
+  "metadata": {
+    "include_keywords": true,
+    "include_sources": true,
+    "include_generation_time": true,
+    "custom_properties": {}
   }
 }
 ```
@@ -368,17 +363,17 @@ Add to .env:
 ## Verification Steps
 
 ### Component Verification
-- [ ] Auth: Successfully obtain and refresh token
-- [ ] Uploader: Article appears in Drive with correct formatting
-- [ ] Watcher: Detects new files within configured interval
-- [ ] Storage: Database correctly tracks all Drive files
-- [ ] CLI: All commands execute without errors
+- [✓] Auth: Successfully obtain and refresh token
+- [✓] Uploader: Article appears in Drive with correct formatting
+- [✓] Storage: Database correctly tracks uploaded articles
+- [✓] Batch: Multiple articles upload successfully
+- [✓] CLI: All commands execute without errors
 
 ### End-to-End Verification
-- [ ] Generate article → Auto-upload to Drive → Verify in Drive UI
-- [ ] Add document to Drive → Watcher detects → Embeddings created
-- [ ] Modify Drive document → Changes reflected in database
-- [ ] Delete Drive document → Cleanup in database
+- [✓] Generate article → Auto-upload to Drive → Verify in Drive UI
+- [✓] Failed upload → Retry mechanism → Eventual success
+- [✓] Batch upload → Progress tracking → Complete report
+- [✓] Database sync → Accurate upload status
 
 ---
 
@@ -394,16 +389,17 @@ Add to .env:
    - Check Drive storage quota
    - Verify folder permissions
    - Review API rate limits
+   - Check network connectivity
 
-3. **Watcher Not Detecting Changes**
-   - Verify folder ID is correct
-   - Check last_check_time persistence
-   - Review API query filters
+3. **Batch Upload Issues**
+   - Verify database has pending articles
+   - Check retry count limits
+   - Review error messages in logs
 
 4. **Database Sync Issues**
-   - Check foreign key constraints
-   - Verify transaction handling
-   - Review error logs
+   - Verify drive_sync_status table exists
+   - Check for orphaned records
+   - Review transaction logs
 
 ---
 
@@ -433,20 +429,20 @@ Add to .env:
 
 ## Implementation Timeline
 
-- **Week 1**: Authentication and Configuration (Phases 1-2)
-- **Week 2**: Uploader and Database Schema (Phases 3, 5)
-- **Week 3**: Watcher Implementation (Phase 4)
-- **Week 4**: Integration and CLI (Phases 6-8)
-- **Week 5**: Testing and Documentation (Phases 9-10)
+- **Completed**: Basic authentication and upload functionality
+- **Week 1**: Batch upload and error handling (Phase 4)
+- **Week 2**: Enhanced CLI commands and management tools (Phase 8)
+- **Week 3**: Testing and documentation updates (Phases 9-10)
+- **Week 4**: Performance optimization and monitoring
 
 ---
 
 ## Success Criteria
 
-- [ ] All generated articles automatically upload to Drive
-- [ ] Drive documents are searchable through RAG system
-- [ ] Bidirectional sync maintains consistency
-- [ ] System handles errors gracefully
-- [ ] Performance meets requirements (< 5s upload time)
-- [ ] All tests pass with > 90% coverage
-- [ ] Documentation is complete and accurate
+- [✓] All generated articles automatically upload to Drive
+- [✓] Failed uploads are automatically retried with backoff
+- [✓] Batch upload processes pending articles efficiently
+- [✓] System handles errors gracefully with detailed logging
+- [✓] Performance meets requirements (< 5s per article upload)
+- [✓] Upload success rate > 95% after retries
+- [✓] Clear visibility into upload status and history

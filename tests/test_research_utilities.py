@@ -140,6 +140,32 @@ class TestCitationFormatting:
             citation = format_apa_citation(source)
             assert expected in citation
 
+    def test_apa_citation_malformed_author_format(self):
+        """Test APA citation with malformed 'Last, First' format (covers line 44)."""
+        # Test case where author has comma but empty after it
+        source = AcademicSource(
+            title="Edge Case Paper",
+            url="https://test.edu",
+            authors=["Smith,"],  # Comma at end with no first name
+            excerpt="Test",
+            domain=".edu",
+            credibility_score=0.8,
+        )
+        
+        citation = format_apa_citation(source)
+        # Should handle empty first name gracefully
+        assert "Smith" in citation
+        assert "Edge Case Paper" in citation
+        # Should not have the empty initial
+        assert ", ." not in citation
+        
+        # Also test empty string after comma with space
+        source.authors = ["Jones, "]  # Space after comma but nothing else
+        citation = format_apa_citation(source)
+        # Should handle this gracefully without IndexError
+        assert "Jones" in citation
+        assert ", ." not in citation
+
     def test_mla_citation_full_metadata(self):
         """Test MLA citation with complete metadata."""
         # Create source with all fields

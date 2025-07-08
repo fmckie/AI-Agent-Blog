@@ -39,7 +39,11 @@ def format_apa_citation(source: AcademicSource) -> str:
                 if len(parts) >= 2:
                     last_name = parts[0].strip()
                     first_name = parts[1].strip()
-                    author_list.append(f"{last_name}, {first_name[0]}.")
+                    # Check if first name exists and is not empty
+                    if first_name:
+                        author_list.append(f"{last_name}, {first_name[0]}.")
+                    else:
+                        author_list.append(last_name if last_name else author)
                 else:
                     author_list.append(author)
             else:

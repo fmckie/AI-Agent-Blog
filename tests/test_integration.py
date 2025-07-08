@@ -356,13 +356,13 @@ class TestSystemIntegration:
 
         with patch("workflow.run_research_agent", mock_research):
             with patch("writer_agent.agent.run_writer_agent", mock_writer):
-                orchestrator = WorkflowOrchestrator(config)
-
                 # Run multiple workflows concurrently
                 keywords = ["AI research", "machine learning", "deep learning"]
-                tasks = [
-                    orchestrator.run_full_workflow(keyword) for keyword in keywords
-                ]
+                tasks = []
+                for keyword in keywords:
+                    # Create separate orchestrator for each concurrent workflow
+                    orchestrator = WorkflowOrchestrator(config)
+                    tasks.append(orchestrator.run_full_workflow(keyword))
 
                 results = await asyncio.gather(*tasks)
 
@@ -517,12 +517,21 @@ class TestEdgeCases:
             output_dir=tmp_path,
         )
 
+        orchestrator = WorkflowOrchestrator(config)
+        
         # Create a very long keyword
         long_keyword = "machine learning " * 50  # 800+ characters
+        
+        # Test that very long keywords are rejected
+        with pytest.raises(ValueError, match="Keyword too long"):
+            await orchestrator.run_full_workflow(long_keyword)
+        
+        # Now test with a keyword at the limit
+        max_keyword = "artificial intelligence and machine learning research"  # Under 200 chars
 
         mock_research = ResearchFindings(
-            keyword=long_keyword[:100],  # Truncate for storage
-            research_summary="Research on very long keyword demonstrates system robustness in handling edge cases and unusual input scenarios while maintaining functionality.",
+            keyword=max_keyword,
+            research_summary="Research on AI and ML demonstrates system robustness in handling edge cases and unusual input scenarios while maintaining functionality.",
             academic_sources=[
                 AcademicSource(
                     title="Long Keyword Study",
@@ -534,13 +543,13 @@ class TestEdgeCases:
             ],
             main_findings=["System handles long keywords"],
             total_sources_analyzed=1,
-            search_query_used=long_keyword[:100],
+            search_query_used=max_keyword,
         )
 
-        # Use helper to create valid article with truncated keyword
+        # Use helper to create valid article with max keyword
         mock_article = create_valid_article_output(
-            keyword=long_keyword[:50],  # Use truncated version
-            title="Understanding Complex Topics and Long Keywords",
+            keyword=max_keyword,
+            title="Understanding AI and Machine Learning Research",
             sources_count=1,
         )
 
@@ -551,10 +560,8 @@ class TestEdgeCases:
                 "writer_agent.agent.run_writer_agent",
                 AsyncMock(return_value=mock_article),
             ):
-                orchestrator = WorkflowOrchestrator(config)
-
-                # Should handle gracefully
-                result = await orchestrator.run_full_workflow(long_keyword)
+                # Should handle gracefully with keyword at the limit
+                result = await orchestrator.run_full_workflow(max_keyword)
                 assert result.exists()
 
     @pytest.mark.integration

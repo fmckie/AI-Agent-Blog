@@ -1184,6 +1184,268 @@ def drive_status(detailed: bool):
         raise click.exceptions.Exit(1)
 
 
+@drive.command("logout")
+@click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
+def drive_logout(force: bool):
+    """
+    Remove stored Google Drive credentials.
+    
+    This will sign you out of Google Drive. You'll need to
+    authenticate again using 'seo-content drive auth'.
+    
+    \b
+    Examples:
+        # Logout with confirmation
+        $ seo-content drive logout
+        
+        # Force logout without confirmation
+        $ seo-content drive logout --force
+    """
+    from rag.drive.auth import GoogleDriveAuth
+    
+    if not force:
+        if not click.confirm("Are you sure you want to logout from Google Drive?"):
+            console.print("[yellow]Logout cancelled[/yellow]")
+            return
+    
+    try:
+        auth = GoogleDriveAuth()
+        token_path = Path(auth.token_path)
+        
+        if token_path.exists():
+            token_path.unlink()
+            console.print("[green]✅ Successfully logged out from Google Drive[/green]")
+        else:
+            console.print("[yellow]No active session found[/yellow]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Logout failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+
+@drive.command("upload-pending")
+@click.option("--batch-size", "-b", type=int, help="Override default batch size")
+@click.option("--dry-run", is_flag=True, help="Show what would be uploaded without uploading")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed progress")
+def drive_upload_pending(batch_size: Optional[int], dry_run: bool, verbose: bool):
+    """
+    Upload all pending articles to Google Drive.
+    
+    Finds articles in the database that haven't been uploaded
+    to Drive and uploads them in batches with retry logic.
+    
+    \b
+    Examples:
+        # Upload all pending articles
+        $ seo-content drive upload-pending
+        
+        # Preview what would be uploaded
+        $ seo-content drive upload-pending --dry-run
+        
+        # Upload with custom batch size
+        $ seo-content drive upload-pending --batch-size 5
+        
+        # Show detailed progress
+        $ seo-content drive upload-pending --verbose
+    """
+    import asyncio
+    from rag.drive.auth import GoogleDriveAuth
+    from rag.drive.uploader import BatchUploader
+    from rag.drive.storage import DriveStorageHandler
+    from rag.drive.config import get_drive_config
+    
+    try:
+        # Get pending articles
+        storage = DriveStorageHandler()
+        pending = storage.get_pending_uploads(limit=1000)
+        
+        if not pending:
+            console.print("[yellow]No pending articles to upload[/yellow]")
+            return
+        
+        console.print(f"[cyan]Found {len(pending)} pending articles[/cyan]")
+        
+        if dry_run:
+            console.print("\n[bold]Articles that would be uploaded:[/bold]")
+            for i, article in enumerate(pending[:10], 1):
+                console.print(f"  {i}. {article['title']} ({article['keyword']})")
+            if len(pending) > 10:
+                console.print(f"  ... and {len(pending) - 10} more")
+            return
+        
+        # Setup uploader
+        config = get_config()
+        drive_config = get_drive_config()
+        
+        if batch_size:
+            drive_config.batch_size = batch_size
+        
+        auth = GoogleDriveAuth()
+        auth.authenticate()
+        
+        uploader = BatchUploader(
+            auth=auth,
+            upload_folder_id=config.google_drive_upload_folder_id,
+            drive_config=drive_config
+        )
+        
+        # Progress callback
+        def progress_callback(current: int, total: int, message: str):
+            if verbose:
+                console.print(f"[{current}/{total}] {message}")
+            else:
+                # Update progress bar
+                pass
+        
+        # Upload articles
+        console.print("\n[bold]Starting batch upload...[/bold]")
+        with console.status("[cyan]Uploading articles...[/cyan]") as status:
+            result = asyncio.run(uploader.upload_pending_articles(
+                pending,
+                progress_callback=progress_callback if verbose else None
+            ))
+        
+        # Print results
+        stats = result["stats"]
+        console.print("\n[bold]Upload Summary:[/bold]")
+        console.print(f"  Total: {stats['total']}")
+        console.print(f"  [green]✅ Successful: {stats['successful']}[/green]")
+        console.print(f"  [red]❌ Failed: {stats['failed']}[/red]")
+        console.print(f"  [yellow]⚠️  Skipped: {stats['skipped']}[/yellow]")
+        console.print(f"  [cyan]🔄 Retried: {stats['retried']}[/cyan]")
+        
+        # Update database
+        if stats["successful"] > 0:
+            console.print("\n[cyan]Updating database...[/cyan]")
+            for result_item in result["results"]:
+                if result_item["success"]:
+                    storage.track_upload(
+                        article_id=result_item["article_id"],
+                        drive_file_id=result_item["drive_file_id"],
+                        drive_url=result_item["drive_url"],
+                        folder_path=result_item["folder_path"]
+                    )
+            console.print("[green]✅ Database updated[/green]")
+        
+    except Exception as e:
+        console.print(f"[red]❌ Upload failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+
+@drive.command("retry-failed")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed progress")
+def drive_retry_failed(verbose: bool):
+    """
+    Retry previously failed uploads.
+    
+    Attempts to re-upload articles that failed during
+    previous batch upload operations.
+    
+    \b
+    Examples:
+        # Retry all failed uploads
+        $ seo-content drive retry-failed
+        
+        # Show detailed progress
+        $ seo-content drive retry-failed --verbose
+    """
+    from rag.drive.auth import GoogleDriveAuth
+    from rag.drive.uploader import BatchUploader
+    from rag.drive.storage import DriveStorageHandler
+    
+    try:
+        config = get_config()
+        
+        # Setup uploader
+        auth = GoogleDriveAuth()
+        auth.authenticate()
+        
+        uploader = BatchUploader(
+            auth=auth,
+            upload_folder_id=config.google_drive_upload_folder_id
+        )
+        
+        # Check if there are failed uploads
+        if not uploader.failed_uploads:
+            console.print("[yellow]No failed uploads to retry[/yellow]")
+            console.print("Failed uploads are tracked within a session.")
+            console.print("Run 'seo-content drive upload-pending' first.")
+            return
+        
+        console.print(f"[cyan]Retrying {len(uploader.failed_uploads)} failed uploads[/cyan]")
+        
+        # Progress callback
+        def progress_callback(current: int, total: int, message: str):
+            if verbose:
+                console.print(f"[{current}/{total}] {message}")
+        
+        # Retry uploads
+        with console.status("[cyan]Retrying failed uploads...[/cyan]"):
+            result = uploader.retry_failed_uploads(
+                progress_callback=progress_callback if verbose else None
+            )
+        
+        # Print results
+        stats = result["stats"]
+        console.print("\n[bold]Retry Summary:[/bold]")
+        console.print(f"  Total: {stats['total']}")
+        console.print(f"  [green]✅ Successful: {stats['successful']}[/green]")
+        console.print(f"  [red]❌ Failed: {stats['failed']}[/red]")
+        
+        # Update database for successful retries
+        if stats["successful"] > 0:
+            storage = DriveStorageHandler()
+            for result_item in result["results"]:
+                if result_item["success"]:
+                    storage.track_upload(
+                        article_id=result_item["article_id"],
+                        drive_file_id=result_item["drive_file_id"],
+                        drive_url=result_item["drive_url"],
+                        folder_path=result_item["folder_path"]
+                    )
+            console.print("\n[green]✅ Database updated[/green]")
+        
+    except Exception as e:
+        console.print(f"[red]❌ Retry failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+
+# Helper functions
+def _format_error_message(error: Exception) -> str:
+    """Format error message with cause chain."""
+    messages = []
+    current = error
+    while current:
+        messages.append(str(current))
+        current = getattr(current, "__cause__", None)
+    return " | ".join(messages)
+
+
+def _validate_keywords(keywords: list[str]) -> bool:
+    """Validate keywords list."""
+    if not keywords:
+        return False
+    # Check if at least one non-empty keyword exists
+    return any(k.strip() for k in keywords)
+
+
+def _print_batch_summary(results: dict, total_time: float) -> None:
+    """Print summary of batch processing results."""
+    successful = sum(1 for r in results.values() if not isinstance(r, Exception))
+    failed = len(results) - successful
+    
+    console.print("\n[bold]Batch Processing Summary:[/bold]")
+    console.print(f"  Total: {len(results)} keywords")
+    console.print(f"  [green]✅ {successful} successful[/green]")
+    if failed > 0:
+        console.print(f"  [red]❌ {failed} failed[/red]")
+    console.print(f"  Time: {total_time:.1f} seconds")
+    
+    if failed > 0:
+        console.print("\n[bold]Failed Keywords:[/bold]")
+        for keyword, result in results.items():
+            if isinstance(result, Exception):
+                console.print(f"  - {keyword}: {result}")
 
 
 # Main entry point

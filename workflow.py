@@ -460,6 +460,13 @@ class WorkflowOrchestrator:
         Raises:
             Exception: If any step in the workflow fails
         """
+        # Validate keyword
+        if not keyword or not keyword.strip():
+            raise ValueError("Keyword cannot be empty or whitespace only")
+        
+        if len(keyword) > 200:
+            raise ValueError(f"Keyword too long ({len(keyword)} chars). Maximum length is 200 characters")
+        
         logger.info(f"Starting full workflow for keyword: {keyword}")
 
         # Initialize workflow state tracking
