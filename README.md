@@ -130,8 +130,9 @@ TAVILY_INCLUDE_DOMAINS=.edu,.gov,.org  # Prioritized domains
 GOOGLE_DRIVE_CREDENTIALS_PATH=credentials.json  # Path to OAuth credentials
 GOOGLE_DRIVE_TOKEN_PATH=token.json              # Path to store auth token
 GOOGLE_DRIVE_UPLOAD_FOLDER_ID=                  # Target folder ID (optional)
-GOOGLE_DRIVE_ENABLED=true                       # Enable Drive integration
 GOOGLE_DRIVE_AUTO_UPLOAD=true                   # Auto-upload after generation
+GOOGLE_DRIVE_BATCH_SIZE=10                      # Concurrent upload limit
+GOOGLE_DRIVE_MAX_RETRIES=3                      # Retry attempts for failed uploads
 ```
 
 ### Configuration Details
@@ -148,6 +149,9 @@ GOOGLE_DRIVE_AUTO_UPLOAD=true                   # Auto-upload after generation
 | `TAVILY_SEARCH_DEPTH` | ❌ | `advanced` | Search comprehensiveness |
 | `TAVILY_MAX_RESULTS` | ❌ | `10` | Number of search results |
 | `TAVILY_INCLUDE_DOMAINS` | ❌ | `.edu,.gov,.org` | Preferred source domains |
+| `GOOGLE_DRIVE_AUTO_UPLOAD` | ❌ | `true` | Auto-upload articles to Drive |
+| `GOOGLE_DRIVE_BATCH_SIZE` | ❌ | `10` | Concurrent upload limit |
+| `GOOGLE_DRIVE_MAX_RETRIES` | ❌ | `3` | Upload retry attempts |
 
 ### Getting API Keys
 
@@ -314,57 +318,87 @@ The system includes seamless Google Drive integration for automatic article uplo
 ### Drive Features
 
 - **Automatic Upload**: Articles uploaded to Drive immediately after generation
-- **Format Conversion**: HTML articles converted to Google Docs
+- **Format Conversion**: HTML articles converted to Google Docs format
 - **Smart Organization**: Automatic folder structure (Year/Month/Day)
 - **Batch Processing**: Upload multiple articles with retry logic
 - **Metadata Preservation**: Keywords, sources, and timestamps attached
+- **Retry Logic**: Exponential backoff for failed uploads
+- **Progress Tracking**: Real-time upload status and statistics
 
 ### Drive Setup
 
 1. **Configure Google Cloud Project**
-   ```bash
-   # See detailed guide in docs/DRIVE_SETUP_GUIDE.md
-   # Quick steps:
-   # 1. Create Google Cloud project
-   # 2. Enable Drive API
-   # 3. Download credentials.json
-   ```
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Create a new project and enable Drive API
+   - Create OAuth 2.0 credentials (Desktop type)
+   - Download as `credentials.json`
+   - See [detailed guide](docs/DRIVE_SETUP_GUIDE.md) for step-by-step instructions
 
 2. **Authenticate**
    ```bash
    python main.py drive auth
    ```
 
-3. **Check Status**
-   ```bash
-   python main.py drive status
+3. **Configure Environment**
+   Add to your `.env` file:
+   ```env
+   GOOGLE_DRIVE_AUTO_UPLOAD=true
+   GOOGLE_DRIVE_UPLOAD_FOLDER_ID=your_folder_id  # Optional
    ```
 
 ### Drive Commands
 
-#### Upload Articles
+#### Authentication & Status
 ```bash
-# Upload single file
-python main.py drive upload article.html
+# Initial authentication
+python main.py drive auth
 
+# Logout and clear credentials
+python main.py drive logout
+python main.py drive logout --force  # Skip confirmation
+```
+
+#### Batch Upload Operations
+```bash
 # Upload all pending articles
 python main.py drive upload-pending
 
 # Preview what would be uploaded
 python main.py drive upload-pending --dry-run
+
+# Upload with custom batch size
+python main.py drive upload-pending --batch-size 20
+
+# Verbose mode with progress tracking
+python main.py drive upload-pending --verbose
 ```
 
-#### Manage Uploads
+#### Retry Failed Uploads
 ```bash
-# List uploaded articles
-python main.py drive list
-
-# Retry failed uploads
+# Retry all failed uploads from current session
 python main.py drive retry-failed
 
-# Logout from Drive
-python main.py drive logout
+# Retry with verbose output
+python main.py drive retry-failed --verbose
 ```
+
+### Automatic Upload Workflow
+
+When `GOOGLE_DRIVE_AUTO_UPLOAD=true`, the system:
+1. Generates the article locally
+2. Automatically uploads to Google Drive
+3. Converts HTML to Google Docs format
+4. Organizes in date-based folders (2025/01/08)
+5. Attaches metadata as document properties
+6. Updates database with Drive file ID and URL
+
+### Error Handling
+
+The Drive integration includes robust error handling:
+- **Network Failures**: Automatic retry with exponential backoff
+- **API Limits**: Respects rate limits with concurrent upload control
+- **Failed Uploads**: Tracked for manual retry via CLI
+- **Invalid Files**: Skipped with clear error messages
 
 ### Database Features
 
@@ -399,129 +433,6 @@ SELECT * FROM analyze_source_diversity('your-keyword');
 SELECT * FROM cache_performance_metrics();
 ```
 
-## 📁 Google Drive Integration
-
-The system includes automatic Google Drive integration for backing up generated articles and organizing your content library.
-
-### Drive Features
-
-- **Automatic Upload**: Articles are automatically uploaded to Google Drive after generation
-- **Document Conversion**: HTML articles are converted to Google Docs format
-- **Folder Organization**: Articles are organized by date (Year/Month/Day)
-- **Metadata Tracking**: Keywords, sources, and SEO metrics are attached to documents
-- **OAuth Authentication**: Secure authentication using Google OAuth 2.0
-
-### Setting Up Google Drive
-
-1. **Create Google Cloud Project**
-   - Go to [Google Cloud Console](https://console.cloud.google.com)
-   - Create a new project or select existing one
-   - Note the project ID
-
-2. **Enable Google Drive API**
-   - Navigate to "APIs & Services" > "Library"
-   - Search for "Google Drive API"
-   - Click "Enable"
-
-3. **Create OAuth 2.0 Credentials**
-   - Go to "APIs & Services" > "Credentials"
-   - Click "Create Credentials" > "OAuth client ID"
-   - Choose "Desktop app" as application type
-   - Download the credentials as `credentials.json`
-   - Place it in your project root directory
-
-4. **Configure OAuth Consent Screen**
-   - Go to "APIs & Services" > "OAuth consent screen"
-   - Choose "External" user type (for personal use)
-   - Fill in required fields (app name, email)
-   - Add your email as a test user
-   - Add scopes: 
-     - `https://www.googleapis.com/auth/drive.file`
-     - `https://www.googleapis.com/auth/drive.metadata.readonly`
-
-5. **Add Environment Variables**
-   ```env
-   # Google Drive Configuration
-   GOOGLE_DRIVE_CREDENTIALS_PATH=credentials.json
-   GOOGLE_DRIVE_TOKEN_PATH=token.json
-   GOOGLE_DRIVE_UPLOAD_FOLDER_ID=your_folder_id  # Optional: specific folder for uploads
-   
-   # RAG Drive Settings
-   GOOGLE_DRIVE_ENABLED=true
-   GOOGLE_DRIVE_AUTO_UPLOAD=true
-   ```
-
-6. **Authenticate with Drive**
-   ```bash
-   # First-time authentication
-   python main.py drive auth
-   
-   # This will open a browser for OAuth authorization
-   # The token will be saved for future use
-   ```
-
-### Drive CLI Commands
-
-#### Authentication
-```bash
-# Authenticate with Google Drive
-python main.py drive auth
-
-# Check authentication status
-python main.py drive status
-```
-
-#### Manual Upload
-```bash
-# Upload a specific article
-python main.py drive upload ./drafts/keyword_20250107/article.html
-
-# Upload with custom title
-python main.py drive upload article.html --title "My SEO Article"
-
-# Upload to specific folder
-python main.py drive upload article.html --folder "2025/01/Articles"
-```
-
-#### List and Manage
-```bash
-# List uploaded articles
-python main.py drive list
-
-# Show more results
-python main.py drive list --limit 50
-
-# Export as JSON
-python main.py drive list --json > uploads.json
-
-# Check sync status with details
-python main.py drive status --detailed
-```
-
-### Automatic Upload Workflow
-
-When enabled, the system automatically:
-1. Generates the article locally
-2. Uploads to Google Drive as a Google Doc
-3. Organizes in date-based folders
-4. Attaches metadata (keyword, sources, metrics)
-5. Tracks upload status in the database
-
-### Troubleshooting Drive Issues
-
-**Authentication Errors**
-- Ensure `credentials.json` exists in project root
-- Check that OAuth consent screen is configured
-- Verify you're using the correct Google account
-
-**Upload Failures**
-- Check Drive storage quota
-- Verify folder permissions
-- Review API rate limits (usually not an issue)
-
-**Token Expiration**
-- Run `python main.py drive auth` again
-- Token auto-refreshes in most cases
 
 ## 💻 Usage
 
@@ -643,7 +554,12 @@ seo_content_automation/
 │   ├── processor.py    # Text chunking and processing
 │   ├── embeddings.py   # OpenAI embeddings generation
 │   ├── storage.py      # Supabase vector storage
-│   └── retriever.py    # Cache retrieval orchestration
+│   ├── retriever.py    # Cache retrieval orchestration
+│   └── drive/          # Google Drive integration
+│       ├── auth.py     # OAuth authentication
+│       ├── config.py   # Drive configuration
+│       ├── uploader.py # Article upload with retry
+│       └── storage.py  # Database tracking
 ├── prompts/             # Prompt templates
 │   └── article_template.txt
 ├── drafts/              # Generated articles
@@ -841,15 +757,18 @@ This project is designed as a learning platform for:
 
 ## 🔮 Future Enhancements
 
-### Recently Completed (Phase 7.2)
-- [x] RAG system with intelligent caching
+### Recently Completed
+- [x] RAG system with intelligent caching (Phase 7.2)
 - [x] Semantic search capabilities
 - [x] Cache management CLI commands
 - [x] Cost reduction through caching (~40-60%)
 - [x] Vector embeddings with pgvector
+- [x] Google Drive integration with auto-upload (Phase 8)
+- [x] Batch upload with retry logic
+- [x] Drive CLI commands for management
+- [x] Comprehensive test coverage (52 new tests)
 
 ### Upcoming Features
-- [ ] Batch keyword processing
 - [ ] WordPress integration
 - [ ] Web UI with Streamlit
 - [ ] Multi-language support
@@ -858,6 +777,8 @@ This project is designed as a learning platform for:
 - [ ] Real-time cache analytics dashboard
 - [ ] Hybrid search (vector + keyword)
 - [ ] Knowledge graph visualization
+- [ ] Google Drive folder permissions management
+- [ ] Service account support for Drive
 
 ## 📄 License
 
