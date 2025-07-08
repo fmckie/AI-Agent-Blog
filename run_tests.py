@@ -12,6 +12,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import shutil
 
 
 # Colors for terminal output
@@ -83,9 +84,60 @@ def run_command(command: list[str], description: str) -> bool:
         return False
 
 
+def get_cpu_count() -> int:
+    """Get the number of CPUs to use for parallel testing."""
+    # Use all CPUs minus 1 to keep system responsive
+    cpu_count = os.cpu_count() or 1
+    return max(1, cpu_count - 1)
+
+
+def check_dependencies() -> dict[str, bool]:
+    """Check if optional dependencies are installed."""
+    deps = {}
+    
+    # Check for pytest-xdist (parallel execution)
+    try:
+        subprocess.run(["pytest", "--version", "-n", "auto"], 
+                      capture_output=True, check=True)
+        deps["pytest-xdist"] = True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        deps["pytest-xdist"] = False
+    
+    # Check for pytest-timeout
+    try:
+        subprocess.run(["pytest", "--version", "--timeout=1"], 
+                      capture_output=True, check=True)
+        deps["pytest-timeout"] = True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        deps["pytest-timeout"] = False
+    
+    return deps
+
+
 def main():
     """Run all tests and generate reports."""
     import time
+    import argparse
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Run test suite with various options")
+    parser.add_argument("--full", action="store_true", 
+                       help="Run full test suite including integration tests")
+    parser.add_argument("--unit-only", action="store_true", 
+                       help="Run only unit tests (fast)")
+    parser.add_argument("--no-cov", action="store_true", 
+                       help="Skip coverage reporting for faster execution")
+    parser.add_argument("--parallel", dest="parallel", action="store_true",
+                       help="Run tests in parallel (requires pytest-xdist)")
+    parser.add_argument("--no-parallel", dest="parallel", action="store_false",
+                       help="Disable parallel execution")
+    parser.set_defaults(parallel=True)
+    parser.add_argument("--profile", action="store_true",
+                       help="Show test duration profiling")
+    parser.add_argument("--failed-first", action="store_true",
+                       help="Run previously failed tests first")
+    args = parser.parse_args()
+    
     start_time = time.time()
     
     print_header("SEO Content Automation Test Suite")
@@ -109,99 +161,143 @@ def main():
         print_status("Run 'source venv/bin/activate' first", "warning")
         print()
 
+    # Check optional dependencies
+    deps = check_dependencies()
+    if not deps["pytest-xdist"] and args.parallel:
+        print_status("pytest-xdist not installed, parallel execution disabled", "warning")
+        print_status("Install with: pip install pytest-xdist", "info")
+        args.parallel = False
+    
+    if not deps["pytest-timeout"]:
+        print_status("pytest-timeout not installed, no test timeouts", "warning")
+        print_status("Install with: pip install pytest-timeout", "info")
+
     # Track overall success
     all_passed = True
 
-    # 1. Run all tests with coverage (single run for efficiency)
-    print_header("Running All Tests with Coverage")
-    if not run_command(
-        [
-            "pytest",
-            "tests/",
-            "-v",
-            "--cov",
-            "--cov-report=term-missing",
+    # Build pytest command
+    pytest_cmd = ["pytest", "tests/"]
+    
+    # Add verbosity
+    pytest_cmd.append("-v")
+    
+    # Add markers based on mode
+    if args.unit_only:
+        pytest_cmd.extend(["-m", "not integration and not slow"])
+        print_header("Running Unit Tests Only (Fast Mode)")
+    elif not args.full:
+        pytest_cmd.extend(["-m", "not slow"])
+        print_header("Running Standard Test Suite (No Slow Tests)")
+    else:
+        print_header("Running Full Test Suite (Including Integration)")
+    
+    # Add parallel execution if available and requested
+    if args.parallel and deps["pytest-xdist"]:
+        cpu_count = get_cpu_count()
+        pytest_cmd.extend(["-n", str(cpu_count)])
+        print_status(f"Using {cpu_count} parallel workers", "info")
+    
+    # Add coverage unless disabled
+    if not args.no_cov:
+        pytest_cmd.extend([
+            "--cov=.",  # Specify source directory
+            "--cov-report=term-missing:skip-covered",  # More concise output
             "--cov-report=html",
-            "--cov-report=xml",  # Also generate XML for CI/CD tools
-        ],
-        "Full test suite with coverage",
-    ):
+            "--cov-report=xml",
+        ])
+        # Only add parallel mode flag if using xdist
+        if args.parallel and deps["pytest-xdist"]:
+            pytest_cmd.append("--cov-append")
+    
+    # Add test profiling if requested
+    if args.profile:
+        pytest_cmd.extend(["--durations=10"])
+    
+    # Add failed-first if requested
+    if args.failed_first:
+        pytest_cmd.extend(["--lf", "--ff"])
+    
+    # Add timeout if available
+    if deps["pytest-timeout"]:
+        # 5 minutes for integration tests, 30s for unit tests
+        timeout = "300" if args.full else "30"
+        pytest_cmd.extend([f"--timeout={timeout}"])
+    
+    # Run the tests
+    test_type = "Unit tests" if args.unit_only else "Test suite"
+    if not run_command(pytest_cmd, test_type):
         all_passed = False
     
-    # Show separate results for unit vs integration tests
-    print_header("Test Summary by Type")
-    print_status("Checking test results by category...", "info")
+    # Combine coverage if parallel mode was used
+    if not args.no_cov and args.parallel and deps["pytest-xdist"]:
+        print_header("Combining Parallel Coverage Results")
+        run_command(["coverage", "combine"], "Combining coverage data")
+        run_command(["coverage", "report", "--skip-covered"], "Coverage report")
+        run_command(["coverage", "html"], "HTML coverage report")
     
-    # Get unit test count
-    unit_result = subprocess.run(
-        ["pytest", "tests/", "-m", "not integration", "--collect-only", "-q"],
-        capture_output=True,
-        text=True
-    )
-    unit_count = len([l for l in unit_result.stdout.splitlines() if "test_" in l])
+    # Show test statistics
+    print_header("Test Statistics")
     
-    # Get integration test count  
-    int_result = subprocess.run(
-        ["pytest", "tests/", "-m", "integration", "--collect-only", "-q"],
-        capture_output=True,
-        text=True
-    )
-    int_count = len([l for l in int_result.stdout.splitlines() if "test_" in l])
+    # Get test counts by marker
+    markers = ["unit", "integration", "slow", "fast"]
+    for marker in markers:
+        result = subprocess.run(
+            ["pytest", "tests/", "-m", marker, "--collect-only", "-q"],
+            capture_output=True,
+            text=True
+        )
+        count = len([l for l in result.stdout.splitlines() if "test_" in l])
+        if count > 0:
+            print_status(f"{marker.capitalize()} tests: {count}", "info")
     
-    print_status(f"Unit tests collected: {unit_count}", "info")
-    print_status(f"Integration tests collected: {int_count}", "info")
+    # Quick code quality checks (only in full mode)
+    if args.full:
+        print_header("Quick Code Quality Checks")
+        
+        # Try black
+        try:
+            run_command(["black", ".", "--check", "--quiet"], "Code formatting (black)")
+        except FileNotFoundError:
+            print_status("black not installed", "warning")
+        
+        # Try isort
+        try:
+            run_command(["isort", ".", "--check-only", "--quiet"], "Import sorting (isort)")
+        except FileNotFoundError:
+            print_status("isort not installed", "warning")
 
-    # 2. Run type checking (if mypy is installed)
-    print_header("Running Type Checking")
-    try:
-        if not run_command(
-            ["mypy", ".", "--ignore-missing-imports"], "Type checking with mypy"
-        ):
-            print_status("Type checking failed (non-blocking)", "warning")
-    except FileNotFoundError:
-        print_status("mypy not installed, skipping type checking", "warning")
-
-    # 3. Run linting (if available)
-    print_header("Running Code Quality Checks")
-
-    # Try black
-    try:
-        run_command(["black", ".", "--check"], "Code formatting check (black)")
-    except FileNotFoundError:
-        print_status("black not installed, skipping formatting check", "warning")
-
-    # Try isort
-    try:
-        run_command(["isort", ".", "--check-only"], "Import sorting check (isort)")
-    except FileNotFoundError:
-        print_status("isort not installed, skipping import check", "warning")
-
-    # 4. Generate final report
+    # Final report
     print_header("Final Summary")
 
     # Check coverage report
-    coverage_file = project_dir / "htmlcov" / "index.html"
-    if coverage_file.exists():
-        print_status(f"Coverage report generated: {coverage_file}", "success")
-        print_status("Open the file in a browser to view detailed coverage", "info")
+    if not args.no_cov:
+        coverage_file = project_dir / "htmlcov" / "index.html"
+        if coverage_file.exists():
+            print_status(f"Coverage report: {coverage_file}", "success")
 
-    # Final status
-    print()
-    
     # Calculate total time
     total_time = time.time() - start_time
     minutes = int(total_time // 60)
     seconds = total_time % 60
     
     print_status(f"Total execution time: {minutes}m {seconds:.1f}s", "info")
-    print_status("Note: Tests now run only once with coverage (3x faster!)", "success")
+    
+    # Provide optimization tips based on execution time
+    if total_time > 300:  # More than 5 minutes
+        print()
+        print_status("💡 Speed up tips:", "info")
+        print_status("  • Use --unit-only for quick feedback during development", "info")
+        print_status("  • Use --no-cov to skip coverage calculation", "info")
+        print_status("  • Use --failed-first to run failed tests first", "info")
+        if not deps["pytest-xdist"]:
+            print_status("  • Install pytest-xdist for parallel execution", "info")
     
     if all_passed:
-        print_status("All required tests passed! ✨", "success")
-        print_status("The codebase is ready for deployment", "success")
+        print_status("All tests passed! ✨", "success")
         return 0
     else:
-        print_status("Some tests failed. Please fix the issues and run again.", "error")
+        print_status("Some tests failed. Please fix and run again.", "error")
+        print_status("Tip: Use --failed-first to run failed tests first", "info")
         return 1
 
 

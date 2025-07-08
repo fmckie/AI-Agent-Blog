@@ -31,3 +31,61 @@ ensure_newline_before_comments = true
 line_length = 88
 skip_gitignore = true
 skip = [".git", "venv", ".venv", ".mypy_cache", ".tox", "htmlcov"]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/site-packages/*",
+    "run_tests.py",
+    "run_tests_fast.py",
+    "run_tests_fixed.py",
+    "run_tests_simple.py",
+    "setup.py",
+    "*/migrations/*",
+    "populate_test_data.py",
+    "setup_drive_folders.py",
+    "verify_supabase_cache.py",
+    "resume_workflow.py",
+]
+parallel = true
+concurrency = ["thread", "multiprocessing"]
+
+[tool.coverage.report]
+# Fail if coverage is below this percentage
+fail_under = 80
+precision = 2
+show_missing = true
+skip_covered = false
+skip_empty = true
+# Exclude lines from coverage
+exclude_lines = [
+    # Standard pragma
+    "pragma: no cover",
+    # Don't complain about missing debug-only code
+    "def __repr__",
+    "if self.debug",
+    "if settings.DEBUG",
+    # Don't complain if tests don't hit defensive assertion code
+    "raise AssertionError",
+    "raise NotImplementedError",
+    # Don't complain if non-runnable code isn't run
+    "if 0:",
+    "if __name__ == .__main__.:",
+    # Don't complain about abstract methods
+    "@(abc\\.)?abstractmethod",
+    # Type checking blocks
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
