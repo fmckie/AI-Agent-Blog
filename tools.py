@@ -163,9 +163,14 @@ class TavilyClient:
         # Check rate limit before making request
         await self._check_rate_limit()
 
-        # Prepare request payload
+        # Prepare request headers with Bearer token
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Prepare request payload (no API key in body)
         payload = {
-            "api_key": self.api_key,
             "query": query,
             "search_depth": self.search_depth,
             "max_results": self.max_results,
@@ -185,9 +190,9 @@ class TavilyClient:
                     "Client not initialized. Use as context manager: async with TavilyClient(config) as client:"
                 )
 
-            # Get the response context manager
+            # Get the response context manager with headers
             # This handles both real aiohttp and mocked sessions
-            response_cm = self.session.post(f"{self.base_url}/search", json=payload)
+            response_cm = self.session.post(f"{self.base_url}/search", json=payload, headers=headers)
 
             # If it's a coroutine (from AsyncMock), await it first
             if asyncio.iscoroutine(response_cm):
@@ -398,9 +403,14 @@ class TavilyClient:
         # Check rate limit
         await self._check_rate_limit()
 
-        # Prepare request payload
+        # Prepare request headers with Bearer token
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        # Prepare request payload (no API key in body)
         payload = {
-            "api_key": self.api_key,
             "urls": urls,
             "extract_depth": extract_depth,
         }
@@ -411,7 +421,7 @@ class TavilyClient:
                     "Client not initialized. Use as context manager"
                 )
 
-            response_cm = self.session.post(f"{self.base_url}/extract", json=payload)
+            response_cm = self.session.post(f"{self.base_url}/extract", json=payload, headers=headers)
             
             if asyncio.iscoroutine(response_cm):
                 response_cm = await response_cm
@@ -478,9 +488,14 @@ class TavilyClient:
         # Check rate limit
         await self._check_rate_limit()
 
-        # Prepare request payload
+        # Prepare request headers with Bearer token
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        # Prepare request payload (no API key in body)
         payload = {
-            "api_key": self.api_key,
             "url": url,
             "max_depth": max_depth,
             "max_breadth": max_breadth,
@@ -497,7 +512,7 @@ class TavilyClient:
                     "Client not initialized. Use as context manager"
                 )
 
-            response_cm = self.session.post(f"{self.base_url}/crawl", json=payload)
+            response_cm = self.session.post(f"{self.base_url}/crawl", json=payload, headers=headers)
             
             if asyncio.iscoroutine(response_cm):
                 response_cm = await response_cm
@@ -556,9 +571,14 @@ class TavilyClient:
         # Check rate limit
         await self._check_rate_limit()
 
-        # Prepare request payload
+        # Prepare request headers with Bearer token
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        # Prepare request payload (no API key in body)
         payload = {
-            "api_key": self.api_key,
             "url": url,
         }
 
@@ -572,7 +592,7 @@ class TavilyClient:
                     "Client not initialized. Use as context manager"
                 )
 
-            response_cm = self.session.post(f"{self.base_url}/map", json=payload)
+            response_cm = self.session.post(f"{self.base_url}/map", json=payload, headers=headers)
             
             if asyncio.iscoroutine(response_cm):
                 response_cm = await response_cm
@@ -584,9 +604,9 @@ class TavilyClient:
 
                 data = await response.json()
                 
-                # Process map results
-                links_found = len(data.get("links", []))
-                logger.info(f"Found {links_found} links in site map")
+                # Process map results - API returns 'results' not 'links'
+                results_found = len(data.get("results", []))
+                logger.info(f"Found {results_found} URLs in site map")
                 
                 return data
 

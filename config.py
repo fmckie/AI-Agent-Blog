@@ -153,6 +153,86 @@ class Config(BaseSettings):
         le=1.0,
         description="Minimum credibility score for source inclusion",
     )
+    
+    # Workflow Configuration
+    workflow_max_retries: int = Field(
+        default=3,
+        ge=1,
+        le=5,
+        description="Maximum retries for failed workflow stages",
+    )
+    workflow_stage_timeout: int = Field(
+        default=120,
+        ge=30,
+        le=600,
+        description="Timeout for individual workflow stages in seconds",
+    )
+    workflow_progress_reporting: bool = Field(
+        default=True,
+        description="Enable progress reporting during workflow execution",
+    )
+    workflow_fail_fast: bool = Field(
+        default=False,
+        description="Stop workflow immediately on first critical failure",
+    )
+    workflow_cache_results: bool = Field(
+        default=True,
+        description="Cache intermediate workflow results for retry/resume",
+    )
+    
+    # Dynamic Tool Selection Configuration
+    enable_adaptive_strategy: bool = Field(
+        default=True,
+        description="Allow strategy to adapt based on intermediate results",
+    )
+    tool_priority_threshold: int = Field(
+        default=5,
+        ge=1,
+        le=10,
+        description="Minimum priority score for optional tool execution",
+    )
+    max_parallel_tools: int = Field(
+        default=2,
+        ge=1,
+        le=5,
+        description="Maximum number of tools to run in parallel",
+    )
+    prefer_recent_sources: bool = Field(
+        default=True,
+        description="Prioritize sources from the last 2 years",
+    )
+    
+    # Performance Optimization
+    enable_result_caching: bool = Field(
+        default=True,
+        description="Cache search and extraction results to avoid duplicate API calls",
+    )
+    cache_ttl_minutes: int = Field(
+        default=60,
+        ge=10,
+        le=1440,  # Max 24 hours
+        description="Cache time-to-live in minutes",
+    )
+    batch_extract_urls: bool = Field(
+        default=True,
+        description="Batch URL extraction requests for efficiency",
+    )
+    
+    # Quality Control Configuration
+    require_minimum_sources: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Minimum number of credible sources required",
+    )
+    diversity_check: bool = Field(
+        default=True,
+        description="Ensure sources come from diverse domains",
+    )
+    fact_verification_level: Literal["none", "basic", "strict"] = Field(
+        default="basic",
+        description="Level of fact cross-verification between sources",
+    )
 
     # Model configuration for Pydantic Settings
     model_config = SettingsConfigDict(
@@ -330,6 +410,47 @@ class Config(BaseSettings):
             "folder_id": self.google_drive_folder_id,
             "upload_folder_id": self.google_drive_upload_folder_id,
             "sync_interval": self.google_drive_sync_interval,
+        }
+    
+    def get_workflow_config(self) -> dict:
+        """
+        Get workflow-specific configuration.
+        
+        Returns:
+            Dictionary with workflow configuration settings
+        """
+        return {
+            "research_strategy": self.research_strategy,
+            "max_retries": self.workflow_max_retries,
+            "stage_timeout": self.workflow_stage_timeout,
+            "progress_reporting": self.workflow_progress_reporting,
+            "fail_fast": self.workflow_fail_fast,
+            "cache_results": self.workflow_cache_results,
+            "enable_adaptive": self.enable_adaptive_strategy,
+            "tool_priority_threshold": self.tool_priority_threshold,
+            "max_parallel_tools": self.max_parallel_tools,
+            "prefer_recent": self.prefer_recent_sources,
+            "enable_caching": self.enable_result_caching,
+            "cache_ttl": self.cache_ttl_minutes,
+            "min_sources": self.require_minimum_sources,
+            "diversity_check": self.diversity_check,
+            "fact_verification": self.fact_verification_level,
+        }
+    
+    def get_strategy_config(self) -> dict:
+        """
+        Get strategy-specific configuration for ResearchStrategy.
+        
+        Returns:
+            Dictionary with strategy configuration settings
+        """
+        return {
+            "enable_adaptive": self.enable_adaptive_strategy,
+            "tool_priority_threshold": self.tool_priority_threshold,
+            "prefer_recent_sources": self.prefer_recent_sources,
+            "min_credibility": self.min_credibility_threshold,
+            "require_minimum_sources": self.require_minimum_sources,
+            "diversity_check": self.diversity_check,
         }
 
 

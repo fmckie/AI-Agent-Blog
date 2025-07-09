@@ -7,7 +7,7 @@ academic sources to support content generation.
 
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from pydantic_ai import Agent, RunContext
 
@@ -16,6 +16,7 @@ from models import AcademicSource, ResearchFindings, TavilySearchResponse
 from tools import extract_key_statistics
 
 from .prompts import RESEARCH_AGENT_SYSTEM_PROMPT
+from .prompts_enhanced import ENHANCED_RESEARCH_AGENT_SYSTEM_PROMPT
 from .tools import (
     search_academic,
     extract_full_content,
@@ -45,10 +46,11 @@ def create_research_agent(config: Config) -> Agent[None, ResearchFindings]:
         Configured PydanticAI agent for research
     """
     # Create the agent with specific model and output type
+    # Using enhanced prompt for advanced Tavily capabilities
     research_agent = Agent(
         model=f"openai:{config.llm_model}",
         output_type=ResearchFindings,
-        system_prompt=RESEARCH_AGENT_SYSTEM_PROMPT,
+        system_prompt=ENHANCED_RESEARCH_AGENT_SYSTEM_PROMPT,
     )
 
     # Register the Tavily search tool
@@ -282,4 +284,69 @@ async def run_research_agent(
 
     except Exception as e:
         logger.error(f"Research agent failed: {e}")
+        raise
+
+
+async def run_research_workflow(
+    agent: Agent[None, ResearchFindings],
+    keyword: str,
+    config: Config,
+    progress_callback: Optional[Callable[[Any], None]] = None
+) -> ResearchFindings:
+    """
+    Execute research using the advanced workflow system.
+    
+    This function uses ResearchWorkflow for orchestrated multi-step research
+    with progress tracking and adaptive strategy.
+    
+    Args:
+        agent: The configured research agent
+        keyword: The keyword to research
+        config: System configuration
+        progress_callback: Optional callback for progress updates
+        
+    Returns:
+        ResearchFindings with comprehensive analysis
+        
+    Raises:
+        WorkflowError: If the workflow fails
+    """
+    try:
+        # Import here to avoid circular imports
+        from .workflow import ResearchWorkflow
+        
+        # Create workflow instance
+        workflow = ResearchWorkflow(
+            agent=agent,
+            config=config,
+            progress_callback=progress_callback
+        )
+        
+        # Get strategy from config
+        strategy = config.research_strategy
+        max_retries = config.workflow_max_retries
+        
+        logger.info(
+            f"Starting research workflow for '{keyword}' "
+            f"with strategy: {strategy}"
+        )
+        
+        # Execute the workflow
+        findings = await workflow.execute_research_pipeline(
+            keyword=keyword,
+            strategy=strategy,
+            max_retries=max_retries
+        )
+        
+        # Log completion
+        logger.info(
+            f"Workflow completed successfully. "
+            f"Sources: {len(findings.academic_sources)}, "
+            f"Findings: {len(findings.main_findings)}"
+        )
+        
+        return findings
+        
+    except Exception as e:
+        logger.error(f"Research workflow failed: {e}")
         raise
