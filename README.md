@@ -62,6 +62,57 @@ graph TD
 - **Tavily Integration**: Provides access to academic and credible web sources
 - **Output Manager**: Generates organized HTML drafts with research metadata
 
+## 🆕 Enhanced Research Capabilities (Phase 2)
+
+The system now includes advanced research workflow orchestration with intelligent tool selection and progress tracking.
+
+### 🔬 Advanced Tavily Integration
+
+Beyond basic search, the system now leverages Tavily's full API capabilities:
+
+- **Search**: Find relevant academic and credible sources
+- **Extract**: Get complete content from specific URLs for deep analysis
+- **Crawl**: Explore entire websites for comprehensive research
+- **Map**: Quickly understand website structure and content organization
+
+### 🧠 Intelligent Research Strategy
+
+The ResearchStrategy system automatically:
+
+- **Classifies Topics**: Academic, Technical, Medical, Business, News, or Emerging
+- **Determines Depth**: Surface, Standard, Deep, or Exhaustive research
+- **Selects Tools**: Chooses the right Tavily tools based on topic and requirements
+- **Adapts Strategy**: Adjusts approach based on intermediate results
+
+```python
+# The system intelligently adapts to your research needs
+# Academic topic → Prioritizes .edu sources and uses crawling
+# Technical topic → Focuses on documentation and code examples
+# Medical topic → Ensures high credibility with authoritative sources
+```
+
+### 📊 Research Workflow Pipeline
+
+The new ResearchWorkflow orchestrates multi-stage research:
+
+```mermaid
+graph LR
+    A[Initialization] --> B[Discovery]
+    B --> C[Analysis]
+    C --> D[Extraction]
+    D --> E[Crawling]
+    E --> F[Synthesis]
+    F --> G[Validation]
+    G --> H[Completion]
+    
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style D fill:#f3e5f5
+    style F fill:#e8f5e9
+```
+
+Each stage can be monitored in real-time with progress callbacks.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -133,6 +184,24 @@ GOOGLE_DRIVE_UPLOAD_FOLDER_ID=                  # Target folder ID (optional)
 GOOGLE_DRIVE_AUTO_UPLOAD=true                   # Auto-upload after generation
 GOOGLE_DRIVE_BATCH_SIZE=10                      # Concurrent upload limit
 GOOGLE_DRIVE_MAX_RETRIES=3                      # Retry attempts for failed uploads
+
+# Research Workflow Configuration (Phase 2)
+RESEARCH_STRATEGY=standard              # basic, standard, comprehensive
+ENABLE_ADAPTIVE_STRATEGY=true          # Adapt based on results
+WORKFLOW_MAX_RETRIES=3                 # Retry failed stages
+WORKFLOW_STAGE_TIMEOUT=120             # Timeout per stage (seconds)
+WORKFLOW_PROGRESS_REPORTING=true       # Enable progress updates
+WORKFLOW_FAIL_FAST=false              # Stop on first failure
+
+# Tool Selection Configuration
+TOOL_PRIORITY_THRESHOLD=5              # Min priority for optional tools
+MAX_PARALLEL_TOOLS=2                   # Concurrent tool execution
+PREFER_RECENT_SOURCES=true            # Prioritize recent content
+
+# Quality Control Configuration
+REQUIRE_MINIMUM_SOURCES=3              # Min credible sources
+DIVERSITY_CHECK=true                   # Ensure source diversity
+FACT_VERIFICATION_LEVEL=basic         # none, basic, strict
 ```
 
 ### Configuration Details
@@ -152,6 +221,15 @@ GOOGLE_DRIVE_MAX_RETRIES=3                      # Retry attempts for failed uplo
 | `GOOGLE_DRIVE_AUTO_UPLOAD` | ❌ | `true` | Auto-upload articles to Drive |
 | `GOOGLE_DRIVE_BATCH_SIZE` | ❌ | `10` | Concurrent upload limit |
 | `GOOGLE_DRIVE_MAX_RETRIES` | ❌ | `3` | Upload retry attempts |
+| `RESEARCH_STRATEGY` | ❌ | `standard` | Research depth strategy |
+| `ENABLE_ADAPTIVE_STRATEGY` | ❌ | `true` | Enable adaptive research |
+| `WORKFLOW_MAX_RETRIES` | ❌ | `3` | Workflow stage retry attempts |
+| `WORKFLOW_STAGE_TIMEOUT` | ❌ | `120` | Stage timeout in seconds |
+| `WORKFLOW_PROGRESS_REPORTING` | ❌ | `true` | Enable progress updates |
+| `TOOL_PRIORITY_THRESHOLD` | ❌ | `5` | Minimum tool priority |
+| `MAX_PARALLEL_TOOLS` | ❌ | `2` | Concurrent tool execution |
+| `REQUIRE_MINIMUM_SOURCES` | ❌ | `3` | Minimum source requirement |
+| `DIVERSITY_CHECK` | ❌ | `true` | Check source diversity |
 
 ### Getting API Keys
 
@@ -492,6 +570,38 @@ python main.py batch "seo1" "seo2" "seo3" -o ./batch-output
 python main.py batch "topic1" "topic2" --no-progress
 ```
 
+### Enhanced Research Workflow Usage
+
+#### With Progress Tracking
+```python
+from research_agent import create_research_agent, run_research_workflow
+from config import get_config
+
+def show_progress(progress):
+    print(f"Progress: {progress.get_completion_percentage():.0f}% - {progress.current_stage.value}")
+
+config = get_config()
+agent = create_research_agent(config)
+
+# Run with progress tracking
+findings = await run_research_workflow(
+    agent, "AI in healthcare", config,
+    progress_callback=show_progress
+)
+```
+
+#### Different Research Strategies
+```python
+# Configure research depth
+config.research_strategy = "comprehensive"  # or "basic", "standard"
+
+# Enable adaptive strategy
+config.enable_adaptive_strategy = True
+
+# Run with advanced configuration
+findings = await run_research_workflow(agent, keyword, config)
+```
+
 #### Batch Processing Tips
 - Use `--parallel 2-3` for optimal performance without hitting rate limits
 - Add `--continue-on-error` for resilient batch processing
@@ -565,6 +675,10 @@ seo_content_automation/
 ├── drafts/              # Generated articles
 ├── tests/               # Comprehensive test suite
 │   └── test_rag/       # RAG component tests
+├── examples/            # Usage examples
+│   ├── quick_start_workflow.py
+│   ├── research_workflow_example.py
+│   └── strategy_demonstration.py
 └── docs/                # Additional documentation
 ```
 
@@ -581,6 +695,15 @@ pytest --cov=.
 
 # Run specific test file
 pytest tests/test_agents.py
+
+# Test research workflow orchestration
+pytest tests/test_research_workflow.py -v
+
+# Test strategy system
+pytest tests/test_research_strategy.py -v
+
+# Run all Phase 2 tests
+pytest tests/test_research_*.py -v --cov=research_agent
 ```
 
 ### Code Style
