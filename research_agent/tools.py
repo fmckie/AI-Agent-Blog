@@ -14,12 +14,24 @@ from pydantic_ai import RunContext
 from config import Config
 from rag.retriever import ResearchRetriever
 from tools import search_academic_sources, extract_url_content, crawl_website, map_website
+from models import AcademicSource
+
+# Import EnhancedVectorStorage for Phase 3 integration
+try:
+    from rag.enhanced_storage import EnhancedVectorStorage
+    enhanced_storage_available = True
+except ImportError:
+    enhanced_storage_available = False
 
 logger = logging.getLogger(__name__)
+
+if not enhanced_storage_available:
+    logger.warning("EnhancedVectorStorage not available, using basic storage only")
 
 # Create a global retriever instance for caching
 # This will be initialized on first use
 _retriever_instance: Optional[ResearchRetriever] = None
+_enhanced_storage_instance: Optional[EnhancedVectorStorage] = None
 
 
 def get_retriever() -> ResearchRetriever:
@@ -30,6 +42,19 @@ def get_retriever() -> ResearchRetriever:
         logger.info("Initializing RAG retriever for research caching")
         _retriever_instance = ResearchRetriever()
     return _retriever_instance
+
+
+def get_enhanced_storage() -> Optional[EnhancedVectorStorage]:
+    """Get or create the global enhanced storage instance."""
+    global _enhanced_storage_instance
+    if enhanced_storage_available and _enhanced_storage_instance is None:
+        try:
+            logger.info("Initializing EnhancedVectorStorage for Phase 3 features")
+            _enhanced_storage_instance = EnhancedVectorStorage()
+        except Exception as e:
+            logger.error(f"Failed to initialize EnhancedVectorStorage: {e}")
+            return None
+    return _enhanced_storage_instance
 
 
 async def search_academic(
@@ -98,6 +123,23 @@ async def search_academic(
                 "cached": True,  # Indicates this might be from cache
             },
         }
+        
+        # Store sources in EnhancedVectorStorage if available
+        if enhanced_storage_available and findings.academic_sources:
+            try:
+                storage = get_enhanced_storage()
+                if storage:
+                    stored_count = 0
+                    for source in findings.academic_sources:
+                        source_id = await storage.store_research_source(
+                            source=source,
+                            generate_embedding=False  # Will generate later with full content
+                        )
+                        if source_id:
+                            stored_count += 1
+                    logger.info(f"Stored {stored_count} sources in EnhancedVectorStorage")
+            except Exception as e:
+                logger.warning(f"Failed to store sources in EnhancedVectorStorage: {e}")
 
         # Log cache statistics periodically
         stats = retriever.get_statistics()
@@ -161,6 +203,31 @@ async def extract_full_content(
                     "content_length": len(result.get("raw_content", "")),
                     "extraction_success": True,
                 })
+                
+                # Update source with full content in EnhancedVectorStorage
+                if enhanced_storage_available:
+                    try:
+                        storage = get_enhanced_storage()
+                        if storage:
+                            source_data = await storage.get_source_by_url(result.get("url"))
+                            if source_data:
+                                # Update existing source with full content
+                                source = AcademicSource(
+                                    title=result.get("title", source_data["title"]),
+                                    url=result.get("url"),
+                                    excerpt=result.get("raw_content", "")[:500],
+                                    domain=source_data["domain"],
+                                    credibility_score=source_data["credibility_score"],
+                                    source_type=source_data.get("source_type", "extracted")
+                                )
+                                await storage.store_research_source(
+                                    source=source,
+                                    full_content=result.get("raw_content"),
+                                    generate_embedding=True
+                                )
+                                logger.debug(f"Updated source with full content: {result.get('url')}")
+                    except Exception as e:
+                        logger.warning(f"Failed to update EnhancedVectorStorage: {e}")
             else:
                 processed_results.append({
                     "url": result.get("url"),
@@ -249,6 +316,34 @@ async def crawl_domain(
             f"Crawled {domain_stats['total_pages']} pages, "
             f"found {len(relevant_pages)} relevant pages"
         )
+        
+        # Store crawl results in EnhancedVectorStorage
+        if enhanced_storage_available and pages:
+            try:
+                storage = get_enhanced_storage()
+                if storage:
+                    # Extract keyword from instructions
+                    keyword = instructions.split("'")[1] if "'" in instructions else "research"
+                    
+                    # Store crawl results
+                    stored_ids = await storage.store_crawl_results(
+                        crawl_data={"results": pages},
+                        parent_url=url,
+                        keyword=keyword
+                    )
+                    logger.info(f"Stored {len(stored_ids)} crawled pages in EnhancedVectorStorage")
+                    
+                    # Create relationships between crawled pages
+                    if len(stored_ids) > 1:
+                        for i in range(len(stored_ids) - 1):
+                            await storage.create_source_relationship(
+                                source_id=stored_ids[i],
+                                related_id=stored_ids[i + 1],
+                                relationship_type="related",
+                                metadata={"crawl_session": url}
+                            )
+            except Exception as e:
+                logger.warning(f"Failed to store crawl in EnhancedVectorStorage: {e}")
 
         return {
             "base_url": url,
@@ -335,6 +430,29 @@ async def analyze_domain_structure(
             insights.append(f"Documentation section with {len(categories['documentation'])} pages")
 
         logger.info(f"Mapped {len(links)} links across {len([c for c in categories if categories[c]])} categories")
+        
+        # Store domain analysis in EnhancedVectorStorage
+        if enhanced_storage_available:
+            try:
+                storage = get_enhanced_storage()
+                if storage:
+                    # Extract domain from URL
+                    domain_name = url.split('//')[-1].split('/')[0]
+                    domain_ext = ".edu" if ".edu" in url else (".gov" if ".gov" in url else ".com")
+                    
+                    # Create source for domain analysis
+                    domain_source = AcademicSource(
+                        title=f"Domain Analysis: {domain_name}",
+                        url=url,
+                        excerpt=f"Analyzed {len(links)} pages focusing on {focus_area or 'general content'}",
+                        domain=domain_ext,
+                        credibility_score=0.7,
+                        source_type="domain_analysis"
+                    )
+                    source_id = await storage.store_research_source(domain_source)
+                    logger.debug(f"Stored domain analysis in EnhancedVectorStorage: {source_id}")
+            except Exception as e:
+                logger.warning(f"Failed to store domain analysis: {e}")
 
         return {
             "base_url": url,
@@ -439,6 +557,30 @@ async def multi_step_research(
             f"{synthesis['total_sources_found']} sources, "
             f"{synthesis['content_extracted_from']} extractions"
         )
+        
+        # Create source relationships in EnhancedVectorStorage
+        if enhanced_storage_available and search_results.get("results"):
+            try:
+                storage = get_enhanced_storage()
+                if storage:
+                    # Get source IDs for top results
+                    source_ids = []
+                    for result in search_results.get("results", [])[:5]:
+                        source_data = await storage.get_source_by_url(result["url"])
+                        if source_data:
+                            source_ids.append(source_data["id"])
+                    
+                    # Calculate similarities between sources
+                    for source_id in source_ids:
+                        await storage.calculate_source_similarities(
+                            source_id=source_id,
+                            threshold=0.7,
+                            max_relationships=3
+                        )
+                    
+                    logger.info(f"Created similarity relationships for {len(source_ids)} sources")
+            except Exception as e:
+                logger.warning(f"Failed to create source relationships: {e}")
 
         return synthesis
 
