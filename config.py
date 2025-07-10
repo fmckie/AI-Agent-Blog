@@ -35,6 +35,33 @@ class Config(BaseSettings):
     )
     openai_api_key: str = Field(..., description="OpenAI API key for PydanticAI agents")
 
+    # OpenRouter Configuration (Optional - enables multi-model support)
+    # When configured, OpenRouter will be used instead of direct OpenAI API
+    openrouter_api_key: Optional[str] = Field(
+        default=None,
+        description="OpenRouter API key for multi-model support"
+    )
+    openrouter_research_model: str = Field(
+        default="anthropic/claude-3.5-sonnet",
+        description="OpenRouter model for research tasks"
+    )
+    openrouter_writer_model: str = Field(
+        default="openai/gpt-4o",
+        description="OpenRouter model for writing tasks"
+    )
+    openrouter_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        description="OpenRouter API base URL"
+    )
+    openrouter_site_url: Optional[str] = Field(
+        default=None,
+        description="Your site URL for OpenRouter analytics"
+    )
+    openrouter_app_name: str = Field(
+        default="SEO Content Automation",
+        description="App name for OpenRouter tracking"
+    )
+
     # LLM Configuration
     # Model selection for our PydanticAI agents
     llm_model: str = Field(
@@ -294,7 +321,7 @@ class Config(BaseSettings):
         # Return the path for use
         return path
 
-    @field_validator("tavily_api_key", "openai_api_key")
+    @field_validator("tavily_api_key", "openai_api_key", "openrouter_api_key")
     def validate_api_keys(cls, v: str, info) -> str:
         """
         Validate that API keys are not empty and have reasonable format.
@@ -309,6 +336,10 @@ class Config(BaseSettings):
         Raises:
             ValueError: If the API key is invalid
         """
+        # OpenRouter API key is optional, so None is valid
+        if info.field_name == "openrouter_api_key" and v is None:
+            return v
+            
         # Check if the key is empty or just whitespace
         if not v or not v.strip():
             raise ValueError(f"{info.field_name} cannot be empty")
@@ -449,6 +480,59 @@ class Config(BaseSettings):
             "diversity_check": self.diversity_check,
         }
 
+    @property
+    def use_openrouter(self) -> bool:
+        """
+        Check if OpenRouter is configured and should be used.
+
+        Returns:
+            True if OpenRouter API key is configured, False otherwise
+        """
+        return self.openrouter_api_key is not None
+
+    def get_openrouter_config(self) -> dict:
+        """
+        Get OpenRouter-specific configuration.
+
+        Returns:
+            Dictionary with OpenRouter configuration
+        """
+        if not self.use_openrouter:
+            return {}
+            
+        return {
+            "api_key": self.openrouter_api_key,
+            "base_url": self.openrouter_base_url,
+            "research_model": self.openrouter_research_model,
+            "writer_model": self.openrouter_writer_model,
+            "extra_headers": {
+                "HTTP-Referer": self.openrouter_site_url,
+                "X-Title": self.openrouter_app_name,
+            }
+        }
+
+    def get_model_for_task(self, task: str = "research") -> str:
+        """
+        Get the appropriate model name for a specific task.
+
+        Args:
+            task: The task type ("research" or "writer")
+
+        Returns:
+            Model name to use for the task
+        """
+        if self.use_openrouter:
+            if task == "research":
+                return self.openrouter_research_model
+            elif task == "writer":
+                return self.openrouter_writer_model
+            else:
+                # Default to research model for unknown tasks
+                return self.openrouter_research_model
+        else:
+            # Fallback to OpenAI model
+            return self.llm_model
+
 
 # Create a singleton instance of the configuration
 # This will be imported and used throughout the application
@@ -501,6 +585,12 @@ if __name__ == "__main__":
         print(f"\nAPI Keys:")
         print(f"  Tavily: {'✓' if config.tavily_api_key else '✗'} configured")
         print(f"  OpenAI: {'✓' if config.openai_api_key else '✗'} configured")
+        print(f"  OpenRouter: {'✓' if config.openrouter_api_key else '✗'} configured")
+        
+        if config.use_openrouter:
+            print(f"\nOpenRouter Models:")
+            print(f"  Research: {config.openrouter_research_model}")
+            print(f"  Writer: {config.openrouter_writer_model}")
 
     except Exception as e:
         print(f"\n❌ Failed to load configuration: {e}")

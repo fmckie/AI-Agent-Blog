@@ -13,6 +13,7 @@ from pydantic_ai import Agent, RunContext
 
 from config import Config
 from models import AcademicSource, ResearchFindings, TavilySearchResponse
+from model_factories.openrouter import create_openrouter_model
 from tools import extract_key_statistics
 
 from .prompts import RESEARCH_AGENT_SYSTEM_PROMPT
@@ -47,8 +48,27 @@ def create_research_agent(config: Config) -> Agent[None, ResearchFindings]:
     """
     # Create the agent with specific model and output type
     # Using enhanced prompt for advanced Tavily capabilities
+    
+    # Determine which model to use based on configuration
+    if config.use_openrouter:
+        # Use OpenRouter for multi-model support
+        logger.info(f"Using OpenRouter model: {config.get_model_for_task('research')}")
+        model = create_openrouter_model(
+            model_name=config.get_model_for_task("research"),
+            api_key=config.openrouter_api_key,
+            base_url=config.openrouter_base_url,
+            extra_headers={
+                "HTTP-Referer": config.openrouter_site_url,
+                "X-Title": config.openrouter_app_name,
+            } if config.openrouter_site_url else None
+        )
+    else:
+        # Fallback to direct OpenAI
+        logger.info(f"Using OpenAI model: {config.llm_model}")
+        model = f"openai:{config.llm_model}"
+    
     research_agent = Agent(
-        model=f"openai:{config.llm_model}",
+        model=model,
         output_type=ResearchFindings,
         system_prompt=ENHANCED_RESEARCH_AGENT_SYSTEM_PROMPT,
     )
