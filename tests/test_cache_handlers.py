@@ -31,12 +31,12 @@ class TestHandleCacheSearch:
         """Test successful search that finds matching results."""
         # Create mock configurations
         mock_rag_config = MagicMock()
-        
+
         # Create mock storage with async context manager
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         # Mock search results
         mock_storage.search_similar.return_value = [
             {
@@ -52,23 +52,25 @@ class TestHandleCacheSearch:
                 "created_at": "2024-01-14T15:45:00Z",
             },
         ]
-        
+
         # Create mock embeddings generator
         mock_embeddings = AsyncMock()
         mock_embedding_result = MagicMock()
         mock_embedding_result.embedding = [0.1, 0.2, 0.3]  # Mock embedding vector
         mock_embeddings.generate_embeddings.return_value = [mock_embedding_result]
-        
+
         # Mock console to capture output
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
-                with patch("rag.embeddings.EmbeddingGenerator", return_value=mock_embeddings):
+                with patch(
+                    "rag.embeddings.EmbeddingGenerator", return_value=mock_embeddings
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
                         # Execute the function
                         await handle_cache_search("diabetes", limit=10, threshold=0.5)
-        
+
         # Verify the flow
         mock_embeddings.generate_embeddings.assert_called_once_with(["diabetes"])
         mock_storage.search_similar.assert_called_once_with(
@@ -76,10 +78,12 @@ class TestHandleCacheSearch:
             limit=10,
             similarity_threshold=0.5,
         )
-        
+
         # Verify console output
         console_calls = mock_console.print.call_args_list
-        assert any("Searching cache for: 'diabetes'" in str(call) for call in console_calls)
+        assert any(
+            "Searching cache for: 'diabetes'" in str(call) for call in console_calls
+        )
         assert any("Found 2 matching results" in str(call) for call in console_calls)
         assert any("95.00%" in str(call) for call in console_calls)
         assert any("diabetes management" in str(call) for call in console_calls)
@@ -93,20 +97,24 @@ class TestHandleCacheSearch:
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
         mock_storage.search_similar.return_value = []  # No results
-        
+
         mock_embeddings = AsyncMock()
         mock_embedding_result = MagicMock()
         mock_embedding_result.embedding = [0.1, 0.2, 0.3]
         mock_embeddings.generate_embeddings.return_value = [mock_embedding_result]
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
-                with patch("rag.embeddings.EmbeddingGenerator", return_value=mock_embeddings):
+                with patch(
+                    "rag.embeddings.EmbeddingGenerator", return_value=mock_embeddings
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
-                        await handle_cache_search("obscure topic", limit=5, threshold=0.8)
-        
+                        await handle_cache_search(
+                            "obscure topic", limit=5, threshold=0.8
+                        )
+
         # Verify console output for no results
         console_calls = mock_console.print.call_args_list
         assert any("No matching results found" in str(call) for call in console_calls)
@@ -120,22 +128,26 @@ class TestHandleCacheSearch:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_embeddings = AsyncMock()
         mock_embeddings.generate_embeddings.return_value = []  # No embeddings generated
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
-                with patch("rag.embeddings.EmbeddingGenerator", return_value=mock_embeddings):
+                with patch(
+                    "rag.embeddings.EmbeddingGenerator", return_value=mock_embeddings
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
                         await handle_cache_search("test", limit=10, threshold=0.5)
-        
+
         # Should print error message
         console_calls = mock_console.print.call_args_list
-        assert any("Failed to generate embedding" in str(call) for call in console_calls)
-        
+        assert any(
+            "Failed to generate embedding" in str(call) for call in console_calls
+        )
+
         # Should not attempt to search
         mock_storage.search_similar.assert_not_called()
 
@@ -143,13 +155,16 @@ class TestHandleCacheSearch:
     async def test_search_exception_handling(self):
         """Test search handles exceptions properly."""
         mock_rag_config = MagicMock()
-        
+
         # Make VectorStorage raise an exception
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
-            with patch("cli.cache_handlers.VectorStorage", side_effect=Exception("Database connection failed")):
+            with patch(
+                "cli.cache_handlers.VectorStorage",
+                side_effect=Exception("Database connection failed"),
+            ):
                 with pytest.raises(Exit) as exc_info:
                     await handle_cache_search("test", limit=10, threshold=0.5)
-                
+
                 assert exc_info.value.exit_code == 1
 
 
@@ -163,7 +178,7 @@ class TestHandleCacheStats:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         # Mock cache statistics
         mock_storage.get_cache_stats.return_value = {
             "total_entries": 1500,
@@ -173,14 +188,14 @@ class TestHandleCacheStats:
             "oldest_entry": "2024-01-01T00:00:00Z",
             "newest_entry": "2024-01-20T12:00:00Z",
         }
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
                     await handle_cache_stats(detailed=False)
-        
+
         # Verify basic stats are displayed
         console_calls = mock_console.print.call_args_list
         assert any("Cache Statistics" in str(call) for call in console_calls)
@@ -196,7 +211,7 @@ class TestHandleCacheStats:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         # Mock cache statistics
         mock_storage.get_cache_stats.return_value = {
             "total_entries": 1500,
@@ -209,7 +224,7 @@ class TestHandleCacheStats:
             "cache_entries": 300,
             "total_embeddings": 1500,
         }
-        
+
         # Mock keyword distribution
         mock_storage.get_keyword_distribution.return_value = [
             ("diabetes management", 45),
@@ -218,28 +233,34 @@ class TestHandleCacheStats:
             ("keto diet", 28),
             ("intermittent fasting", 25),
         ]
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
                     await handle_cache_stats(detailed=True)
-        
+
         # Verify detailed stats are displayed
         console_calls = mock_console.print.call_args_list
-        
+
         # Debug: print all console calls to see what's happening
         print("\n=== Console Output ===")
         for call in console_calls:
             print(f"Call: {call}")
         print("=== End Console Output ===\n")
-        
+
         assert any("Detailed Breakdown" in str(call) for call in console_calls)
         assert any("Top 10 Cached Keywords" in str(call) for call in console_calls)
-        assert any("diabetes management" in str(call) and "45" in str(call) for call in console_calls)
+        assert any(
+            "diabetes management" in str(call) and "45" in str(call)
+            for call in console_calls
+        )
         assert any("Storage Details" in str(call) for call in console_calls)
-        assert any("Research chunks" in str(call) and "1,200" in str(call) for call in console_calls)
+        assert any(
+            "Research chunks" in str(call) and "1,200" in str(call)
+            for call in console_calls
+        )
 
     @pytest.mark.asyncio
     async def test_stats_with_retriever_statistics(self):
@@ -248,7 +269,7 @@ class TestHandleCacheStats:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.get_cache_stats.return_value = {
             "total_entries": 1000,
             "unique_keywords": 50,
@@ -257,7 +278,7 @@ class TestHandleCacheStats:
             "oldest_entry": None,
             "newest_entry": None,
         }
-        
+
         # Mock retriever statistics
         mock_retriever_stats = {
             "cache_requests": 100,
@@ -268,33 +289,49 @@ class TestHandleCacheStats:
             "hit_rate": 0.75,
             "avg_retrieval_time": 0.125,
         }
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
-                with patch("rag.retriever.ResearchRetriever.get_statistics", return_value=mock_retriever_stats):
+                with patch(
+                    "rag.retriever.ResearchRetriever.get_statistics",
+                    return_value=mock_retriever_stats,
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
                         await handle_cache_stats(detailed=False)
-        
+
         # Verify retriever stats are displayed
         console_calls = mock_console.print.call_args_list
         assert any("Cache Performance" in str(call) for call in console_calls)
-        assert any("Total requests" in str(call) and "100" in str(call) for call in console_calls)
-        assert any("Cache hits" in str(call) and "75" in str(call) for call in console_calls)
-        assert any("Hit rate" in str(call) and "75.0%" in str(call) for call in console_calls)
-        assert any("Estimated savings" in str(call) and "$3.00" in str(call) for call in console_calls)
+        assert any(
+            "Total requests" in str(call) and "100" in str(call)
+            for call in console_calls
+        )
+        assert any(
+            "Cache hits" in str(call) and "75" in str(call) for call in console_calls
+        )
+        assert any(
+            "Hit rate" in str(call) and "75.0%" in str(call) for call in console_calls
+        )
+        assert any(
+            "Estimated savings" in str(call) and "$3.00" in str(call)
+            for call in console_calls
+        )
 
     @pytest.mark.asyncio
     async def test_stats_exception_handling(self):
         """Test stats handles exceptions properly."""
         mock_rag_config = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
-            with patch("cli.cache_handlers.VectorStorage", side_effect=Exception("Storage error")):
+            with patch(
+                "cli.cache_handlers.VectorStorage",
+                side_effect=Exception("Storage error"),
+            ):
                 with pytest.raises(Exit) as exc_info:
                     await handle_cache_stats(detailed=False)
-                
+
                 assert exc_info.value.exit_code == 1
 
 
@@ -308,22 +345,30 @@ class TestHandleCacheClear:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.get_cache_stats.return_value = {"total_entries": 250}
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
-                    await handle_cache_clear(older_than=30, keyword=None, force=False, dry_run=True)
-        
+                    await handle_cache_clear(
+                        older_than=30, keyword=None, force=False, dry_run=True
+                    )
+
         # Verify dry run behavior
         console_calls = mock_console.print.call_args_list
-        assert any("Will clear entries older than 30 days" in str(call) for call in console_calls)
+        assert any(
+            "Will clear entries older than 30 days" in str(call)
+            for call in console_calls
+        )
         assert any("DRY RUN" in str(call) for call in console_calls)
-        assert any("Would clear approximately" in str(call) and "250" in str(call) for call in console_calls)
-        
+        assert any(
+            "Would clear approximately" in str(call) and "250" in str(call)
+            for call in console_calls
+        )
+
         # Should not actually cleanup
         mock_storage.cleanup_cache.assert_not_called()
 
@@ -334,26 +379,33 @@ class TestHandleCacheClear:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.cleanup_cache.return_value = 42  # Number of deleted entries
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
                     with patch("click.confirm", return_value=True):  # User confirms
-                        await handle_cache_clear(older_than=None, keyword="old topic", force=False, dry_run=False)
-        
+                        await handle_cache_clear(
+                            older_than=None,
+                            keyword="old topic",
+                            force=False,
+                            dry_run=False,
+                        )
+
         # Verify cleanup was called with correct parameters
         mock_storage.cleanup_cache.assert_called_once_with(
-            older_than_days=None,
-            keyword="old topic"
+            older_than_days=None, keyword="old topic"
         )
-        
+
         # Verify success message
         console_calls = mock_console.print.call_args_list
-        assert any("Will clear entries for keyword: 'old topic'" in str(call) for call in console_calls)
+        assert any(
+            "Will clear entries for keyword: 'old topic'" in str(call)
+            for call in console_calls
+        )
         assert any("Cleared 42 cache entries" in str(call) for call in console_calls)
 
     @pytest.mark.asyncio
@@ -363,26 +415,29 @@ class TestHandleCacheClear:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.cleanup_cache.return_value = 500
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
                     # Force=True should skip confirmation
-                    await handle_cache_clear(older_than=None, keyword=None, force=True, dry_run=False)
-        
+                    await handle_cache_clear(
+                        older_than=None, keyword=None, force=True, dry_run=False
+                    )
+
         # Verify cleanup was called
         mock_storage.cleanup_cache.assert_called_once_with(
-            older_than_days=None,
-            keyword=None
+            older_than_days=None, keyword=None
         )
-        
+
         # Verify warning message
         console_calls = mock_console.print.call_args_list
-        assert any("Will clear ALL cache entries!" in str(call) for call in console_calls)
+        assert any(
+            "Will clear ALL cache entries!" in str(call) for call in console_calls
+        )
         assert any("Cleared 500 cache entries" in str(call) for call in console_calls)
 
     @pytest.mark.asyncio
@@ -392,18 +447,20 @@ class TestHandleCacheClear:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
                     with patch("click.confirm", return_value=False):  # User cancels
-                        await handle_cache_clear(older_than=7, keyword=None, force=False, dry_run=False)
-        
+                        await handle_cache_clear(
+                            older_than=7, keyword=None, force=False, dry_run=False
+                        )
+
         # Should not cleanup when cancelled
         mock_storage.cleanup_cache.assert_not_called()
-        
+
         # Verify cancellation message
         console_calls = mock_console.print.call_args_list
         assert any("Cancelled" in str(call) for call in console_calls)
@@ -412,12 +469,17 @@ class TestHandleCacheClear:
     async def test_clear_exception_handling(self):
         """Test clear handles exceptions properly."""
         mock_rag_config = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
-            with patch("cli.cache_handlers.VectorStorage", side_effect=Exception("Cleanup failed")):
+            with patch(
+                "cli.cache_handlers.VectorStorage",
+                side_effect=Exception("Cleanup failed"),
+            ):
                 with pytest.raises(Exit) as exc_info:
-                    await handle_cache_clear(older_than=None, keyword=None, force=True, dry_run=False)
-                
+                    await handle_cache_clear(
+                        older_than=None, keyword=None, force=True, dry_run=False
+                    )
+
                 assert exc_info.value.exit_code == 1
 
 
@@ -430,30 +492,44 @@ class TestHandleCacheWarm:
         mock_config = MagicMock()
         mock_research_agent = MagicMock()
         mock_research_findings = MagicMock()
-        
+
         mock_console = MagicMock()
-        
+
         # Mock Progress to avoid issues with MagicMock timestamps
         mock_progress = MagicMock()
         mock_progress.__enter__ = MagicMock(return_value=mock_progress)
         mock_progress.__exit__ = MagicMock(return_value=None)
         mock_progress.add_task.return_value = 1  # task id
-        
+
         with patch("cli.cache_handlers.get_config", return_value=mock_config):
-            with patch("research_agent.create_research_agent", return_value=mock_research_agent):
-                with patch("research_agent.run_research_agent", return_value=mock_research_findings):
+            with patch(
+                "research_agent.create_research_agent", return_value=mock_research_agent
+            ):
+                with patch(
+                    "research_agent.run_research_agent",
+                    return_value=mock_research_findings,
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
-                        with patch("cli.cache_handlers.Progress", return_value=mock_progress):
-                            await handle_cache_warm("diabetes", variations=3, verbose=False)
-        
+                        with patch(
+                            "cli.cache_handlers.Progress", return_value=mock_progress
+                        ):
+                            await handle_cache_warm(
+                                "diabetes", variations=3, verbose=False
+                            )
+
         # Verify by checking console output since we can't easily count async calls
         # The console output will show "Successfully cached: 3/3"
-        
+
         # Verify console output
         console_calls = mock_console.print.call_args_list
-        assert any("Warming cache for topic: 'diabetes'" in str(call) for call in console_calls)
+        assert any(
+            "Warming cache for topic: 'diabetes'" in str(call) for call in console_calls
+        )
         # The success count message appears after the progress bar completes
-        assert any("Successfully cached:" in str(call) and "/3" in str(call) for call in console_calls)
+        assert any(
+            "Successfully cached:" in str(call) and "/3" in str(call)
+            for call in console_calls
+        )
 
     @pytest.mark.asyncio
     async def test_warm_with_custom_variations_verbose(self):
@@ -461,81 +537,110 @@ class TestHandleCacheWarm:
         mock_config = MagicMock()
         mock_research_agent = MagicMock()
         mock_research_findings = MagicMock()
-        
+
         mock_console = MagicMock()
-        
+
         # Track calls to run_research_agent
         research_calls = []
+
         async def mock_run_research(agent, keyword):
             research_calls.append(keyword)
             return mock_research_findings
-        
+
         # Mock Progress to avoid issues with MagicMock timestamps
         mock_progress = MagicMock()
         mock_progress.__enter__ = MagicMock(return_value=mock_progress)
         mock_progress.__exit__ = MagicMock(return_value=None)
         mock_progress.add_task.return_value = 1  # task id
-        
+
         with patch("cli.cache_handlers.get_config", return_value=mock_config):
-            with patch("research_agent.create_research_agent", return_value=mock_research_agent):
-                with patch("research_agent.run_research_agent", side_effect=mock_run_research):
+            with patch(
+                "research_agent.create_research_agent", return_value=mock_research_agent
+            ):
+                with patch(
+                    "research_agent.run_research_agent", side_effect=mock_run_research
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
-                        with patch("cli.cache_handlers.Progress", return_value=mock_progress):
-                            await handle_cache_warm("heart health", variations=5, verbose=True)
-        
+                        with patch(
+                            "cli.cache_handlers.Progress", return_value=mock_progress
+                        ):
+                            await handle_cache_warm(
+                                "heart health", variations=5, verbose=True
+                            )
+
         # Should research 5 keywords
         assert len(research_calls) == 5
         assert research_calls[0] == "heart health"
         assert "heart health benefits" in research_calls
         assert "heart health research" in research_calls
-        
+
         # Verify verbose output
         console_calls = mock_console.print.call_args_list
         assert any("Researching 'heart health'" in str(call) for call in console_calls)
-        assert any("✓ Cached research for 'heart health'" in str(call) for call in console_calls)
+        assert any(
+            "✓ Cached research for 'heart health'" in str(call)
+            for call in console_calls
+        )
 
     @pytest.mark.asyncio
     async def test_warm_partial_failure(self):
         """Test cache warming with some failures."""
         mock_config = MagicMock()
         mock_research_agent = MagicMock()
-        
+
         mock_console = MagicMock()
-        
+
         # Make some research calls fail
         call_count = 0
+
         async def mock_run_research(agent, keyword):
             nonlocal call_count
             call_count += 1
             if call_count == 2:  # Second call fails
                 raise Exception("API rate limit")
             return MagicMock()
-        
+
         # Mock Progress to avoid issues with MagicMock timestamps
         mock_progress = MagicMock()
         mock_progress.__enter__ = MagicMock(return_value=mock_progress)
         mock_progress.__exit__ = MagicMock(return_value=None)
         mock_progress.add_task.return_value = 1  # task id
-        
+
         with patch("cli.cache_handlers.get_config", return_value=mock_config):
-            with patch("research_agent.create_research_agent", return_value=mock_research_agent):
-                with patch("research_agent.run_research_agent", side_effect=mock_run_research):
+            with patch(
+                "research_agent.create_research_agent", return_value=mock_research_agent
+            ):
+                with patch(
+                    "research_agent.run_research_agent", side_effect=mock_run_research
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
-                        with patch("cli.cache_handlers.Progress", return_value=mock_progress):
-                            await handle_cache_warm("nutrition", variations=3, verbose=True)
-        
+                        with patch(
+                            "cli.cache_handlers.Progress", return_value=mock_progress
+                        ):
+                            await handle_cache_warm(
+                                "nutrition", variations=3, verbose=True
+                            )
+
         # Verify partial success message
         console_calls = mock_console.print.call_args_list
-        assert any("Successfully cached:" in str(call) and "/3" in str(call) for call in console_calls)
-        assert any("Failed to research" in str(call) and "API rate limit" in str(call) for call in console_calls)
+        assert any(
+            "Successfully cached:" in str(call) and "/3" in str(call)
+            for call in console_calls
+        )
+        assert any(
+            "Failed to research" in str(call) and "API rate limit" in str(call)
+            for call in console_calls
+        )
 
     @pytest.mark.asyncio
     async def test_warm_exception_handling(self):
         """Test warm handles exceptions properly."""
-        with patch("cli.cache_handlers.get_config", side_effect=Exception("Config error")):
+        with patch(
+            "cli.cache_handlers.get_config", side_effect=Exception("Config error")
+        ):
             with pytest.raises(Exit) as exc_info:
                 await handle_cache_warm("test", variations=3, verbose=False)
-            
+
             assert exc_info.value.exit_code == 1
 
 
@@ -549,21 +654,21 @@ class TestHandleExportCacheMetrics:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.get_cache_stats.return_value = {
             "total_entries": 1000,
             "unique_keywords": 50,
             "storage_bytes": 10485760,
             "created_at": datetime.now(timezone.utc),
         }
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
                     await handle_export_cache_metrics(format="json", output_path=None)
-        
+
         # Verify JSON output to console
         console_calls = mock_console.print.call_args_list
         assert len(console_calls) > 0
@@ -579,22 +684,24 @@ class TestHandleExportCacheMetrics:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.get_cache_stats.return_value = {
             "total_entries": 1000,
             "unique_keywords": 50,
             "storage_bytes": 10485760,
             "avg_chunk_size": 300,
         }
-        
+
         output_file = tmp_path / "metrics.csv"
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
-                    await handle_export_cache_metrics(format="csv", output_path=output_file)
-        
+                    await handle_export_cache_metrics(
+                        format="csv", output_path=output_file
+                    )
+
         # Verify file was created with CSV content
         assert output_file.exists()
         content = output_file.read_text()
@@ -602,10 +709,13 @@ class TestHandleExportCacheMetrics:
         assert "total_entries,1000" in content
         assert "unique_keywords,50" in content
         assert "storage_bytes,10485760" in content
-        
+
         # Verify success message
         console_calls = mock_console.print.call_args_list
-        assert any("Metrics exported to" in str(call) and str(output_file) in str(call) for call in console_calls)
+        assert any(
+            "Metrics exported to" in str(call) and str(output_file) in str(call)
+            for call in console_calls
+        )
 
     @pytest.mark.asyncio
     async def test_export_prometheus_format(self):
@@ -614,7 +724,7 @@ class TestHandleExportCacheMetrics:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.get_cache_stats.return_value = {
             "total_entries": 1000,
             "unique_keywords": 50,
@@ -622,14 +732,16 @@ class TestHandleExportCacheMetrics:
             "hit_rate": 0.75,
             "oldest_entry": "2024-01-01",  # String should be skipped
         }
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with patch("cli.cache_handlers.console", mock_console):
-                    await handle_export_cache_metrics(format="prometheus", output_path=None)
-        
+                    await handle_export_cache_metrics(
+                        format="prometheus", output_path=None
+                    )
+
         # Verify Prometheus format output
         console_calls = mock_console.print.call_args_list
         prometheus_output = str(console_calls[-1])
@@ -647,26 +759,31 @@ class TestHandleExportCacheMetrics:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.get_cache_stats.return_value = {
             "total_entries": 500,
             "storage_bytes": 5242880,
         }
-        
+
         mock_retriever_stats = {
             "cache_requests": 100,
             "cache_hits": 80,
             "hit_rate": 0.8,
         }
-        
+
         mock_console = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
-                with patch("rag.retriever.ResearchRetriever.get_statistics", return_value=mock_retriever_stats):
+                with patch(
+                    "rag.retriever.ResearchRetriever.get_statistics",
+                    return_value=mock_retriever_stats,
+                ):
                     with patch("cli.cache_handlers.console", mock_console):
-                        await handle_export_cache_metrics(format="json", output_path=None)
-        
+                        await handle_export_cache_metrics(
+                            format="json", output_path=None
+                        )
+
         # Verify combined stats in output
         console_calls = mock_console.print.call_args_list
         json_output = str(console_calls[-1])
@@ -681,26 +798,29 @@ class TestHandleExportCacheMetrics:
         mock_storage = AsyncMock()
         mock_storage.__aenter__.return_value = mock_storage
         mock_storage.__aexit__.return_value = None
-        
+
         mock_storage.get_cache_stats.return_value = {"total_entries": 100}
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
             with patch("cli.cache_handlers.VectorStorage", return_value=mock_storage):
                 with pytest.raises(Exit) as exc_info:
                     await handle_export_cache_metrics(format="xml", output_path=None)
-                
+
                 assert exc_info.value.exit_code == 1
 
     @pytest.mark.asyncio
     async def test_export_exception_handling(self):
         """Test export handles exceptions properly."""
         mock_rag_config = MagicMock()
-        
+
         with patch("cli.cache_handlers.get_rag_config", return_value=mock_rag_config):
-            with patch("cli.cache_handlers.VectorStorage", side_effect=Exception("Export failed")):
+            with patch(
+                "cli.cache_handlers.VectorStorage",
+                side_effect=Exception("Export failed"),
+            ):
                 with pytest.raises(Exit) as exc_info:
                     await handle_export_cache_metrics(format="json", output_path=None)
-                
+
                 assert exc_info.value.exit_code == 1
 
 

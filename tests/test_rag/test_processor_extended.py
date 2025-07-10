@@ -41,11 +41,11 @@ class TestTextProcessorExtended:
         # Empty string
         chunks = processor_with_small_chunks.chunk_text("")
         assert chunks == []
-        
+
         # Only whitespace
         chunks = processor_with_small_chunks.chunk_text("   \n\t   ")
         assert chunks == []
-        
+
         # String shorter than min_chunk_size
         chunks = processor_with_small_chunks.chunk_text("Hi")
         assert chunks == []
@@ -54,7 +54,7 @@ class TestTextProcessorExtended:
         """Test chunking with single-word sentences."""
         text = "Yes. No. Maybe. Perhaps. Indeed. Certainly. Absolutely."
         chunks = processor_with_small_chunks.chunk_text(text)
-        
+
         assert len(chunks) > 0
         # Each chunk should contain at least one complete word
         for chunk in chunks:
@@ -66,7 +66,7 @@ class TestTextProcessorExtended:
         """Test chunking with special characters and symbols."""
         text = "Price: $99.99! Discount: 50% off. Email: test@example.com. Phone: +1-555-0123."
         chunks = processor_with_small_chunks.chunk_text(text)
-        
+
         # Verify special characters are preserved
         all_content = " ".join(chunk.content for chunk in chunks)
         assert "$99.99" in all_content
@@ -78,7 +78,7 @@ class TestTextProcessorExtended:
         """Test chunking with Unicode characters."""
         text = "Testing émojis 🎉 and açcénts. Chinese: 你好. Arabic: مرحبا. Math: ∑∏∫."
         chunks = processor_with_small_chunks.chunk_text(text)
-        
+
         # Verify Unicode is preserved
         all_content = " ".join(chunk.content for chunk in chunks)
         assert "🎉" in all_content
@@ -89,11 +89,11 @@ class TestTextProcessorExtended:
     def test_chunk_text_extreme_overlap(self, processor_with_large_overlap):
         """Test behavior when overlap exceeds chunk size."""
         text = "This is a test sentence. Another sentence here. And one more sentence."
-        
+
         # Should handle gracefully even with invalid overlap
         chunks = processor_with_large_overlap.chunk_text(text)
         assert len(chunks) > 0
-        
+
         # Chunks should still be created despite configuration issue
         for chunk in chunks:
             assert len(chunk.content) > 0
@@ -105,18 +105,18 @@ class TestTextProcessorExtended:
             "source": "test_document",
             "author": "Test Author",
             "tags": ["test", "sample"],
-            "custom_field": {"nested": "value"}
+            "custom_field": {"nested": "value"},
         }
-        
+
         chunks = processor_with_small_chunks.chunk_text(text, metadata=custom_metadata)
-        
+
         for chunk in chunks:
             # Original metadata should be present
             assert chunk.metadata["source"] == "test_document"
             assert chunk.metadata["author"] == "Test Author"
             assert chunk.metadata["tags"] == ["test", "sample"]
             assert chunk.metadata["custom_field"]["nested"] == "value"
-            
+
             # Auto-generated metadata should also be present
             assert "chunk_index" in chunk.metadata
             assert "total_chunks" in chunk.metadata
@@ -132,7 +132,7 @@ class TestTextProcessorExtended:
         assert "  " not in normalized
         assert "\t\t" not in normalized
         assert "\n\n" not in normalized
-        
+
         # URLs should be handled
         text = "Visit https://example.com/very/long/path?param=value&other=123 for info"
         normalized = processor_with_small_chunks._normalize_text(text)
@@ -147,7 +147,7 @@ class TestTextProcessorExtended:
         # Should handle abbreviations correctly
         assert any("Dr. Smith" in s for s in sentences)
         assert any("3.14" in s for s in sentences)
-        
+
         # Multiple punctuation
         text = "Really?! That's amazing!!! But wait... there's more."
         sentences = processor_with_small_chunks._split_sentences(text)
@@ -158,11 +158,11 @@ class TestTextProcessorExtended:
         # Very long sentence that exceeds chunk size
         long_sentence = "This is a very " + "long " * 50 + "sentence."
         sentences = [long_sentence]
-        
+
         chunks = processor_with_small_chunks._create_chunks_from_sentences(sentences)
         # Should split long sentence into multiple chunks
         assert len(chunks) > 1
-        
+
         # Verify all content is preserved
         all_content = " ".join(chunks)
         assert "This is a very" in all_content
@@ -197,7 +197,7 @@ class TestTextProcessorWithResearchFindings:
             )
             for i in range(1, 6)
         ]
-        
+
         return ResearchFindings(
             keyword="complex medical research",
             research_summary="A comprehensive meta-analysis of multiple studies showing consistent improvements.",
@@ -222,28 +222,30 @@ class TestTextProcessorWithResearchFindings:
             source_diversity_score=0.92,
         )
 
-    def test_process_research_findings_comprehensive(self, processor, complex_research_findings):
+    def test_process_research_findings_comprehensive(
+        self, processor, complex_research_findings
+    ):
         """Test comprehensive processing of complex research findings."""
         chunks = processor.process_research_findings(complex_research_findings)
-        
+
         # Should create multiple chunks
         assert len(chunks) > 0
-        
+
         # Verify all important information is captured
         all_content = " ".join(chunk.content for chunk in chunks)
-        
+
         # Check summary is included
         assert "meta-analysis" in all_content
-        
+
         # Check statistics are included
         assert "45%" in all_content
         assert "p<0.001" in all_content
         assert "n=10,000" in all_content
-        
+
         # Check sources are referenced
         for i in range(1, 6):
             assert f"Research Paper {i}" in all_content
-        
+
         # Check metadata
         for chunk in chunks:
             assert chunk.metadata["type"] == "research_findings"
@@ -258,28 +260,30 @@ class TestTextProcessorWithResearchFindings:
             keyword="minimal test",
             research_summary="Basic summary",
             academic_sources=[],  # Empty sources
-            key_statistics=[],    # Empty statistics
-            research_gaps=[],     # Empty gaps
+            key_statistics=[],  # Empty statistics
+            research_gaps=[],  # Empty gaps
             main_findings=["One finding"],
         )
-        
+
         chunks = processor.process_research_findings(minimal_findings)
-        
+
         # Should still process successfully
         assert len(chunks) > 0
         assert chunks[0].metadata["keyword"] == "minimal test"
 
     def test_chunk_overlap_consistency(self, processor):
         """Test that overlapping chunks maintain consistency."""
-        text = "Sentence one. Sentence two. Sentence three. Sentence four. Sentence five."
+        text = (
+            "Sentence one. Sentence two. Sentence three. Sentence four. Sentence five."
+        )
         chunks = processor.chunk_text(text)
-        
+
         if len(chunks) > 1:
             # Check that overlapping content matches
             for i in range(len(chunks) - 1):
-                chunk1_end = chunks[i].content[-processor.chunk_overlap:]
-                chunk2_start = chunks[i + 1].content[:processor.chunk_overlap]
-                
+                chunk1_end = chunks[i].content[-processor.chunk_overlap :]
+                chunk2_start = chunks[i + 1].content[: processor.chunk_overlap]
+
                 # There should be some overlap between consecutive chunks
                 # (exact matching might not work due to sentence boundaries)
                 assert len(chunk1_end) > 0 and len(chunk2_start) > 0
@@ -298,11 +302,11 @@ class TestTextChunkMethods:
                 "list": [1, 2, 3],
             },
             chunk_index=0,
-            source_id="source-123"
+            source_id="source-123",
         )
-        
+
         result = chunk.to_dict()
-        
+
         assert result["content"] == "Test content"
         assert result["metadata"]["source"] == "test"
         assert result["metadata"]["custom"]["nested"] == "value"
@@ -312,13 +316,8 @@ class TestTextChunkMethods:
 
     def test_text_chunk_to_dict_none_source_id(self):
         """Test TextChunk.to_dict() with None source_id."""
-        chunk = TextChunk(
-            content="Test",
-            metadata={},
-            chunk_index=0,
-            source_id=None
-        )
-        
+        chunk = TextChunk(content="Test", metadata={}, chunk_index=0, source_id=None)
+
         result = chunk.to_dict()
         assert result["source_id"] is None
 
@@ -341,7 +340,7 @@ class TestTextProcessorErrorHandling:
         config.chunk_size = -10  # Invalid
         config.chunk_overlap = 20
         config.min_chunk_size = 10
-        
+
         # Should handle gracefully or raise appropriate error
         processor = TextProcessor(config)
         # Processor should still be created, but might use defaults
@@ -352,23 +351,23 @@ class TestTextProcessorErrorHandling:
         # Text with only punctuation
         chunks = processor.chunk_text("...")
         assert len(chunks) == 0 or all(len(c.content.strip()) > 0 for c in chunks)
-        
+
         # Text with control characters
         text_with_control = "Normal text\x00\x01\x02 with control chars"
         chunks = processor.chunk_text(text_with_control)
         # Should process without crashing
         assert isinstance(chunks, list)
 
-    @patch('rag.processor.datetime')
+    @patch("rag.processor.datetime")
     def test_chunk_metadata_timestamp(self, mock_datetime, processor):
         """Test that chunks have consistent timestamps."""
         # Mock datetime to return consistent time
         mock_now = datetime(2024, 1, 20, 12, 0, 0, tzinfo=timezone.utc)
         mock_datetime.utcnow.return_value = mock_now
-        
+
         text = "First chunk. Second chunk. Third chunk."
         chunks = processor.chunk_text(text)
-        
+
         # All chunks should have the same timestamp
         timestamps = [chunk.metadata["processed_at"] for chunk in chunks]
         assert all(ts == mock_now.isoformat() for ts in timestamps)
@@ -390,12 +389,12 @@ class TestTextProcessorPerformance:
         """Test processing of large text documents."""
         # Create a large text (10,000 words)
         large_text = " ".join([f"Sentence number {i}." for i in range(2000)])
-        
+
         chunks = processor.chunk_text(large_text)
-        
+
         # Should create multiple chunks
         assert len(chunks) > 10
-        
+
         # Verify all chunks have proper metadata
         for i, chunk in enumerate(chunks):
             assert chunk.chunk_index == i
@@ -405,10 +404,10 @@ class TestTextProcessorPerformance:
     def test_regex_pattern_caching(self, processor):
         """Test that regex patterns are properly cached."""
         # Access compiled patterns
-        assert hasattr(processor, '_sentence_endings')
-        assert hasattr(processor, '_whitespace')
-        assert hasattr(processor, '_url_pattern')
-        
+        assert hasattr(processor, "_sentence_endings")
+        assert hasattr(processor, "_whitespace")
+        assert hasattr(processor, "_url_pattern")
+
         # Patterns should be compiled regex objects
         assert isinstance(processor._sentence_endings, re.Pattern)
         assert isinstance(processor._whitespace, re.Pattern)
@@ -427,7 +426,7 @@ class TestTextProcessorIntegration:
         config.chunk_overlap = 50
         config.min_chunk_size = 100
         processor = TextProcessor(config)
-        
+
         # Create realistic research findings
         source = AcademicSource(
             title="Breakthrough Study on Disease Treatment",
@@ -439,23 +438,27 @@ class TestTextProcessorIntegration:
             publication_date="2024-01-15",
             journal_name="Medical Research Quarterly",
         )
-        
+
         findings = ResearchFindings(
             keyword="innovative disease treatment",
             research_summary="Multiple studies confirm the effectiveness of the new treatment approach.",
             academic_sources=[source],
-            key_statistics=["67% improvement rate", "p-value < 0.001", "n=500 patients"],
+            key_statistics=[
+                "67% improvement rate",
+                "p-value < 0.001",
+                "n=500 patients",
+            ],
             research_gaps=["Long-term effects need study"],
             main_findings=["Treatment is highly effective", "Minimal side effects"],
             research_quality_score=0.92,
         )
-        
+
         # Process the findings
         chunks = processor.process_research_findings(findings)
-        
+
         # Verify complete processing
         assert len(chunks) > 0
-        
+
         # Check first chunk has all required fields
         first_chunk = chunks[0]
         assert first_chunk.content

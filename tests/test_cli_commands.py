@@ -192,10 +192,12 @@ class TestCLICommands:
 
     @patch("main.get_config")
     @patch("main.asyncio.run")
-    def test_generate_verbose_quiet_conflict(self, mock_async_run, mock_get_config, runner, mock_config):
+    def test_generate_verbose_quiet_conflict(
+        self, mock_async_run, mock_get_config, runner, mock_config
+    ):
         """Test handling of conflicting verbose and quiet flags."""
         mock_get_config.return_value = mock_config
-        
+
         result = runner.invoke(generate, ["test keyword", "--verbose", "--quiet"])
         assert result.exit_code == 2  # Click should error on conflicting flags
         assert "Error" in result.output
@@ -231,7 +233,9 @@ class TestCLICommands:
 
     @patch("main.get_config")
     @patch("pathlib.Path.glob")
-    def test_cleanup_command_dry_run(self, mock_glob, mock_get_config, runner, mock_config):
+    def test_cleanup_command_dry_run(
+        self, mock_glob, mock_get_config, runner, mock_config
+    ):
         """Test cleanup command in dry run mode."""
         mock_get_config.return_value = mock_config
 

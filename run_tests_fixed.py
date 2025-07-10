@@ -16,6 +16,7 @@ import argparse
 # Colors for terminal output
 class Colors:
     """ANSI color codes for terminal output."""
+
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
@@ -54,6 +55,7 @@ def check_xdist_installed() -> bool:
     """Check if pytest-xdist is installed."""
     try:
         import xdist
+
         return True
     except ImportError:
         return False
@@ -63,25 +65,42 @@ def main():
     """Run all tests and generate reports."""
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Run test suite with various options")
-    parser.add_argument("--full", action="store_true", 
-                       help="Run full test suite including integration tests")
-    parser.add_argument("--unit-only", action="store_true", 
-                       help="Run only unit tests (fast)")
-    parser.add_argument("--no-cov", action="store_true", 
-                       help="Skip coverage reporting for faster execution")
-    parser.add_argument("--parallel", dest="parallel", action="store_true",
-                       help="Run tests in parallel (requires pytest-xdist)")
-    parser.add_argument("--no-parallel", dest="parallel", action="store_false",
-                       help="Disable parallel execution")
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Run full test suite including integration tests",
+    )
+    parser.add_argument(
+        "--unit-only", action="store_true", help="Run only unit tests (fast)"
+    )
+    parser.add_argument(
+        "--no-cov",
+        action="store_true",
+        help="Skip coverage reporting for faster execution",
+    )
+    parser.add_argument(
+        "--parallel",
+        dest="parallel",
+        action="store_true",
+        help="Run tests in parallel (requires pytest-xdist)",
+    )
+    parser.add_argument(
+        "--no-parallel",
+        dest="parallel",
+        action="store_false",
+        help="Disable parallel execution",
+    )
     parser.set_defaults(parallel=True)
-    parser.add_argument("--profile", action="store_true",
-                       help="Show test duration profiling")
-    parser.add_argument("--failed-first", action="store_true",
-                       help="Run previously failed tests first")
+    parser.add_argument(
+        "--profile", action="store_true", help="Show test duration profiling"
+    )
+    parser.add_argument(
+        "--failed-first", action="store_true", help="Run previously failed tests first"
+    )
     args = parser.parse_args()
-    
+
     start_time = time.time()
-    
+
     print_header("SEO Content Automation Test Suite")
 
     # Change to project directory
@@ -101,7 +120,7 @@ def main():
 
     # Build pytest command
     pytest_cmd = ["pytest", "tests/", "-v"]
-    
+
     # Add markers based on mode
     if args.unit_only:
         pytest_cmd.extend(["-m", "not integration and not slow"])
@@ -111,7 +130,7 @@ def main():
         print_header("Running Standard Test Suite (No Slow Tests)")
     else:
         print_header("Running Full Test Suite (Including Integration)")
-    
+
     # Add parallel execution if requested and available
     has_xdist = check_xdist_installed()
     if args.parallel and has_xdist:
@@ -121,43 +140,48 @@ def main():
     elif args.parallel and not has_xdist:
         print_status("pytest-xdist not installed, running sequentially", "warning")
         print_status("Install with: pip install pytest-xdist", "info")
-    
+
     # Add coverage unless disabled
     if not args.no_cov:
-        pytest_cmd.extend([
-            "--cov=.",
-            "--cov-report=term-missing:skip-covered",
-            "--cov-report=html",
-        ])
-    
+        pytest_cmd.extend(
+            [
+                "--cov=.",
+                "--cov-report=term-missing:skip-covered",
+                "--cov-report=html",
+            ]
+        )
+
     # Add test profiling if requested
     if args.profile:
         pytest_cmd.extend(["--durations=10"])
-    
+
     # Add failed-first if requested
     if args.failed_first:
         pytest_cmd.extend(["--lf", "--ff"])
-    
+
     # Add some performance optimizations
-    pytest_cmd.extend([
-        "--tb=short",
-        "-r", "fEsxX",  # Show extra test summary info
-    ])
-    
+    pytest_cmd.extend(
+        [
+            "--tb=short",
+            "-r",
+            "fEsxX",  # Show extra test summary info
+        ]
+    )
+
     # Run the tests
     print_status(f"Running command: {' '.join(pytest_cmd)}", "info")
     print()
-    
+
     try:
         result = subprocess.run(pytest_cmd, check=False)
-        all_passed = (result.returncode == 0)
+        all_passed = result.returncode == 0
     except KeyboardInterrupt:
         print_status("\nTest run interrupted by user", "warning")
         return 130
     except Exception as e:
         print_status(f"Error running tests: {e}", "error")
         return 1
-    
+
     # Final report
     print_header("Final Summary")
 
@@ -171,9 +195,9 @@ def main():
     total_time = time.time() - start_time
     minutes = int(total_time // 60)
     seconds = total_time % 60
-    
+
     print_status(f"Total execution time: {minutes}m {seconds:.1f}s", "info")
-    
+
     # Provide optimization tips
     if total_time > 300:  # More than 5 minutes
         print()
@@ -183,7 +207,7 @@ def main():
         print_status("  • Use --failed-first to run failed tests first", "info")
         if not has_xdist:
             print_status("  • Install pytest-xdist for parallel execution", "info")
-    
+
     if all_passed:
         print_status("All tests passed! ✨", "success")
         return 0

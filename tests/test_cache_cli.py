@@ -48,6 +48,7 @@ class TestCacheSearch:
         async def mock_search(query, limit, threshold):
             # Simulate the output from handle_cache_search
             from rich.console import Console
+
             console = Console()
             console.print(f"\n[bold blue]🔍 Searching cache for: '{query}'[/bold blue]")
             console.print(f"\n[green]Found 1 matching results:[/green]\n")
@@ -90,10 +91,13 @@ class TestCacheSearch:
         # Mock the async handler function
         async def mock_search(query, limit, threshold):
             from rich.console import Console
+
             console = Console()
             console.print(f"\n[bold blue]🔍 Searching cache for: '{query}'[/bold blue]")
             console.print("[yellow]No matching results found in cache.[/yellow]")
-            console.print(f"[dim]Try lowering the threshold (current: {threshold})[/dim]")
+            console.print(
+                f"[dim]Try lowering the threshold (current: {threshold})[/dim]"
+            )
 
         with patch("main.handle_cache_search", new=mock_search):
             # Run the command
@@ -123,10 +127,13 @@ class TestCacheSearch:
             called_with["limit"] = limit
             called_with["threshold"] = threshold
             from rich.console import Console
+
             console = Console()
             console.print(f"\n[bold blue]🔍 Searching cache for: '{query}'[/bold blue]")
             console.print("[yellow]No matching results found in cache.[/yellow]")
-            console.print(f"[dim]Try lowering the threshold (current: {threshold})[/dim]")
+            console.print(
+                f"[dim]Try lowering the threshold (current: {threshold})[/dim]"
+            )
 
         with patch("main.handle_cache_search", new=mock_search):
             # Run with custom limit and threshold
@@ -152,6 +159,7 @@ class TestCacheStats:
         # Mock the async handler function
         async def mock_stats(detailed):
             from rich.console import Console
+
             console = Console()
             console.print("\n[bold]📊 Cache Statistics[/bold]\n")
             console.print("Total cached entries: [cyan]100[/cyan]")
@@ -179,6 +187,7 @@ class TestCacheStats:
         # Mock the async handler function
         async def mock_stats(detailed):
             from rich.console import Console
+
             console = Console()
             console.print("\n[bold]📊 Cache Statistics[/bold]\n")
             console.print("Total cached entries: [cyan]100[/cyan]")
@@ -187,7 +196,7 @@ class TestCacheStats:
             console.print("Average chunk size: [cyan]500 chars[/cyan]")
             console.print("Oldest entry: [dim]2024-01-01T00:00:00Z[/dim]")
             console.print("Newest entry: [dim]2024-01-10T00:00:00Z[/dim]")
-            
+
             if detailed:
                 console.print(f"\n[bold]Detailed Breakdown:[/bold]")
                 console.print("\n[yellow]Top 10 Cached Keywords:[/yellow]")
@@ -222,8 +231,11 @@ class TestCacheClear:
         # Mock the async handler function
         async def mock_clear(older_than, keyword, force, dry_run):
             from rich.console import Console
+
             console = Console()
-            console.print(f"\n[yellow]Will clear entries older than {older_than} days[/yellow]")
+            console.print(
+                f"\n[yellow]Will clear entries older than {older_than} days[/yellow]"
+            )
             console.print("[dim]DRY RUN - No entries will be deleted[/dim]")
             console.print("\nWould clear approximately [cyan]50[/cyan] entries")
 
@@ -244,8 +256,11 @@ class TestCacheClear:
         async def mock_clear(older_than, keyword, force, dry_run):
             from rich.console import Console
             import click
+
             console = Console()
-            console.print(f"\n[yellow]Will clear entries older than {older_than} days[/yellow]")
+            console.print(
+                f"\n[yellow]Will clear entries older than {older_than} days[/yellow]"
+            )
             if not force:
                 if not click.confirm("\nAre you sure you want to proceed?"):
                     console.print("[yellow]Cancelled.[/yellow]")
@@ -270,6 +285,7 @@ class TestCacheClear:
         # Mock the async handler function
         async def mock_clear(older_than, keyword, force, dry_run):
             from rich.console import Console
+
             console = Console()
             console.print("\n[red]Will clear ALL cache entries![/red]")
             # No confirmation since force=True

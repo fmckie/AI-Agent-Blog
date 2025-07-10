@@ -413,8 +413,9 @@ class TestWriterAgentIntegration:
     @pytest.mark.asyncio
     @pytest.mark.integration
     @pytest.mark.skipif(
-        os.getenv("OPENAI_API_KEY", "").startswith("sk-test") or not os.getenv("OPENAI_API_KEY"),
-        reason="Real API keys required for integration test"
+        os.getenv("OPENAI_API_KEY", "").startswith("sk-test")
+        or not os.getenv("OPENAI_API_KEY"),
+        reason="Real API keys required for integration test",
     )
     async def test_writer_agent_with_real_api(
         self, test_config, mock_research_findings

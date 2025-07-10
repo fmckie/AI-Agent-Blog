@@ -520,15 +520,17 @@ class TavilySearchResponse(BaseModel):
 class ExtractedContent(BaseModel):
     """
     Represents fully extracted content from a URL.
-    
+
     This model stores complete article/page content extracted
     using Tavily's extract API for deep analysis.
     """
-    
+
     url: str = Field(..., description="Source URL")
     title: Optional[str] = Field(None, description="Page title")
     raw_content: str = Field(..., description="Full extracted content")
-    content_length: int = Field(..., ge=0, description="Length of content in characters")
+    content_length: int = Field(
+        ..., ge=0, description="Length of content in characters"
+    )
     extraction_timestamp: datetime = Field(
         default_factory=datetime.now, description="When content was extracted"
     )
@@ -538,20 +540,24 @@ class ExtractedContent(BaseModel):
     error_message: Optional[str] = Field(
         None, description="Error message if extraction failed"
     )
-    
+
     def get_preview(self, length: int = 500) -> str:
         """Get a preview of the content."""
-        return self.raw_content[:length] + "..." if len(self.raw_content) > length else self.raw_content
+        return (
+            self.raw_content[:length] + "..."
+            if len(self.raw_content) > length
+            else self.raw_content
+        )
 
 
 class CrawledPage(BaseModel):
     """
     Represents a single page discovered during website crawling.
-    
+
     This model captures pages found while crawling a domain
     for comprehensive research coverage.
     """
-    
+
     url: str = Field(..., description="Page URL")
     title: Optional[str] = Field(None, description="Page title")
     content_preview: str = Field(
@@ -562,21 +568,21 @@ class CrawledPage(BaseModel):
     )
     crawl_depth: int = Field(..., ge=0, description="Depth from initial URL")
     parent_url: Optional[str] = Field(None, description="URL that linked to this page")
-    
+
 
 class DomainAnalysis(BaseModel):
     """
     Represents analysis of a website's structure.
-    
+
     This model captures insights about a domain's organization
     and identifies valuable sections for research.
     """
-    
+
     base_url: str = Field(..., description="Base domain URL analyzed")
     total_links: int = Field(..., ge=0, description="Total links found")
     categorized_links: Dict[str, List[str]] = Field(
         default_factory=dict,
-        description="Links categorized by type (research, publications, etc.)"
+        description="Links categorized by type (research, publications, etc.)",
     )
     insights: List[str] = Field(
         default_factory=list, description="Key insights about the domain"
@@ -592,11 +598,11 @@ class DomainAnalysis(BaseModel):
 class EnhancedResearchFindings(ResearchFindings):
     """
     Extended research findings with full content and crawl data.
-    
+
     This model extends the base ResearchFindings with additional
     data from extract, crawl, and domain analysis operations.
     """
-    
+
     # Additional fields for enhanced research
     extracted_content: Optional[List[ExtractedContent]] = Field(
         default=None, description="Full content extracted from top sources"
@@ -607,7 +613,7 @@ class EnhancedResearchFindings(ResearchFindings):
     domain_analyses: Optional[List[DomainAnalysis]] = Field(
         default=None, description="Structural analyses of key domains"
     )
-    
+
     # Enhanced metadata
     research_depth: Literal["basic", "standard", "comprehensive"] = Field(
         default="standard", description="Depth of research conducted"
@@ -616,14 +622,16 @@ class EnhancedResearchFindings(ResearchFindings):
         default_factory=list, description="List of tools used in research"
     )
     confidence_score: float = Field(
-        default=0.0, ge=0.0, le=1.0, 
-        description="Confidence in research completeness (0-1)"
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Confidence in research completeness (0-1)",
     )
-    
+
     def get_comprehensive_summary(self) -> str:
         """
         Generate a comprehensive summary including all research methods.
-        
+
         Returns:
             Detailed markdown summary of all findings
         """
@@ -633,26 +641,32 @@ class EnhancedResearchFindings(ResearchFindings):
             f"**Confidence Score**: {self.confidence_score:.2f}",
             f"\n## Executive Summary\n{self.research_summary}",
         ]
-        
+
         # Add search findings
         md_lines.append("\n## Search Results")
         md_lines.append(f"- Found {self.total_sources_analyzed} sources")
-        md_lines.append(f"- High-credibility sources: {len([s for s in self.academic_sources if s.credibility_score > 0.7])}")
-        
+        md_lines.append(
+            f"- High-credibility sources: {len([s for s in self.academic_sources if s.credibility_score > 0.7])}"
+        )
+
         # Add extracted content summary
         if self.extracted_content:
             md_lines.append(f"\n## Extracted Full Content")
-            md_lines.append(f"- Extracted content from {len(self.extracted_content)} sources")
+            md_lines.append(
+                f"- Extracted content from {len(self.extracted_content)} sources"
+            )
             total_content = sum(ec.content_length for ec in self.extracted_content)
             md_lines.append(f"- Total content analyzed: {total_content:,} characters")
-        
+
         # Add crawl summary
         if self.crawled_pages:
             md_lines.append(f"\n## Domain Crawling")
             md_lines.append(f"- Discovered {len(self.crawled_pages)} relevant pages")
-            avg_relevance = sum(p.relevance_score for p in self.crawled_pages) / len(self.crawled_pages)
+            avg_relevance = sum(p.relevance_score for p in self.crawled_pages) / len(
+                self.crawled_pages
+            )
             md_lines.append(f"- Average relevance score: {avg_relevance:.2f}")
-        
+
         # Add domain analysis
         if self.domain_analyses:
             md_lines.append(f"\n## Domain Structure Analysis")
@@ -660,23 +674,23 @@ class EnhancedResearchFindings(ResearchFindings):
                 md_lines.append(f"\n### {analysis.base_url}")
                 for insight in analysis.insights:
                     md_lines.append(f"- {insight}")
-        
+
         # Add main findings and statistics
         if self.main_findings:
             md_lines.append("\n## Key Findings")
             for finding in self.main_findings:
                 md_lines.append(f"- {finding}")
-        
+
         if self.key_statistics:
             md_lines.append("\n## Statistical Highlights")
             for stat in self.key_statistics:
                 md_lines.append(f"- {stat}")
-        
+
         # Add tools used
         if self.tools_used:
             md_lines.append(f"\n## Research Methods")
             md_lines.append(f"Tools used: {', '.join(self.tools_used)}")
-        
+
         return "\n".join(md_lines)
 
 
@@ -684,18 +698,19 @@ class EnhancedResearchFindings(ResearchFindings):
 # Phase 3 Enhanced Storage Models
 # ============================================
 
+
 class StoredSource(BaseModel):
     """
     Enhanced source with storage metadata.
-    
+
     This model represents a source that has been stored in our
     enhanced Supabase storage with all associated metadata.
     """
-    
+
     # Core identification
     id: str = Field(..., description="Unique source ID from database")
     source: AcademicSource = Field(..., description="Original source data")
-    
+
     # Storage details
     full_content: Optional[str] = Field(
         None, description="Full extracted content if available"
@@ -703,18 +718,16 @@ class StoredSource(BaseModel):
     chunk_ids: List[str] = Field(
         default_factory=list, description="IDs of content chunks"
     )
-    chunk_count: int = Field(
-        default=0, ge=0, description="Number of chunks created"
-    )
-    
+    chunk_count: int = Field(default=0, ge=0, description="Number of chunks created")
+
     # Embedding status
-    embedding_status: Literal["not_queued", "pending", "processing", "completed", "failed"] = Field(
-        default="not_queued", description="Current embedding generation status"
-    )
+    embedding_status: Literal[
+        "not_queued", "pending", "processing", "completed", "failed"
+    ] = Field(default="not_queued", description="Current embedding generation status")
     embedding_error: Optional[str] = Field(
         None, description="Error message if embedding failed"
     )
-    
+
     # Relationships
     relationships: List["SourceRelationship"] = Field(
         default_factory=list, description="All source relationships"
@@ -722,7 +735,7 @@ class StoredSource(BaseModel):
     relationship_count: int = Field(
         default=0, ge=0, description="Total number of relationships"
     )
-    
+
     # Metadata
     stored_at: datetime = Field(
         default_factory=datetime.now, description="When source was stored"
@@ -730,50 +743,60 @@ class StoredSource(BaseModel):
     last_updated: datetime = Field(
         default_factory=datetime.now, description="Last update timestamp"
     )
-    access_count: int = Field(
-        default=0, ge=0, description="Number of times accessed"
-    )
-    
+    access_count: int = Field(default=0, ge=0, description="Number of times accessed")
+
     def has_full_content(self) -> bool:
         """Check if full content is available."""
-        return bool(self.full_content and len(self.full_content) > len(self.source.excerpt))
-    
+        return bool(
+            self.full_content and len(self.full_content) > len(self.source.excerpt)
+        )
+
     def is_embedded(self) -> bool:
         """Check if embeddings are ready."""
         return self.embedding_status == "completed"
-    
-    def get_primary_relationships(self, relationship_type: str) -> List["SourceRelationship"]:
+
+    def get_primary_relationships(
+        self, relationship_type: str
+    ) -> List["SourceRelationship"]:
         """Get relationships of a specific type."""
-        return [r for r in self.relationships if r.relationship_type == relationship_type]
+        return [
+            r for r in self.relationships if r.relationship_type == relationship_type
+        ]
 
 
 class SourceRelationship(BaseModel):
     """
     Represents a relationship between two sources.
-    
+
     This model captures various types of relationships that can exist
     between research sources, enabling graph-like traversal.
     """
-    
+
     # Relationship identification
     id: Optional[str] = Field(None, description="Relationship ID from database")
     source_id: str = Field(..., description="Primary source ID")
     related_id: str = Field(..., description="Related source ID")
-    
+
     # Relationship details
     relationship_type: Literal[
-        "cites", "references", "similar", "contradicts", "crawled_from", "extends", "summarizes"
+        "cites",
+        "references",
+        "similar",
+        "contradicts",
+        "crawled_from",
+        "extends",
+        "summarizes",
     ] = Field(..., description="Type of relationship")
-    
+
     direction: Literal["outgoing", "incoming", "bidirectional"] = Field(
         default="outgoing", description="Relationship direction"
     )
-    
+
     # Similarity for vector relationships
     similarity_score: Optional[float] = Field(
         None, ge=0.0, le=1.0, description="Similarity score for 'similar' relationships"
     )
-    
+
     # Additional context
     metadata: Optional[Dict[str, Any]] = Field(
         None, description="Additional relationship metadata"
@@ -781,12 +804,12 @@ class SourceRelationship(BaseModel):
     created_at: datetime = Field(
         default_factory=datetime.now, description="When relationship was created"
     )
-    
+
     # Related source info (populated when fetched)
     related_source_info: Optional[Dict[str, str]] = Field(
         None, description="Basic info about related source (title, url)"
     )
-    
+
     def is_strong_relationship(self) -> bool:
         """Check if this is a strong relationship."""
         if self.relationship_type in ["cites", "references"]:
@@ -794,7 +817,7 @@ class SourceRelationship(BaseModel):
         if self.relationship_type == "similar" and self.similarity_score:
             return self.similarity_score > 0.8
         return False
-    
+
     def get_strength_label(self) -> str:
         """Get human-readable relationship strength."""
         if self.relationship_type in ["cites", "references"]:
@@ -814,27 +837,29 @@ class SourceRelationship(BaseModel):
 class SearchResult(BaseModel):
     """
     Enhanced search result with relationships.
-    
+
     This model represents a search result that includes not just
     the primary match but also related sources.
     """
-    
+
     # Primary result
     chunk_id: str = Field(..., description="ID of matching chunk")
     source_id: str = Field(..., description="ID of source")
     content: str = Field(..., description="Matching content")
     similarity: float = Field(..., ge=0.0, le=1.0, description="Similarity score")
-    
+
     # Source metadata
     source_title: str = Field(..., description="Title of source")
     source_url: str = Field(..., description="URL of source")
-    source_credibility: float = Field(..., ge=0.0, le=1.0, description="Source credibility")
-    
+    source_credibility: float = Field(
+        ..., ge=0.0, le=1.0, description="Source credibility"
+    )
+
     # Related sources
     related_sources: List[Dict[str, Any]] = Field(
         default_factory=list, description="Related sources with relationships"
     )
-    
+
     # Search metadata
     search_type: Literal["vector", "keyword", "hybrid"] = Field(
         ..., description="Type of search that found this result"
@@ -845,61 +870,63 @@ class SearchResult(BaseModel):
     combined_score: Optional[float] = Field(
         None, description="Combined score for hybrid search"
     )
-    
+
     def get_total_relevance(self) -> float:
         """Calculate total relevance including relationships."""
         base_score = self.combined_score or self.similarity
-        
+
         # Boost for credible sources
         credibility_boost = self.source_credibility * 0.2
-        
+
         # Boost for sources with many relationships
         relationship_boost = min(len(self.related_sources) * 0.05, 0.2)
-        
+
         return min(base_score + credibility_boost + relationship_boost, 1.0)
 
 
 class CrawlMetadata(BaseModel):
     """
     Metadata about a crawl operation.
-    
+
     This model tracks information about website crawls performed
     during research for later analysis and debugging.
     """
-    
+
     # Crawl identification
-    crawl_id: str = Field(default_factory=lambda: str(uuid4()), description="Unique crawl ID")
+    crawl_id: str = Field(
+        default_factory=lambda: str(uuid4()), description="Unique crawl ID"
+    )
     parent_url: str = Field(..., description="Root URL that was crawled")
     keyword: str = Field(..., description="Research keyword that triggered crawl")
-    
+
     # Crawl results
     pages_found: int = Field(..., ge=0, description="Total pages discovered")
     pages_stored: int = Field(..., ge=0, description="Pages successfully stored")
     source_ids: List[str] = Field(..., description="IDs of stored sources")
-    
+
     # Crawl configuration
     max_depth: int = Field(..., ge=1, description="Maximum crawl depth used")
     crawl_timeout: int = Field(..., description="Timeout in seconds")
     filters_applied: Optional[Dict[str, Any]] = Field(
         None, description="Any filters applied during crawl"
     )
-    
+
     # Performance metrics
     crawl_duration_seconds: float = Field(..., ge=0, description="Total crawl time")
     average_page_size: Optional[float] = Field(
         None, description="Average page size in KB"
     )
-    
+
     # Timestamps
     started_at: datetime = Field(..., description="When crawl started")
     completed_at: datetime = Field(..., description="When crawl completed")
-    
+
     def get_success_rate(self) -> float:
         """Calculate crawl success rate."""
         if self.pages_found == 0:
             return 0.0
         return self.pages_stored / self.pages_found
-    
+
     def get_pages_per_second(self) -> float:
         """Calculate crawl speed."""
         if self.crawl_duration_seconds == 0:
@@ -910,36 +937,36 @@ class CrawlMetadata(BaseModel):
 class EmbeddingQueueItem(BaseModel):
     """
     Represents an item in the embedding generation queue.
-    
+
     This model tracks sources waiting for embedding generation,
     enabling batch processing and retry logic.
     """
-    
+
     # Queue item identification
     id: str = Field(..., description="Queue item ID")
     source_id: str = Field(..., description="Source requiring embeddings")
-    
+
     # Status tracking
     status: Literal["pending", "processing", "completed", "failed"] = Field(
         ..., description="Current processing status"
     )
     retry_count: int = Field(default=0, ge=0, description="Number of retry attempts")
     error_message: Optional[str] = Field(None, description="Error if failed")
-    
+
     # Timestamps
     created_at: datetime = Field(..., description="When queued")
     processed_at: Optional[datetime] = Field(None, description="When processed")
-    
+
     # Processing metadata
     chunk_count: Optional[int] = Field(None, description="Number of chunks to process")
     embeddings_generated: Optional[int] = Field(
         None, description="Number of embeddings successfully generated"
     )
-    
+
     def can_retry(self, max_retries: int = 3) -> bool:
         """Check if item can be retried."""
         return self.status == "failed" and self.retry_count < max_retries
-    
+
     def get_wait_time(self) -> Optional[timedelta]:
         """Calculate how long item has been waiting."""
         if self.status == "pending":

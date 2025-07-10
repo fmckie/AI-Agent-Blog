@@ -46,7 +46,7 @@ async def handle_cache_search(query: str, limit: int, threshold: float):
 
             # Generate embedding for query
             query_embeddings = await embeddings.generate_embeddings([query])
-            
+
             if not query_embeddings:
                 console.print("[red]Failed to generate embedding for query[/red]")
                 return
@@ -350,9 +350,7 @@ async def handle_export_cache_metrics(format: str, output_path: Optional[Path]):
             # Write output
             if output_path:
                 output_path.write_text(output_data)
-                console.print(
-                    f"[green]✅ Metrics exported to {output_path}[/green]"
-                )
+                console.print(f"[green]✅ Metrics exported to {output_path}[/green]")
             else:
                 console.print(output_data)
 

@@ -95,7 +95,8 @@ class RAGConfig(BaseSettings):
         default=True, description="Enable Google Drive integration features"
     )
     google_drive_auto_upload: bool = Field(
-        default=True, description="Automatically upload articles to Drive after generation"
+        default=True,
+        description="Automatically upload articles to Drive after generation",
     )
     google_drive_watch_enabled: bool = Field(
         default=False, description="Enable Drive folder watching for new documents"

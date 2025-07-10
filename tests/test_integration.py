@@ -518,16 +518,18 @@ class TestEdgeCases:
         )
 
         orchestrator = WorkflowOrchestrator(config)
-        
+
         # Create a very long keyword
         long_keyword = "machine learning " * 50  # 800+ characters
-        
+
         # Test that very long keywords are rejected
         with pytest.raises(ValueError, match="Keyword too long"):
             await orchestrator.run_full_workflow(long_keyword)
-        
+
         # Now test with a keyword at the limit
-        max_keyword = "artificial intelligence and machine learning research"  # Under 200 chars
+        max_keyword = (
+            "artificial intelligence and machine learning research"  # Under 200 chars
+        )
 
         mock_research = ResearchFindings(
             keyword=max_keyword,

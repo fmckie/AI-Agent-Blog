@@ -51,24 +51,20 @@ class Config(BaseSettings):
     # These settings are for Google Drive integration
     google_drive_credentials_path: Path = Field(
         default=Path("credentials.json"),
-        description="Path to Google OAuth credentials JSON file"
+        description="Path to Google OAuth credentials JSON file",
     )
     google_drive_token_path: Path = Field(
-        default=Path("token.json"),
-        description="Path to store OAuth token"
+        default=Path("token.json"), description="Path to store OAuth token"
     )
     google_drive_folder_id: Optional[str] = Field(
-        default=None,
-        description="Google Drive folder ID to watch for documents"
+        default=None, description="Google Drive folder ID to watch for documents"
     )
     google_drive_upload_folder_id: Optional[str] = Field(
         default=None,
-        description="Google Drive folder ID for uploading generated articles"
+        description="Google Drive folder ID for uploading generated articles",
     )
     google_drive_sync_interval: int = Field(
-        default=300,
-        ge=60,
-        description="Sync interval in seconds (minimum 60)"
+        default=300, ge=60, description="Sync interval in seconds (minimum 60)"
     )
 
     # Optional Settings with Defaults
@@ -105,7 +101,7 @@ class Config(BaseSettings):
         le=20,
         description="Maximum number of search results to return",
     )
-    
+
     # Tavily Extract Configuration
     tavily_extract_depth: Literal["basic", "advanced"] = Field(
         default="advanced",
@@ -117,7 +113,7 @@ class Config(BaseSettings):
         le=20,
         description="Maximum URLs to extract in a single request",
     )
-    
+
     # Tavily Crawl Configuration
     tavily_crawl_max_depth: int = Field(
         default=2,
@@ -137,7 +133,7 @@ class Config(BaseSettings):
         le=300,
         description="Crawl timeout in seconds",
     )
-    
+
     # Research Strategy Configuration
     research_strategy: Literal["basic", "standard", "comprehensive"] = Field(
         default="standard",
@@ -153,7 +149,7 @@ class Config(BaseSettings):
         le=1.0,
         description="Minimum credibility score for source inclusion",
     )
-    
+
     # Workflow Configuration
     workflow_max_retries: int = Field(
         default=3,
@@ -179,7 +175,7 @@ class Config(BaseSettings):
         default=True,
         description="Cache intermediate workflow results for retry/resume",
     )
-    
+
     # Dynamic Tool Selection Configuration
     enable_adaptive_strategy: bool = Field(
         default=True,
@@ -201,7 +197,7 @@ class Config(BaseSettings):
         default=True,
         description="Prioritize sources from the last 2 years",
     )
-    
+
     # Performance Optimization
     enable_result_caching: bool = Field(
         default=True,
@@ -217,7 +213,7 @@ class Config(BaseSettings):
         default=True,
         description="Batch URL extraction requests for efficiency",
     )
-    
+
     # Quality Control Configuration
     require_minimum_sources: int = Field(
         default=3,
@@ -396,11 +392,11 @@ class Config(BaseSettings):
             "timeout": self.request_timeout,
             "max_retries": self.max_retries,
         }
-    
+
     def get_drive_base_config(self) -> dict:
         """
         Get Google Drive base configuration.
-        
+
         Returns:
             Dictionary with Drive configuration needed by the DriveConfig class
         """
@@ -411,11 +407,11 @@ class Config(BaseSettings):
             "upload_folder_id": self.google_drive_upload_folder_id,
             "sync_interval": self.google_drive_sync_interval,
         }
-    
+
     def get_workflow_config(self) -> dict:
         """
         Get workflow-specific configuration.
-        
+
         Returns:
             Dictionary with workflow configuration settings
         """
@@ -436,11 +432,11 @@ class Config(BaseSettings):
             "diversity_check": self.diversity_check,
             "fact_verification": self.fact_verification_level,
         }
-    
+
     def get_strategy_config(self) -> dict:
         """
         Get strategy-specific configuration for ResearchStrategy.
-        
+
         Returns:
             Dictionary with strategy configuration settings
         """

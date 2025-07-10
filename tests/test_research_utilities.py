@@ -151,14 +151,14 @@ class TestCitationFormatting:
             domain=".edu",
             credibility_score=0.8,
         )
-        
+
         citation = format_apa_citation(source)
         # Should handle empty first name gracefully
         assert "Smith" in citation
         assert "Edge Case Paper" in citation
         # Should not have the empty initial
         assert ", ." not in citation
-        
+
         # Also test empty string after comma with space
         source.authors = ["Jones, "]  # Space after comma but nothing else
         citation = format_apa_citation(source)

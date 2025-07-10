@@ -166,9 +166,9 @@ class TavilyClient:
         # Prepare request headers with Bearer token
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
-        
+
         # Prepare request payload (no API key in body)
         payload = {
             "query": query,
@@ -192,7 +192,9 @@ class TavilyClient:
 
             # Get the response context manager with headers
             # This handles both real aiohttp and mocked sessions
-            response_cm = self.session.post(f"{self.base_url}/search", json=payload, headers=headers)
+            response_cm = self.session.post(
+                f"{self.base_url}/search", json=payload, headers=headers
+            )
 
             # If it's a coroutine (from AsyncMock), await it first
             if asyncio.iscoroutine(response_cm):
@@ -406,7 +408,7 @@ class TavilyClient:
         # Prepare request headers with Bearer token
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         # Prepare request payload (no API key in body)
@@ -417,12 +419,12 @@ class TavilyClient:
 
         try:
             if not hasattr(self, "session"):
-                raise TavilyAPIError(
-                    "Client not initialized. Use as context manager"
-                )
+                raise TavilyAPIError("Client not initialized. Use as context manager")
 
-            response_cm = self.session.post(f"{self.base_url}/extract", json=payload, headers=headers)
-            
+            response_cm = self.session.post(
+                f"{self.base_url}/extract", json=payload, headers=headers
+            )
+
             if asyncio.iscoroutine(response_cm):
                 response_cm = await response_cm
 
@@ -432,11 +434,13 @@ class TavilyClient:
                     await raise_result
 
                 data = await response.json()
-                
+
                 # Process extracted results
                 extracted_count = len(data.get("results", []))
-                logger.info(f"Successfully extracted content from {extracted_count} URLs")
-                
+                logger.info(
+                    f"Successfully extracted content from {extracted_count} URLs"
+                )
+
                 return data
 
         except aiohttp.ClientResponseError as e:
@@ -491,7 +495,7 @@ class TavilyClient:
         # Prepare request headers with Bearer token
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         # Prepare request payload (no API key in body)
@@ -508,12 +512,12 @@ class TavilyClient:
 
         try:
             if not hasattr(self, "session"):
-                raise TavilyAPIError(
-                    "Client not initialized. Use as context manager"
-                )
+                raise TavilyAPIError("Client not initialized. Use as context manager")
 
-            response_cm = self.session.post(f"{self.base_url}/crawl", json=payload, headers=headers)
-            
+            response_cm = self.session.post(
+                f"{self.base_url}/crawl", json=payload, headers=headers
+            )
+
             if asyncio.iscoroutine(response_cm):
                 response_cm = await response_cm
 
@@ -523,11 +527,11 @@ class TavilyClient:
                     await raise_result
 
                 data = await response.json()
-                
+
                 # Process crawl results
                 pages_crawled = len(data.get("results", []))
                 logger.info(f"Successfully crawled {pages_crawled} pages")
-                
+
                 return data
 
         except aiohttp.ClientResponseError as e:
@@ -550,9 +554,7 @@ class TavilyClient:
         max_time=60,
         giveup=lambda e: isinstance(e, (TavilyAuthError, TavilyRateLimitError)),
     )
-    async def map(
-        self, url: str, instructions: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def map(self, url: str, instructions: Optional[str] = None) -> Dict[str, Any]:
         """
         Map a website structure quickly without full content extraction.
 
@@ -574,7 +576,7 @@ class TavilyClient:
         # Prepare request headers with Bearer token
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         # Prepare request payload (no API key in body)
@@ -588,12 +590,12 @@ class TavilyClient:
 
         try:
             if not hasattr(self, "session"):
-                raise TavilyAPIError(
-                    "Client not initialized. Use as context manager"
-                )
+                raise TavilyAPIError("Client not initialized. Use as context manager")
 
-            response_cm = self.session.post(f"{self.base_url}/map", json=payload, headers=headers)
-            
+            response_cm = self.session.post(
+                f"{self.base_url}/map", json=payload, headers=headers
+            )
+
             if asyncio.iscoroutine(response_cm):
                 response_cm = await response_cm
 
@@ -603,11 +605,11 @@ class TavilyClient:
                     await raise_result
 
                 data = await response.json()
-                
+
                 # Process map results - API returns 'results' not 'links'
                 results_found = len(data.get("results", []))
                 logger.info(f"Found {results_found} URLs in site map")
-                
+
                 return data
 
         except aiohttp.ClientResponseError as e:
@@ -680,9 +682,7 @@ async def crawl_website(
         Dictionary with crawled pages and content
     """
     async with TavilyClient(config) as client:
-        return await client.crawl(
-            url, max_depth=max_depth, instructions=instructions
-        )
+        return await client.crawl(url, max_depth=max_depth, instructions=instructions)
 
 
 async def map_website(

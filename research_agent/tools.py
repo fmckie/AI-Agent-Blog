@@ -13,12 +13,18 @@ from pydantic_ai import RunContext
 
 from config import Config
 from rag.retriever import ResearchRetriever
-from tools import search_academic_sources, extract_url_content, crawl_website, map_website
+from tools import (
+    search_academic_sources,
+    extract_url_content,
+    crawl_website,
+    map_website,
+)
 from models import AcademicSource
 
 # Import EnhancedVectorStorage for Phase 3 integration
 try:
     from rag.enhanced_storage import EnhancedVectorStorage
+
     enhanced_storage_available = True
 except ImportError:
     enhanced_storage_available = False
@@ -123,7 +129,7 @@ async def search_academic(
                 "cached": True,  # Indicates this might be from cache
             },
         }
-        
+
         # Store sources in EnhancedVectorStorage if available
         if enhanced_storage_available and findings.academic_sources:
             try:
@@ -133,11 +139,13 @@ async def search_academic(
                     for source in findings.academic_sources:
                         source_id = await storage.store_research_source(
                             source=source,
-                            generate_embedding=False  # Will generate later with full content
+                            generate_embedding=False,  # Will generate later with full content
                         )
                         if source_id:
                             stored_count += 1
-                    logger.info(f"Stored {stored_count} sources in EnhancedVectorStorage")
+                    logger.info(
+                        f"Stored {stored_count} sources in EnhancedVectorStorage"
+                    )
             except Exception as e:
                 logger.warning(f"Failed to store sources in EnhancedVectorStorage: {e}")
 
@@ -190,26 +198,32 @@ async def extract_full_content(
 
     try:
         # Call the Tavily extract API
-        extract_results = await extract_url_content(urls, config, extract_depth="advanced")
+        extract_results = await extract_url_content(
+            urls, config, extract_depth="advanced"
+        )
 
         # Process and enhance results
         processed_results = []
         for result in extract_results.get("results", []):
             if result.get("raw_content"):
-                processed_results.append({
-                    "url": result.get("url"),
-                    "title": result.get("title", ""),
-                    "raw_content": result.get("raw_content"),
-                    "content_length": len(result.get("raw_content", "")),
-                    "extraction_success": True,
-                })
-                
+                processed_results.append(
+                    {
+                        "url": result.get("url"),
+                        "title": result.get("title", ""),
+                        "raw_content": result.get("raw_content"),
+                        "content_length": len(result.get("raw_content", "")),
+                        "extraction_success": True,
+                    }
+                )
+
                 # Update source with full content in EnhancedVectorStorage
                 if enhanced_storage_available:
                     try:
                         storage = get_enhanced_storage()
                         if storage:
-                            source_data = await storage.get_source_by_url(result.get("url"))
+                            source_data = await storage.get_source_by_url(
+                                result.get("url")
+                            )
                             if source_data:
                                 # Update existing source with full content
                                 source = AcademicSource(
@@ -218,22 +232,28 @@ async def extract_full_content(
                                     excerpt=result.get("raw_content", "")[:500],
                                     domain=source_data["domain"],
                                     credibility_score=source_data["credibility_score"],
-                                    source_type=source_data.get("source_type", "extracted")
+                                    source_type=source_data.get(
+                                        "source_type", "extracted"
+                                    ),
                                 )
                                 await storage.store_research_source(
                                     source=source,
                                     full_content=result.get("raw_content"),
-                                    generate_embedding=True
+                                    generate_embedding=True,
                                 )
-                                logger.debug(f"Updated source with full content: {result.get('url')}")
+                                logger.debug(
+                                    f"Updated source with full content: {result.get('url')}"
+                                )
                     except Exception as e:
                         logger.warning(f"Failed to update EnhancedVectorStorage: {e}")
             else:
-                processed_results.append({
-                    "url": result.get("url"),
-                    "error": "Failed to extract content",
-                    "extraction_success": False,
-                })
+                processed_results.append(
+                    {
+                        "url": result.get("url"),
+                        "error": "Failed to extract content",
+                        "extraction_success": False,
+                    }
+                )
 
         logger.info(
             f"Successfully extracted content from "
@@ -245,9 +265,11 @@ async def extract_full_content(
             "results": processed_results,
             "metadata": {
                 "total_requested": len(urls),
-                "successful_extractions": len([r for r in processed_results if r.get("extraction_success")]),
+                "successful_extractions": len(
+                    [r for r in processed_results if r.get("extraction_success")]
+                ),
                 "timestamp": datetime.now().isoformat(),
-            }
+            },
         }
 
     except Exception as e:
@@ -283,12 +305,14 @@ async def crawl_domain(
 
         # Process crawl results
         pages = crawl_results.get("results", [])
-        
+
         # Extract domain statistics
         domain_stats = {
             "total_pages": len(pages),
             "total_content_length": sum(len(p.get("raw_content", "")) for p in pages),
-            "unique_domains": len(set(p.get("url", "").split("/")[2] for p in pages if p.get("url"))),
+            "unique_domains": len(
+                set(p.get("url", "").split("/")[2] for p in pages if p.get("url"))
+            ),
         }
 
         # Categorize pages by relevance
@@ -296,18 +320,22 @@ async def crawl_domain(
         for page in pages:
             content = page.get("raw_content", "").lower()
             title = page.get("title", "").lower()
-            
+
             # Simple relevance scoring based on instructions
             instruction_words = instructions.lower().split()
-            relevance_score = sum(1 for word in instruction_words if word in content or word in title)
-            
+            relevance_score = sum(
+                1 for word in instruction_words if word in content or word in title
+            )
+
             if relevance_score > 0:
-                relevant_pages.append({
-                    "url": page.get("url"),
-                    "title": page.get("title"),
-                    "content_preview": page.get("raw_content", "")[:500],
-                    "relevance_score": relevance_score,
-                })
+                relevant_pages.append(
+                    {
+                        "url": page.get("url"),
+                        "title": page.get("title"),
+                        "content_preview": page.get("raw_content", "")[:500],
+                        "relevance_score": relevance_score,
+                    }
+                )
 
         # Sort by relevance
         relevant_pages.sort(key=lambda x: x["relevance_score"], reverse=True)
@@ -316,23 +344,27 @@ async def crawl_domain(
             f"Crawled {domain_stats['total_pages']} pages, "
             f"found {len(relevant_pages)} relevant pages"
         )
-        
+
         # Store crawl results in EnhancedVectorStorage
         if enhanced_storage_available and pages:
             try:
                 storage = get_enhanced_storage()
                 if storage:
                     # Extract keyword from instructions
-                    keyword = instructions.split("'")[1] if "'" in instructions else "research"
-                    
+                    keyword = (
+                        instructions.split("'")[1]
+                        if "'" in instructions
+                        else "research"
+                    )
+
                     # Store crawl results
                     stored_ids = await storage.store_crawl_results(
-                        crawl_data={"results": pages},
-                        parent_url=url,
-                        keyword=keyword
+                        crawl_data={"results": pages}, parent_url=url, keyword=keyword
                     )
-                    logger.info(f"Stored {len(stored_ids)} crawled pages in EnhancedVectorStorage")
-                    
+                    logger.info(
+                        f"Stored {len(stored_ids)} crawled pages in EnhancedVectorStorage"
+                    )
+
                     # Create relationships between crawled pages
                     if len(stored_ids) > 1:
                         for i in range(len(stored_ids) - 1):
@@ -340,7 +372,7 @@ async def crawl_domain(
                                 source_id=stored_ids[i],
                                 related_id=stored_ids[i + 1],
                                 relationship_type="related",
-                                metadata={"crawl_session": url}
+                                metadata={"crawl_session": url},
                             )
             except Exception as e:
                 logger.warning(f"Failed to store crawl in EnhancedVectorStorage: {e}")
@@ -354,7 +386,7 @@ async def crawl_domain(
             "metadata": {
                 "crawl_timestamp": datetime.now().isoformat(),
                 "crawl_depth": 2,
-            }
+            },
         }
 
     except Exception as e:
@@ -363,7 +395,10 @@ async def crawl_domain(
 
 
 async def analyze_domain_structure(
-    ctx: RunContext[None], url: str, focus_area: Optional[str] = None, config: Config = None
+    ctx: RunContext[None],
+    url: str,
+    focus_area: Optional[str] = None,
+    config: Config = None,
 ) -> Dict[str, Any]:
     """
     Analyze website structure to identify key research areas.
@@ -393,7 +428,7 @@ async def analyze_domain_structure(
 
         # Analyze the site structure
         links = map_results.get("links", [])
-        
+
         # Categorize links by type
         categories = {
             "research": [],
@@ -406,12 +441,18 @@ async def analyze_domain_structure(
 
         for link in links:
             link_lower = link.lower()
-            
-            if any(word in link_lower for word in ["research", "study", "paper", "journal"]):
+
+            if any(
+                word in link_lower for word in ["research", "study", "paper", "journal"]
+            ):
                 categories["research"].append(link)
-            elif any(word in link_lower for word in ["publication", "article", "whitepaper"]):
+            elif any(
+                word in link_lower for word in ["publication", "article", "whitepaper"]
+            ):
                 categories["publications"].append(link)
-            elif any(word in link_lower for word in ["doc", "guide", "tutorial", "api"]):
+            elif any(
+                word in link_lower for word in ["doc", "guide", "tutorial", "api"]
+            ):
                 categories["documentation"].append(link)
             elif any(word in link_lower for word in ["blog", "news", "update"]):
                 categories["blog"].append(link)
@@ -423,23 +464,35 @@ async def analyze_domain_structure(
         # Generate insights
         insights = []
         if categories["research"]:
-            insights.append(f"Found {len(categories['research'])} research-related pages")
+            insights.append(
+                f"Found {len(categories['research'])} research-related pages"
+            )
         if categories["publications"]:
-            insights.append(f"Site contains {len(categories['publications'])} publication pages")
+            insights.append(
+                f"Site contains {len(categories['publications'])} publication pages"
+            )
         if categories["documentation"]:
-            insights.append(f"Documentation section with {len(categories['documentation'])} pages")
+            insights.append(
+                f"Documentation section with {len(categories['documentation'])} pages"
+            )
 
-        logger.info(f"Mapped {len(links)} links across {len([c for c in categories if categories[c]])} categories")
-        
+        logger.info(
+            f"Mapped {len(links)} links across {len([c for c in categories if categories[c]])} categories"
+        )
+
         # Store domain analysis in EnhancedVectorStorage
         if enhanced_storage_available:
             try:
                 storage = get_enhanced_storage()
                 if storage:
                     # Extract domain from URL
-                    domain_name = url.split('//')[-1].split('/')[0]
-                    domain_ext = ".edu" if ".edu" in url else (".gov" if ".gov" in url else ".com")
-                    
+                    domain_name = url.split("//")[-1].split("/")[0]
+                    domain_ext = (
+                        ".edu"
+                        if ".edu" in url
+                        else (".gov" if ".gov" in url else ".com")
+                    )
+
                     # Create source for domain analysis
                     domain_source = AcademicSource(
                         title=f"Domain Analysis: {domain_name}",
@@ -447,10 +500,12 @@ async def analyze_domain_structure(
                         excerpt=f"Analyzed {len(links)} pages focusing on {focus_area or 'general content'}",
                         domain=domain_ext,
                         credibility_score=0.7,
-                        source_type="domain_analysis"
+                        source_type="domain_analysis",
                     )
                     source_id = await storage.store_research_source(domain_source)
-                    logger.debug(f"Stored domain analysis in EnhancedVectorStorage: {source_id}")
+                    logger.debug(
+                        f"Stored domain analysis in EnhancedVectorStorage: {source_id}"
+                    )
             except Exception as e:
                 logger.warning(f"Failed to store domain analysis: {e}")
 
@@ -460,13 +515,14 @@ async def analyze_domain_structure(
             "categorized_links": categories,
             "insights": insights,
             "recommended_sections": [
-                cat for cat, links in categories.items() 
+                cat
+                for cat, links in categories.items()
                 if links and cat in ["research", "publications", "documentation"]
             ],
             "metadata": {
                 "analysis_timestamp": datetime.now().isoformat(),
                 "focus_area": focus_area,
-            }
+            },
         }
 
     except Exception as e:
@@ -499,7 +555,7 @@ async def multi_step_research(
     try:
         # Step 1: Initial search
         search_results = await search_academic(ctx, keyword, config)
-        
+
         # Step 2: Select top URLs for extraction
         top_urls = []
         for result in search_results.get("results", [])[:5]:
@@ -517,30 +573,46 @@ async def multi_step_research(
             # Find .edu or .gov domain with highest credibility
             for result in search_results["results"]:
                 domain = result.get("domain", "")
-                if domain in [".edu", ".gov"] and result.get("credibility_score", 0) > 0.8:
-                    best_domain = result["url"].split("/")[0] + "//" + result["url"].split("/")[2]
+                if (
+                    domain in [".edu", ".gov"]
+                    and result.get("credibility_score", 0) > 0.8
+                ):
+                    best_domain = (
+                        result["url"].split("/")[0] + "//" + result["url"].split("/")[2]
+                    )
                     break
 
         # Step 5: Crawl the best domain
         crawl_data = None
         if best_domain:
-            crawl_instructions = f"Find research, studies, and publications about {keyword}"
-            crawl_data = await crawl_domain(ctx, best_domain, crawl_instructions, config)
+            crawl_instructions = (
+                f"Find research, studies, and publications about {keyword}"
+            )
+            crawl_data = await crawl_domain(
+                ctx, best_domain, crawl_instructions, config
+            )
 
         # Step 6: Synthesize findings
         synthesis = {
             "keyword": keyword,
             "total_sources_found": len(search_results.get("results", [])),
-            "high_credibility_sources": len([
-                r for r in search_results.get("results", []) 
-                if r.get("credibility_score", 0) > 0.7
-            ]),
+            "high_credibility_sources": len(
+                [
+                    r
+                    for r in search_results.get("results", [])
+                    if r.get("credibility_score", 0) > 0.7
+                ]
+            ),
             "content_extracted_from": len(top_urls),
             "domain_crawled": best_domain is not None,
             "research_summary": {
                 "search_results": search_results.get("results", [])[:3],
-                "extracted_content": extracted_content.get("results", []) if extracted_content else [],
-                "crawled_pages": crawl_data.get("relevant_pages", [])[:3] if crawl_data else [],
+                "extracted_content": (
+                    extracted_content.get("results", []) if extracted_content else []
+                ),
+                "crawled_pages": (
+                    crawl_data.get("relevant_pages", [])[:3] if crawl_data else []
+                ),
             },
             "metadata": {
                 "research_timestamp": datetime.now().isoformat(),
@@ -549,7 +621,7 @@ async def multi_step_research(
                     "extract" if extracted_content else None,
                     "crawl" if crawl_data else None,
                 ],
-            }
+            },
         }
 
         logger.info(
@@ -557,7 +629,7 @@ async def multi_step_research(
             f"{synthesis['total_sources_found']} sources, "
             f"{synthesis['content_extracted_from']} extractions"
         )
-        
+
         # Create source relationships in EnhancedVectorStorage
         if enhanced_storage_available and search_results.get("results"):
             try:
@@ -569,16 +641,16 @@ async def multi_step_research(
                         source_data = await storage.get_source_by_url(result["url"])
                         if source_data:
                             source_ids.append(source_data["id"])
-                    
+
                     # Calculate similarities between sources
                     for source_id in source_ids:
                         await storage.calculate_source_similarities(
-                            source_id=source_id,
-                            threshold=0.7,
-                            max_relationships=3
+                            source_id=source_id, threshold=0.7, max_relationships=3
                         )
-                    
-                    logger.info(f"Created similarity relationships for {len(source_ids)} sources")
+
+                    logger.info(
+                        f"Created similarity relationships for {len(source_ids)} sources"
+                    )
             except Exception as e:
                 logger.warning(f"Failed to create source relationships: {e}")
 

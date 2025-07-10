@@ -18,6 +18,7 @@ from click.testing import CliRunner
 from config import Config
 from main import cli, batch, cleanup, cache, drive, _run_batch_generation
 from models import AcademicSource, ArticleOutput, ArticleSection, ResearchFindings
+from workflow import WorkflowOrchestrator
 
 
 class TestBatchCommand:
@@ -189,12 +190,15 @@ class TestCleanupCommand:
         try:
             # Create old workflow state files
             old_time = datetime.now() - timedelta(hours=48)
-            
+
             # Create old state file
-            state_file = mock_config.output_dir / ".workflow_state_test_20240101_120000.json"
+            state_file = (
+                mock_config.output_dir / ".workflow_state_test_20240101_120000.json"
+            )
             state_file.write_text("{}")
             # Set modification time to 48 hours ago
             import os
+
             old_timestamp = old_time.timestamp()
             os.utime(state_file, (old_timestamp, old_timestamp))
 
@@ -204,7 +208,9 @@ class TestCleanupCommand:
             os.utime(temp_dir, (old_timestamp, old_timestamp))
 
             # Mock the cleanup function
-            with patch("main.WorkflowOrchestrator.cleanup_orphaned_files") as mock_cleanup:
+            with patch(
+                "main.WorkflowOrchestrator.cleanup_orphaned_files"
+            ) as mock_cleanup:
                 mock_cleanup.return_value = (1, 1)  # Cleaned 1 state file, 1 temp dir
 
                 result = runner.invoke(cli, ["cleanup"])
@@ -227,12 +233,15 @@ class TestCleanupCommand:
         try:
             # Create files that would be cleaned
             old_time = datetime.now() - timedelta(hours=48)
-            
-            state_file = mock_config.output_dir / ".workflow_state_old_20240101_120000.json"
+
+            state_file = (
+                mock_config.output_dir / ".workflow_state_old_20240101_120000.json"
+            )
             state_file.write_text("{}")
-            
+
             # Set old modification time
             import os
+
             old_timestamp = old_time.timestamp()
             os.utime(state_file, (old_timestamp, old_timestamp))
 
@@ -255,16 +264,21 @@ class TestCleanupCommand:
         try:
             # Create a file that's 6 hours old
             recent_time = datetime.now() - timedelta(hours=6)
-            
-            state_file = mock_config.output_dir / ".workflow_state_recent_20240101_180000.json"
+
+            state_file = (
+                mock_config.output_dir / ".workflow_state_recent_20240101_180000.json"
+            )
             state_file.write_text("{}")
-            
+
             import os
+
             recent_timestamp = recent_time.timestamp()
             os.utime(state_file, (recent_timestamp, recent_timestamp))
 
             # Mock the cleanup function
-            with patch("main.WorkflowOrchestrator.cleanup_orphaned_files") as mock_cleanup:
+            with patch(
+                "main.WorkflowOrchestrator.cleanup_orphaned_files"
+            ) as mock_cleanup:
                 mock_cleanup.return_value = (1, 0)
 
                 # Should clean files older than 5 hours
@@ -317,7 +331,7 @@ class TestBatchGeneration:
     async def test_batch_generation_sequential(self, mock_config, mock_orchestrator):
         """Test sequential batch generation."""
         keywords = ["keyword1", "keyword2", "keyword3"]
-        
+
         with patch("main.WorkflowOrchestrator", return_value=mock_orchestrator):
             with patch("main.console") as mock_console:
                 await _run_batch_generation(
@@ -341,7 +355,7 @@ class TestBatchGeneration:
     async def test_batch_generation_parallel(self, mock_config, mock_orchestrator):
         """Test parallel batch generation."""
         keywords = ["keyword1", "keyword2", "keyword3", "keyword4"]
-        
+
         with patch("main.WorkflowOrchestrator", return_value=mock_orchestrator):
             with patch("main.console") as mock_console:
                 await _run_batch_generation(
@@ -363,7 +377,7 @@ class TestBatchGeneration:
     ):
         """Test batch generation continues on error when flag is set."""
         keywords = ["keyword1", "keyword2", "keyword3"]
-        
+
         # Make second keyword fail
         mock_orchestrator.run_full_workflow.side_effect = [
             Path("/tmp/output/keyword1/index.html"),
@@ -392,7 +406,7 @@ class TestBatchGeneration:
     ):
         """Test batch generation stops on error when fail-fast is enabled."""
         keywords = ["keyword1", "keyword2", "keyword3"]
-        
+
         # Make second keyword fail
         mock_orchestrator.run_full_workflow.side_effect = [
             Path("/tmp/output/keyword1/index.html"),
@@ -420,7 +434,7 @@ class TestBatchGeneration:
     async def test_batch_generation_dry_run(self, mock_config, mock_orchestrator):
         """Test batch generation in dry run mode."""
         keywords = ["keyword1", "keyword2"]
-        
+
         with patch("main.WorkflowOrchestrator", return_value=mock_orchestrator):
             with patch("main.console") as mock_console:
                 await _run_batch_generation(
@@ -463,9 +477,7 @@ class TestCacheCommands:
         mock_get_config.return_value = mock_config
         mock_handle_search.return_value = None
 
-        result = runner.invoke(
-            cli, ["cache", "search", "test query", "--limit", "5"]
-        )
+        result = runner.invoke(cli, ["cache", "search", "test query", "--limit", "5"])
 
         assert result.exit_code == 0
         mock_handle_search.assert_called_once()
@@ -510,9 +522,7 @@ class TestCacheCommands:
         mock_get_config.return_value = mock_config
         mock_handle_clear.return_value = None
 
-        result = runner.invoke(
-            cli, ["cache", "clear", "--pattern", "blood_sugar*"]
-        )
+        result = runner.invoke(cli, ["cache", "clear", "--pattern", "blood_sugar*"])
 
         assert result.exit_code == 0
         mock_handle_clear.assert_called_once_with(force=False, pattern="blood_sugar*")
@@ -526,9 +536,7 @@ class TestCacheCommands:
         mock_get_config.return_value = mock_config
         mock_handle_warm.return_value = None
 
-        result = runner.invoke(
-            cli, ["cache", "warm", "diabetes", "--variations"]
-        )
+        result = runner.invoke(cli, ["cache", "warm", "diabetes", "--variations"])
 
         assert result.exit_code == 0
         mock_handle_warm.assert_called_once()
@@ -551,10 +559,8 @@ class TestCacheCommands:
             )
 
             assert result.exit_code == 0
-            mock_handle_export.assert_called_once_with(
-                Path(tmp.name), format="csv"
-            )
-            
+            mock_handle_export.assert_called_once_with(Path(tmp.name), format="csv")
+
             # Clean up
             Path(tmp.name).unlink(missing_ok=True)
 
@@ -609,20 +615,18 @@ class TestDriveCommands:
             assert result.exit_code == 0
             assert "Upload successful" in result.output
             mock_uploader.upload_article.assert_called_once()
-            
+
             # Clean up
             Path(tmp.name).unlink(missing_ok=True)
 
     @patch("main.get_config")
     @patch("main.DriveStorageHandler")
-    def test_drive_list(
-        self, mock_storage_class, mock_get_config, runner, mock_config
-    ):
+    def test_drive_list(self, mock_storage_class, mock_get_config, runner, mock_config):
         """Test drive list command."""
         mock_get_config.return_value = mock_config
         mock_storage = Mock()
         mock_storage_class.return_value = mock_storage
-        
+
         # Mock uploaded articles
         mock_storage.get_uploaded_articles.return_value = [
             {
@@ -651,30 +655,36 @@ class TestDriveCommands:
     @patch("main.GoogleDriveAuth")
     @patch("main.DriveStorageHandler")
     def test_drive_status(
-        self, mock_storage_class, mock_auth_class, mock_get_rag_config, mock_get_config, runner, mock_config
+        self,
+        mock_storage_class,
+        mock_auth_class,
+        mock_get_rag_config,
+        mock_get_config,
+        runner,
+        mock_config,
     ):
         """Test drive status command."""
         mock_config.google_drive_upload_folder_id = "folder_id_123"
         mock_get_config.return_value = mock_config
-        
+
         # Mock RAG config
         mock_rag_config = Mock()
         mock_rag_config.google_drive_enabled = True
         mock_rag_config.google_drive_auto_upload = True
         mock_get_rag_config.return_value = mock_rag_config
-        
+
         # Mock auth
         mock_auth = Mock()
         mock_auth.is_authenticated = True
         mock_auth.test_connection.return_value = True
         mock_auth_class.return_value = mock_auth
-        
+
         # Mock storage
         mock_storage = Mock()
         mock_storage_class.return_value = mock_storage
         mock_storage.get_uploaded_articles.return_value = [
             {"title": "Article 1", "uploaded_at": "2024-01-01"},
-            {"title": "Article 2", "uploaded_at": "2024-01-02"}
+            {"title": "Article 2", "uploaded_at": "2024-01-02"},
         ]
         mock_storage.get_pending_uploads.return_value = []
 

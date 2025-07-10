@@ -101,7 +101,9 @@ def create_research_agent(config: Config) -> Agent[None, ResearchFindings]:
 
     # Register extract full content tool
     @research_agent.tool
-    async def extract_content_tool(ctx: RunContext[None], urls: List[str]) -> Dict[str, Any]:
+    async def extract_content_tool(
+        ctx: RunContext[None], urls: List[str]
+    ) -> Dict[str, Any]:
         """
         Extract full content from URLs for deep analysis.
 
@@ -291,62 +293,57 @@ async def run_research_workflow(
     agent: Agent[None, ResearchFindings],
     keyword: str,
     config: Config,
-    progress_callback: Optional[Callable[[Any], None]] = None
+    progress_callback: Optional[Callable[[Any], None]] = None,
 ) -> ResearchFindings:
     """
     Execute research using the advanced workflow system.
-    
+
     This function uses ResearchWorkflow for orchestrated multi-step research
     with progress tracking and adaptive strategy.
-    
+
     Args:
         agent: The configured research agent
         keyword: The keyword to research
         config: System configuration
         progress_callback: Optional callback for progress updates
-        
+
     Returns:
         ResearchFindings with comprehensive analysis
-        
+
     Raises:
         WorkflowError: If the workflow fails
     """
     try:
         # Import here to avoid circular imports
         from .workflow import ResearchWorkflow
-        
+
         # Create workflow instance
         workflow = ResearchWorkflow(
-            agent=agent,
-            config=config,
-            progress_callback=progress_callback
+            agent=agent, config=config, progress_callback=progress_callback
         )
-        
+
         # Get strategy from config
         strategy = config.research_strategy
         max_retries = config.workflow_max_retries
-        
+
         logger.info(
-            f"Starting research workflow for '{keyword}' "
-            f"with strategy: {strategy}"
+            f"Starting research workflow for '{keyword}' " f"with strategy: {strategy}"
         )
-        
+
         # Execute the workflow
         findings = await workflow.execute_research_pipeline(
-            keyword=keyword,
-            strategy=strategy,
-            max_retries=max_retries
+            keyword=keyword, strategy=strategy, max_retries=max_retries
         )
-        
+
         # Log completion
         logger.info(
             f"Workflow completed successfully. "
             f"Sources: {len(findings.academic_sources)}, "
             f"Findings: {len(findings.main_findings)}"
         )
-        
+
         return findings
-        
+
     except Exception as e:
         logger.error(f"Research workflow failed: {e}")
         raise

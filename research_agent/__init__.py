@@ -11,7 +11,7 @@ from .workflow import ResearchWorkflow, WorkflowProgress, WorkflowStage
 from .strategy import ResearchStrategy, ResearchPlan, TopicType
 
 __all__ = [
-    "create_research_agent", 
+    "create_research_agent",
     "run_research_agent",
     "run_research_workflow",
     "ResearchWorkflow",
